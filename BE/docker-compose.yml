@@ -1,0 +1,23 @@
+services:
+  localdb:
+    image: mysql:8.0
+    container_name: be-mgk-db
+    restart: unless-stopped
+    ports:
+      - "3330:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: bemgkdb
+      MYSQL_DATABASE: bemgkdb
+      MYSQL_USER: MGK
+      MYSQL_PASSWORD: 12345678
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb_ft_min_token_size=2
+      - --log_bin_trust_function_creators=1
+    volumes:
+      - be_mgk_mysql_data:/var/lib/mysql
+
+volumes:
+  be_mgk_mysql_data:
