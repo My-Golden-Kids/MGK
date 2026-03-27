@@ -5,10 +5,10 @@
 
 ```bash
 > cd FE
-> pnpm dev
+> pnpm install
 ```
 
-### 2. `'BE'` 폴더 실행/설치
+### 2. `'BE'` 폴더 환경설정
 
 - docker port: 3330
 - gradle 사용
