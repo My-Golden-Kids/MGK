@@ -1,6 +1,6 @@
 type HealthPromptBubbleProps = {
-  message: string;
-  showAnswerButtons?: boolean;
+  message: string; // 알림 내역
+  showAnswerButtons?: boolean; // 알림에 대한 답변 존재 유무
   onYesClick?: () => void;
   onNoClick?: () => void;
   yesLabel?: string;
