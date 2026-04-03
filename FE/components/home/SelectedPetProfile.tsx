@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef } from 'react';
-import PetProfileImage from '@/components/pet/PetProfileImage';
+import PetProfileImage from '@/components/home/pet/PetProfileImage';
 
 type Pet = {
   id: number | string;

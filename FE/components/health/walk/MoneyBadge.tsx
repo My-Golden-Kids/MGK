@@ -1,12 +1,12 @@
-type HealthMoneyBadgeProps = {
+type MoneyBadgeProps = {
   amount: number; // 하나머니
   className?: string; // 추가 설정사항
 };
 
-export default function HealthMoneyBadge({
+export default function MoneyBadge({
   amount,
   className = '',
-}: HealthMoneyBadgeProps) {
+}: MoneyBadgeProps) {
   return (
     <div
       className={`inline-flex items-center gap-2 rounded-full bg-[#F9E8B5] px-2.5 py-1.5 md:px-3.5 md:py-2 lg:px-4.5 lg:py-2.5 ${className}

@@ -1,4 +1,4 @@
-type HealthPromptBubbleProps = {
+type HomePromptBubbleProps = {
   message: string; // 알림 내역
   showAnswerButtons?: boolean; // 알림에 대한 답변 존재 유무
   onYesClick?: () => void;
@@ -7,14 +7,14 @@ type HealthPromptBubbleProps = {
   noLabel?: string;
 };
 
-export default function HealthPromptBubble({
+export default function HomePromptBubble({
   message,
   showAnswerButtons = false,
   onYesClick,
   onNoClick,
   yesLabel = 'O',
   noLabel = 'X',
-}: HealthPromptBubbleProps) {
+}: HomePromptBubbleProps) {
   return (
     <section className="w-full">
       <div
