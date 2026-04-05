@@ -3,7 +3,8 @@
 import { useId } from 'react';
 import { cn } from '@/lib/utils';
 
-type Props = {
+export type InputFieldProps = {
+  key: string;
   label?: string;
   shortLabel: string;
   description?: string;
@@ -30,7 +31,7 @@ export default function InputField({
   ref,
   id,
   ...props
-}: Props) {
+}: InputFieldProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const isError = !!errorMessage;
@@ -69,13 +70,13 @@ export default function InputField({
         className={cn(
           'w-full border-b bg-transparent outline-none transition-all duration-300',
           'pb-1.25 text-[28px] placeholder:text-gray-300',
-          isActive ? 'mt-3.75 border-[#00A58C]' : 'mt-1.25 border-black',
-          isError && 'border-[#DC1F1F]',
+          isActive ? 'mt-3.75 border-main-green' : 'mt-1.25 border-black',
+          isError && 'border-error-red',
           className,
         )}
       />
       {isError && (
-        <p className="mt-2.5 font-bold text-[#DC1F1F] text-[18px] sm:text-[20px]">
+        <p className="mt-2.5 font-bold text-[18px] text-error-red sm:text-[20px]">
           {errorMessage}
         </p>
       )}

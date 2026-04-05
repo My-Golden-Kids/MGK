@@ -5,6 +5,15 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* custom colors */
+  --color-main-green: #00a58c;
+  --color-mint-green: #25c8a8;
+  --color-hana-pink: #e90061;
+  --color-error-red: #dc1f1f;
+  --color-main-yellow: #e6b319;
+  --color-walk-green: #34cb5f;
+  --color-pastel-blue: #3ac5bf;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -141,10 +150,10 @@
 @keyframes breathing-circle {
   0%,
   100% {
-    transform: scale(1.0) translate3d(0, 0, 0);
+    transform: scale(1) translate3d(0, 0, 0);
   }
   50% {
-    transform: scale(2.0) translate3d(0, 0, 0);
+    transform: scale(2) translate3d(0, 0, 0);
   }
 }
 
@@ -157,5 +166,34 @@
     animation: breathing-circle 4.8s ease-in-out infinite;
     transform-origin: center;
     will-change: transform;
+  }
+
+  /* Modal animations */
+  .animate-overlay-in {
+    animation: overlayIn 0.18s ease both;
+  }
+
+  .animate-card-in {
+    animation: cardIn 0.22s cubic-bezier(0.34, 1.36, 0.64, 1) both;
+  }
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
