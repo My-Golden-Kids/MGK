@@ -79,7 +79,7 @@ export default function Modal({
         {children && (
           <div
             className={cn(
-              'wrap-break-word max-h-79.5 overflow-y-scroll bg-amber-200 sm:max-w-auto',
+              'wrap-break-word max-h-79.5 overflow-y-scroll sm:max-w-auto',
               '[&::-webkit-scrollbar]:w-1.75',
               '[&::-webkit-scrollbar-thumb]:rounded-xs',
               '[&::-webkit-scrollbar-thumb]:bg-main-green',
