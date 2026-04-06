@@ -2,15 +2,18 @@ import Image from 'next/image';
 import type { ReactNode } from 'react';
 
 import { EmptyState } from '@/components/common/EmptyState';
+import PetProfileImage from '@/components/home/pet/PetProfileImage';
 
 type OnboardingBackgroundProps = {
   bubbleMessage?: string;
   children: ReactNode;
+  centerImageUrl?: string;
 };
 
 export default function OnboardingBackground({
   bubbleMessage,
   children,
+  centerImageUrl,
 }: OnboardingBackgroundProps) {
   return (
     <main className="relative min-h-dvh overflow-hidden bg-[#A7E9E1]">
@@ -24,10 +27,17 @@ export default function OnboardingBackground({
         />
       </div>
       <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
-        <EmptyState
-          size={1}
-          className="h-[180px] w-[180px] md:h-[240px] md:w-[240px] lg:h-[280px] lg:w-[280px]"
-        />
+        {centerImageUrl ? (
+          <PetProfileImage
+            imageUrl={centerImageUrl}
+            className="h-[220px] w-[220px] cursor-default md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px]"
+          />
+        ) : (
+          <EmptyState
+            size={1}
+            className="h-[180px] w-[180px] md:h-[240px] md:w-[240px] lg:h-[280px] lg:w-[280px]"
+          />
+        )}
       </div>
       {bubbleMessage ? (
         <div className="-translate-x-1/2 absolute top-[5.5rem] left-1/2 z-10 flex w-[calc(100%-3rem)] max-w-[22rem] flex-col items-center md:top-[6.25rem] md:max-w-[24rem] lg:top-[7rem] lg:max-w-[26rem]">

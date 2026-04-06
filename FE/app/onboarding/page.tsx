@@ -1,9 +1,11 @@
 'use client';
 
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { memo, useEffect, useRef, useState } from 'react';
 
 import BackButton from '@/components/common/BackButton';
+import { Button } from '@/components/common/Button';
 import Modal from '@/components/common/Modal';
 import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
 import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
@@ -20,6 +22,7 @@ type OnboardingStep = {
   showBackButton?: boolean;
   showCenterAction?: boolean;
   showChoiceButtons?: boolean;
+  showStartButton?: boolean;
   autoAdvanceDelay?: number;
 };
 
@@ -79,6 +82,16 @@ const onboardingSteps: OnboardingStep[] = [
     showBackButton: true,
     showChoiceButtons: true,
   },
+  {
+    id: 'pet-photo-complete',
+    message: '준비가 다 됐어요!\n이제 별멩이와의 추억을\n함께 만들어가 볼까요?',
+    autoAdvanceDelay: 1600,
+  },
+  {
+    id: 'pet-chat-guide',
+    message: '별멩이 사진을 누르면\n언제든 저와 대화하실\n수 있어요!',
+    showStartButton: true,
+  },
 ];
 
 const bubbleContainerClassName =
@@ -93,12 +106,14 @@ const OnboardingOverlay = memo(function OnboardingOverlay({
   isVisible,
   onBackClick,
   onYesClick,
+  onStartClick,
   transitionDurationMs,
 }: {
   step: OnboardingStep;
   isVisible: boolean;
   onBackClick?: () => void;
   onYesClick?: () => void;
+  onStartClick?: () => void;
   transitionDurationMs: number;
 }) {
   const [displayMessage, setDisplayMessage] = useState(step.message);
@@ -158,11 +173,20 @@ const OnboardingOverlay = memo(function OnboardingOverlay({
           />
         ) : null}
         {step.showChoiceButtons ? (
-          <div className="absolute right-0 sm:bottom-[10%] md:bottom-[8%] lg:bottom-[5%] left-0 z-20">
+          <div className="absolute right-0 left-0 z-20 sm:bottom-[10%] md:bottom-[8%] lg:bottom-[5%]">
             <TalkChoiceButtons
               onYesClick={onYesClick}
               yesSymbolClassName="text-black"
             />
+          </div>
+        ) : step.showStartButton ? (
+          <div className="absolute right-0 bottom-[9%] left-0 z-20 px-6 md:bottom-[8%] md:px-8 lg:bottom-[7%] lg:px-10">
+            <Button
+              className="mx-auto w-full max-w-[22rem] md:max-w-[24rem] lg:max-w-[26rem]"
+              onClick={onStartClick}
+            >
+              시작하기
+            </Button>
           </div>
         ) : step.instruction ? (
           <p className="-translate-x-1/2 absolute bottom-[10%] left-1/2 whitespace-pre-line text-center font-normal text-2xl text-black leading-[1.4] md:bottom-[9%] md:text-[1.7rem] lg:bottom-[8%] lg:text-[1.9rem]">
@@ -200,6 +224,7 @@ const OnboardingOverlay = memo(function OnboardingOverlay({
 });
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [nextStepIndex, setNextStepIndex] = useState<number | null>(null);
   const [isDissolving, setIsDissolving] = useState(false);
@@ -207,6 +232,8 @@ export default function OnboardingPage() {
     useState(DISSOLVE_DURATION_MS);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadedImageUrl, setUploadedImageUrl] = useState('');
+  const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const advanceTimeoutRef = useRef<number | null>(null);
   const dissolveTimeoutRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -243,6 +270,14 @@ export default function OnboardingPage() {
 
     if (animationFrameRef.current !== null) {
       window.cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    if (durationMs === 0) {
+      setTransitionDurationMs(0);
+      setNextStepIndex(null);
+      setIsDissolving(false);
+      setCurrentStepIndex(targetIndex);
+      return;
     }
 
     setTransitionDurationMs(durationMs);
@@ -290,6 +325,11 @@ export default function OnboardingPage() {
   const currentStep = onboardingSteps[currentStepIndex];
   const nextStep =
     nextStepIndex !== null ? onboardingSteps[nextStepIndex] : null;
+  const centerImageUrl =
+    currentStep.id === 'pet-photo-complete' ||
+    currentStep.id === 'pet-chat-guide'
+      ? uploadedImageUrl
+      : undefined;
   const handlePhotoUploadRequest = () => {
     fileInputRef.current?.click();
   };
@@ -306,9 +346,41 @@ export default function OnboardingPage() {
       window.URL.revokeObjectURL(uploadedImageUrl);
     }
 
+    setUploadedImageFile(file);
     setUploadedImageUrl(window.URL.createObjectURL(file));
     setIsUploadModalOpen(true);
     event.target.value = '';
+  };
+  const handleUploadConfirm = async () => {
+    if (!uploadedImageFile || isUploading) {
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadedImageFile);
+
+      const response = await fetch('/api/pet-upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('upload failed');
+      }
+
+      setIsUploadModalOpen(false);
+      startStepTransition(
+        onboardingSteps.findIndex((step) => step.id === 'pet-photo-complete'),
+        BUTTON_DISSOLVE_DURATION_MS,
+      );
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+    }
   };
   const getYesHandler = (
     step: OnboardingStep,
@@ -327,7 +399,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <OnboardingBackground>
+    <OnboardingBackground centerImageUrl={centerImageUrl}>
       <style jsx>{`
         @keyframes hand-hint {
           0%,
@@ -358,6 +430,7 @@ export default function OnboardingPage() {
             )
           }
           onYesClick={getYesHandler(currentStep, currentStepIndex)}
+          onStartClick={() => router.push('/home')}
           transitionDurationMs={transitionDurationMs}
         />
         <OnboardingOverlay
@@ -369,6 +442,7 @@ export default function OnboardingPage() {
               ? getYesHandler(nextStep, nextStepIndex ?? currentStepIndex)
               : undefined
           }
+          onStartClick={() => router.push('/home')}
           transitionDurationMs={transitionDurationMs}
         />
       </div>
@@ -376,10 +450,10 @@ export default function OnboardingPage() {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onCancel={() => setIsUploadModalOpen(false)}
-        onConfirm={() => setIsUploadModalOpen(false)}
+        onConfirm={handleUploadConfirm}
         buttonVariant="double"
         cancelText="취소"
-        confirmText="확인"
+        confirmText={isUploading ? '업로드 중...' : '확인'}
       >
         {uploadedImageUrl ? (
           <div className="overflow-hidden rounded-[12px] border">
