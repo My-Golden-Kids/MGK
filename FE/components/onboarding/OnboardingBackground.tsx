@@ -17,28 +17,32 @@ export default function OnboardingBackground({
   centerImageUrl,
   instructionMessage,
 }: OnboardingBackgroundProps) {
+  const centerMediaClassName = centerImageUrl
+    ? 'h-[220px] w-[220px] md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px]'
+    : 'h-[180px] w-[180px] md:h-[240px] md:w-[240px] lg:h-[280px] lg:w-[280px]';
+
   return (
     <div className="relative min-h-dvh overflow-hidden bg-[#A7E9E1]">
-      <div className="pointer-events-none absolute inset-0 animate-breathing-circle">
+      <div
+        className={`-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/2 left-1/2 ${centerMediaClassName} animate-ripple-circle`}
+      >
         <Image
           src="/images/onboarding/circle2.png"
           alt=""
-          fill
+          width={300}
+          height={300}
           priority
-          className="object-contain object-center opacity-90"
+          className="h-full w-full object-contain opacity-80"
         />
       </div>
       <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
         {centerImageUrl ? (
           <PetProfileImage
             imageUrl={centerImageUrl}
-            className="h-[220px] w-[220px] cursor-default md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px]"
+            className={`${centerMediaClassName} cursor-default`}
           />
         ) : (
-          <EmptyState
-            size={1}
-            className="h-[180px] w-[180px] md:h-[240px] md:w-[240px] lg:h-[280px] lg:w-[280px]"
-          />
+          <EmptyState size={1} className={centerMediaClassName} />
         )}
       </div>
       {bubbleMessage ? (

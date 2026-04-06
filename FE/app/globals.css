@@ -147,13 +147,18 @@
   }
 }
 
-@keyframes breathing-circle {
-  0%,
-  100% {
-    transform: scale(1) translate3d(0, 0, 0);
+@keyframes ripple-circle {
+  0% {
+    transform: scale(1);
+    opacity: 0.78;
   }
-  50% {
-    transform: scale(2) translate3d(0, 0, 0);
+  55% {
+    transform: scale(1.7);
+    opacity: 0.18;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
   }
 }
 
@@ -162,10 +167,10 @@
     animation: screen-dissolve-in 400ms ease-in-out both;
   }
 
-  .animate-breathing-circle {
-    animation: breathing-circle 4.8s ease-in-out infinite;
+  .animate-ripple-circle {
+    animation: ripple-circle 2.1s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
     transform-origin: center;
-    will-change: transform;
+    will-change: transform, opacity;
   }
 
   /* Modal animations */

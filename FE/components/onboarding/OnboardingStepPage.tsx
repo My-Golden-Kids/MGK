@@ -28,6 +28,8 @@ type FlowState = {
   retryPetName: boolean;
 };
 
+const DISSOLVE_DURATION_MS = 0;
+
 function HandHint() {
   return (
     <div className="pointer-events-none absolute top-[55%] left-[40%] z-40 h-[96px] w-[96px] translate-x-[48px] md:h-[112px] md:w-[112px] md:translate-x-[56px] lg:h-[128px] lg:w-[128px] lg:translate-x-[64px]">
@@ -84,10 +86,12 @@ export default function OnboardingStepPage({
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const navigationTimeoutRef = useRef<number | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [pendingImagePreviewUrl, setPendingImagePreviewUrl] = useState('');
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   const step = getOnboardingStep(stepNumber);
   const retryPetName = searchParams.get('retryPetName') === '1';
@@ -108,6 +112,14 @@ export default function OnboardingStepPage({
   }, [pendingImagePreviewUrl]);
 
   useEffect(() => {
+    return () => {
+      if (navigationTimeoutRef.current !== null) {
+        window.clearTimeout(navigationTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (
       step.autoAdvanceDelay === undefined ||
       stepNumber >= LAST_ONBOARDING_STEP
@@ -116,13 +128,13 @@ export default function OnboardingStepPage({
     }
 
     const timeoutId = window.setTimeout(() => {
-      router.replace(buildOnboardingHref(stepNumber + 1, flowState));
+      navigateWithDissolve(buildOnboardingHref(stepNumber + 1, flowState));
     }, step.autoAdvanceDelay);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [flowState, router, step.autoAdvanceDelay, stepNumber]);
+  }, [flowState, step.autoAdvanceDelay, stepNumber]);
 
   const messageOverride =
     retryPetName && step.id === 'pet-name-guide'
@@ -134,8 +146,27 @@ export default function OnboardingStepPage({
     ? petImage || undefined
     : undefined;
 
+  const navigateWithDissolve = (
+    href: string,
+    mode: 'replace' | 'push' = 'replace',
+  ) => {
+    if (isLeaving) {
+      return;
+    }
+
+    setIsLeaving(true);
+    navigationTimeoutRef.current = window.setTimeout(() => {
+      if (mode === 'push') {
+        router.push(href);
+        return;
+      }
+
+      router.replace(href);
+    }, DISSOLVE_DURATION_MS);
+  };
+
   const goToStep = (targetStep: number, state: FlowState) => {
-    router.replace(buildOnboardingHref(targetStep, state));
+    navigateWithDissolve(buildOnboardingHref(targetStep, state));
   };
 
   const handlePhotoUploadRequest = () => {
@@ -270,7 +301,12 @@ export default function OnboardingStepPage({
         className="hidden"
         onChange={handlePhotoFileChange}
       />
-      <div className="relative min-h-dvh overflow-hidden bg-[#A7E9E1]">
+      <div
+        className={`relative min-h-dvh overflow-hidden bg-[#A7E9E1] transition-opacity ease-out ${
+          isLeaving ? 'opacity-0' : 'animate-screen-dissolve-in opacity-100'
+        }`}
+        style={{ transitionDuration: `${DISSOLVE_DURATION_MS}ms` }}
+      >
         <OnboardingBackground
           bubbleMessage={messageOverride ?? step.message}
           centerImageUrl={centerImageUrl}
@@ -301,7 +337,7 @@ export default function OnboardingStepPage({
               <div className="pointer-events-auto absolute right-0 bottom-[9%] left-0 z-20 px-6 md:bottom-[8%] md:px-8 lg:bottom-[7%] lg:px-10">
                 <Button
                   className="mx-auto w-full"
-                  onClick={() => router.push('/home')}
+                  onClick={() => navigateWithDissolve('/home', 'push')}
                 >
                   시작하기
                 </Button>
