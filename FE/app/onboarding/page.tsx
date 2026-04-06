@@ -164,7 +164,7 @@ const OnboardingOverlay = memo(function OnboardingOverlay({
             />
           ) : null}
           {step.showChoiceButtons ? (
-            <div className="absolute right-0 left-0 z-20 sm:bottom-[10%] md:bottom-[8%] lg:bottom-[5%]">
+            <div className="absolute right-0 left-0 z-20 bottom-[10%] md:bottom-[8%] lg:bottom-[5%]">
               <TalkChoiceButtons
                 onYesClick={onYesClick}
                 yesSymbolClassName="text-black"
