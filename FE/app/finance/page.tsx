@@ -1,30 +1,28 @@
-import { ChevronRight } from 'lucide-react';
-import Link from 'next/link';
-import { BottomNavigation } from '@/components/common/BottomNavigation';
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { BottomNavigation } from "@/components/common/BottomNavigation";
 
 const summaryCards = [
-  { label: '오늘 지출', value: '58,000' },
-  { label: '10월 총 지출', value: '1,800,000' },
-  { label: '전월 대비', value: '+15%', accent: true },
+  { label: "오늘 지출", value: "58,000" },
+  { label: "10월 총 지출", value: "1,800,000" },
+  { label: "전월 대비", value: "+15%", accent: true },
 ];
 
 const expenseItems = [
-  { label: '식비', amount: '10,000 원', color: '#E5BD33' },
-  { label: '의료비', amount: '10,000 원', color: '#65C9C5' },
-  { label: '기타', amount: '10,000 원', color: '#DDDDDD' },
+  { label: "식비", amount: "10,000 원", color: "#E5BD33" },
+  { label: "의료비", amount: "10,000 원", color: "#65C9C5" },
+  { label: "기타", amount: "10,000 원", color: "#DDDDDD" },
 ];
 
 export default function FinancePage() {
   return (
     <main className="flex min-h-dvh flex-1 flex-col text-[#27312D]">
-      <div className="flex min-h-dvh w-full flex-1 flex-col px-4 pt-7 pb-28">
+      <div className="flex min-h-dvh w-full flex-1 flex-col px-4 pt-7 pb-4">
         <section className="overflow-hidden rounded-[26px] border border-[#7ACFC2] bg-[#EAF8F6]">
           <div className="px-4 pt-4 pb-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-3xl text-[#4CAFA3]">
-                  돌멍이 통장
-                </p>
+                <p className="text-3xl text-[#4CAFA3]">돌멍이 통장</p>
                 <p className="-mt-1 text-[#384543] text-lg">
                   1999-9022-0000-0000
                 </p>
@@ -65,7 +63,7 @@ export default function FinancePage() {
               <p className="text-[#4CAFA3] text-base">{card.label}</p>
               <p
                 className={`mt-1 text-2xl leading-tight ${
-                  card.accent ? 'text-[#FF6F5B]' : 'text-[#2A312F]'
+                  card.accent ? "text-[#FF6F5B]" : "text-[#2A312F]"
                 }`}
               >
                 {card.value}
@@ -90,9 +88,7 @@ export default function FinancePage() {
                   />
                   <span>{item.label}</span>
                 </div>
-                <span className="text-[#2C312F] text-xl">
-                  {item.amount}
-                </span>
+                <span className="text-[#2C312F] text-xl">{item.amount}</span>
               </div>
             ))}
           </div>
@@ -100,7 +96,7 @@ export default function FinancePage() {
 
         <section className="px-2 py-5 text-center">
           <p className="text-2xl text-[#58B3A6]">
-            펫 케어 구독하고 지출을 <span className="text-[#FF6F5B]">10%</span>{' '}
+            펫 케어 구독하고 지출을 <span className="text-[#FF6F5B]">10%</span>{" "}
             낮춰요
           </p>
         </section>
