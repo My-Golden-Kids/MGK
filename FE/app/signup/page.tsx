@@ -5,9 +5,9 @@ import Modal from '@/components/common/Modal';
 import CheckboxButton from '@/components/signup/CheckboxButton';
 import InputField from '@/components/signup/InputField';
 import { cn } from '@/lib/utils';
+import { type SignupValues, validateSignupField } from '@/lib/validator';
 import { STEPS, TERMS } from './constants';
 
-//TODO: zod 에러 처리 로직 신경쓰고 하면서 엔터시 에러 사라지게 설정하기
 //TODO: NextAuth 연동해서 로그인 처리한다음에
 //TODO: 백엔드 토큰 발급해달라고 해야하니까 연동처리 고민하기
 
@@ -26,29 +26,21 @@ export default function Page() {
     }
   }, [step, isTermsPhase]);
 
-  const validate = (key: string, value: string) => {
-    if (!value.trim()) return '입력해주세요';
-    if (key === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      return '유효하지 않은 이메일 형식입니다';
-    }
-    if (key === 'password' && value.length < 8) {
-      return '8글자 이상 입력해주세요';
-    }
-    if (key === 'passwordConfirm' && value !== values['password']) {
-      return '비밀번호가 일치하지 않습니다';
-    }
-    return '';
-  };
-
   const handleConfirm = () => {
-    const current = STEPS[step];
-    const value = values[current.key] ?? '';
-    const error = validate(current.key, value);
+    const newErrors: Record<string, string> = {};
 
-    if (error) {
-      setErrors((prev) => ({ ...prev, [current.key]: error }));
-      return;
+    for (let i = 0; i <= step; i++) {
+      const s = STEPS[i];
+      newErrors[s.key] = validateSignupField(
+        s.key as keyof SignupValues,
+        values[s.key] ?? '',
+        { password: values['password'] },
+      );
     }
+
+    setErrors((prev) => ({ ...prev, ...newErrors }));
+
+    if (Object.values(newErrors).some((e) => e !== '')) return;
 
     if (step < STEPS.length - 1) {
       setStep((prev) => prev + 1);
@@ -73,7 +65,7 @@ export default function Page() {
   const visibleSteps = isTermsPhase ? STEPS : STEPS.slice(0, step + 1);
 
   return (
-    <div className="relative flex h-dvh w-full flex-1 flex-col overflow-hidden px-6.25 sm:max-w-lg md:max-w-xl">
+    <div className="relative mx-auto flex h-dvh w-full flex-1 flex-col overflow-hidden px-6.25 sm:max-w-lg md:max-w-xl">
       <h1 className="mt-14.75 font-bold text-[28px] text-main-green sm:text-[30px]">
         회원가입
       </h1>
@@ -145,7 +137,16 @@ export default function Page() {
         isHighlightButton
       >
         {activeTerm && (
-          <div className="rounded-[5px] bg-gray-100">
+          <div
+            className={cn(
+              'overflow-y-scroll rounded-[5px] bg-gray-100',
+              'wrap-break-word max-h-79.5 sm:max-w-auto',
+              '[&::-webkit-scrollbar]:w-1.75',
+              '[&::-webkit-scrollbar-thumb]:rounded-xs',
+              '[&::-webkit-scrollbar-thumb]:bg-main-green',
+              '[&::-webkit-scrollbar-track]:bg-transparent',
+            )}
+          >
             <h2 className="font-bold text-[18px]">{activeTerm.subTitle}</h2>
             <p className="whitespace-pre-wrap indent-1 text-[18px]">
               {activeTerm.content}
