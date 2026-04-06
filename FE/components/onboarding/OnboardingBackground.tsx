@@ -25,8 +25,8 @@ export default function OnboardingBackground({
       </div>
       <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
         <EmptyState
-          size={240}
-          className="md:[height:280px] md:[width:280px] lg:[height:320px] lg:[width:320px]"
+          size={1}
+          className="h-[180px] w-[180px] md:h-[240px] md:w-[240px] lg:h-[280px] lg:w-[280px]"
         />
       </div>
       {bubbleMessage ? (

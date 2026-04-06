@@ -4,8 +4,9 @@ import Image from 'next/image';
 import { memo, useEffect, useRef, useState } from 'react';
 
 import BackButton from '@/components/common/BackButton';
-import TalkBubble from '@/components/home/talk/TalkBubble';
+import Modal from '@/components/common/Modal';
 import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
+import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 
 const TRANSITION_DELAY_MS = 1600;
 const DISSOLVE_DURATION_MS = 1200;
@@ -14,7 +15,10 @@ const BUTTON_DISSOLVE_DURATION_MS = 0;
 type OnboardingStep = {
   id: string;
   message: string;
+  messageFrames?: string[];
   instruction?: string;
+  showBackButton?: boolean;
+  showCenterAction?: boolean;
   showChoiceButtons?: boolean;
   autoAdvanceDelay?: number;
 };
@@ -55,17 +59,34 @@ const onboardingSteps: OnboardingStep[] = [
     id: 'pet-name-guide',
     message: '그럼 이제, 함께 사는\n예쁜 아이의 이름을\n알려주시겠어요?',
     instruction: '저를 누르고\n말씀해 주세요!',
+    showCenterAction: true,
+  },
+  {
+    id: 'pet-name-confirm',
+    message: '우리 아이의 이름이\n‘별멩이’가 맞나요?',
+    showBackButton: true,
+    showChoiceButtons: true,
+  },
+  {
+    id: 'pet-photo-request',
+    message:
+      '우와, 별멩이! 정말\n예쁜 이름이네요.\n우리 별멩이 얼굴도 보고 싶은데,\n사진을 한 장 보여\n주시겠어요?',
+    messageFrames: [
+      '우와, 별멩이! 정말\n예쁜 이름이네요.\n우리 별멩이 얼굴도 보고 싶은데,',
+      '예쁜 이름이네요.\n우리 별멩이 얼굴도 보고 싶은데,\n사진을 한 장 보여',
+      '우리 별멩이 얼굴도 보고 싶은데,\n사진을 한 장 보여\n주시겠어요?',
+    ],
+    showBackButton: true,
+    showChoiceButtons: true,
   },
 ];
 
-const bubbleClassName =
-  'mx-0 rounded-[2rem] bg-[#75A39D] shadow-[0_10px_30px_rgba(0,0,0,0.08)] md:rounded-[2.25rem] lg:rounded-[2.5rem]';
+const bubbleContainerClassName =
+  '-translate-x-1/2 absolute top-[5.5rem] left-1/2 z-10 flex w-[calc(100%-3rem)] max-w-[22rem] flex-col items-center md:top-[6.25rem] md:max-w-[24rem] lg:top-[5em] lg:max-w-[26rem]';
+const bubbleSurfaceClassName =
+  'w-full overflow-hidden rounded-[2rem] bg-[#75A39D] shadow-[0_10px_30px_rgba(0,0,0,0.08)] md:rounded-[2.25rem] lg:rounded-[2.5rem]';
 const bubbleTextClassName =
-  'text-2xl font-semibold break-keep md:text-3xl lg:text-4xl';
-
-const backgroundImageClassName = 'object-contain object-center opacity-90';
-const characterImageClassName =
-  '-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 h-[min(23dvh,68vw)] w-auto max-w-[94vw] md:h-[min(26dvh,72vw)] lg:h-[min(30dvh,76vw)]';
+  'whitespace-pre-line break-keep text-start font-semibold text-2xl text-white leading-[1.35] md:text-3xl lg:text-4xl';
 
 const OnboardingOverlay = memo(function OnboardingOverlay({
   step,
@@ -80,6 +101,29 @@ const OnboardingOverlay = memo(function OnboardingOverlay({
   onYesClick?: () => void;
   transitionDurationMs: number;
 }) {
+  const [displayMessage, setDisplayMessage] = useState(step.message);
+
+  useEffect(() => {
+    if (!step.messageFrames || !isVisible) {
+      setDisplayMessage(step.message);
+      return undefined;
+    }
+
+    const frames = step.messageFrames;
+
+    setDisplayMessage(frames[0]);
+    let frameIndex = 0;
+
+    const intervalId = window.setInterval(() => {
+      frameIndex = (frameIndex + 1) % frames.length;
+      setDisplayMessage(frames[frameIndex]);
+    }, 2000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isVisible, step.message, step.messageFrames]);
+
   return (
     <section
       aria-hidden={!isVisible}
@@ -89,20 +133,32 @@ const OnboardingOverlay = memo(function OnboardingOverlay({
       style={{ transitionDuration: `${transitionDurationMs}ms` }}
     >
       <div className="relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
-        {step.id === 'expense-guide' || step.id === 'schedule-guide' ? (
+        {step.id === 'expense-guide' ||
+        step.id === 'schedule-guide' ||
+        step.id === 'pet-name-guide' ? (
           <div className="absolute top-4 left-4">
             <BackButton onClick={onBackClick} />
           </div>
         ) : null}
-        <div className="">
-          <TalkBubble
-            message={step.message}
-            bubbleClassName={bubbleClassName}
-            textClassName={bubbleTextClassName}
-          />
+        <div className={bubbleContainerClassName}>
+          <section className="w-full">
+            <div className={bubbleSurfaceClassName}>
+              <div className="px-6 py-5 md:px-7 md:py-6 lg:px-8 lg:py-7">
+                <p className={bubbleTextClassName}>{displayMessage}</p>
+              </div>
+            </div>
+          </section>
         </div>
+        {step.showCenterAction ? (
+          <button
+            type="button"
+            aria-label="다음 온보딩으로 이동"
+            onClick={onYesClick}
+            className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] cursor-pointer rounded-full md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px]"
+          />
+        ) : null}
         {step.showChoiceButtons ? (
-          <div className="-translate-x-1/2 absolute right-auto bottom-[9%] left-1/2 w-full max-w-[24rem] md:bottom-[8%] md:max-w-[26rem] lg:bottom-[7%] lg:max-w-[30rem] [&_button]:cursor-pointer">
+          <div className="absolute right-0 sm:bottom-[10%] md:bottom-[8%] lg:bottom-[5%] left-0 z-20">
             <TalkChoiceButtons
               onYesClick={onYesClick}
               yesSymbolClassName="text-black"
@@ -112,6 +168,31 @@ const OnboardingOverlay = memo(function OnboardingOverlay({
           <p className="-translate-x-1/2 absolute bottom-[10%] left-1/2 whitespace-pre-line text-center font-normal text-2xl text-black leading-[1.4] md:bottom-[9%] md:text-[1.7rem] lg:bottom-[8%] lg:text-[1.9rem]">
             {step.instruction}
           </p>
+        ) : null}
+        {step.id === 'pet-name-guide' ? (
+          <div className="pointer-events-none absolute top-[55%] left-[40%] z-40 h-[96px] w-[96px] translate-x-[48px] md:h-[112px] md:w-[112px] md:translate-x-[56px] lg:h-[128px] lg:w-[128px] lg:translate-x-[64px]">
+            <Image
+              src="/images/onboarding/hand-finger.png"
+              alt=""
+              width={128}
+              height={128}
+              className="absolute inset-0 h-full w-full object-contain"
+              style={{
+                animation: 'hand-hint 1s steps(1, end) infinite',
+              }}
+            />
+            <Image
+              src="/images/onboarding/hand-click.png"
+              alt=""
+              width={128}
+              height={128}
+              className="absolute inset-0 h-full w-full object-contain"
+              style={{
+                animation: 'hand-hint 1s steps(1, end) infinite',
+                animationDelay: '0.5s',
+              }}
+            />
+          </div>
         ) : null}
       </div>
     </section>
@@ -124,9 +205,20 @@ export default function OnboardingPage() {
   const [isDissolving, setIsDissolving] = useState(false);
   const [transitionDurationMs, setTransitionDurationMs] =
     useState(DISSOLVE_DURATION_MS);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState('');
   const advanceTimeoutRef = useRef<number | null>(null);
   const dissolveTimeoutRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (uploadedImageUrl) {
+        window.URL.revokeObjectURL(uploadedImageUrl);
+      }
+    };
+  }, [uploadedImageUrl]);
 
   const startStepTransition = (
     targetIndex: number,
@@ -198,50 +290,110 @@ export default function OnboardingPage() {
   const currentStep = onboardingSteps[currentStepIndex];
   const nextStep =
     nextStepIndex !== null ? onboardingSteps[nextStepIndex] : null;
+  const handlePhotoUploadRequest = () => {
+    fileInputRef.current?.click();
+  };
+  const handlePhotoFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (uploadedImageUrl) {
+      window.URL.revokeObjectURL(uploadedImageUrl);
+    }
+
+    setUploadedImageUrl(window.URL.createObjectURL(file));
+    setIsUploadModalOpen(true);
+    event.target.value = '';
+  };
+  const getYesHandler = (
+    step: OnboardingStep,
+    stepIndex: number,
+  ): (() => void) | undefined => {
+    if (step.id === 'pet-photo-request') {
+      return handlePhotoUploadRequest;
+    }
+
+    if (step.showChoiceButtons || step.showCenterAction) {
+      return () =>
+        startStepTransition(stepIndex + 1, BUTTON_DISSOLVE_DURATION_MS);
+    }
+
+    return undefined;
+  };
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-[#A7E9E1]">
-      <div className="pointer-events-none absolute inset-0 animate-breathing-circle">
-        <Image
-          src="/images/onboarding/circle2.png"
-          alt=""
-          fill
-          priority
-          className={backgroundImageClassName}
+    <OnboardingBackground>
+      <style jsx>{`
+        @keyframes hand-hint {
+          0%,
+          49.9% {
+            opacity: 1;
+          }
+          50%,
+          100% {
+            opacity: 0;
+          }
+        }
+      `}</style>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handlePhotoFileChange}
+      />
+      <div className="relative min-h-dvh overflow-hidden">
+        <OnboardingOverlay
+          step={currentStep}
+          isVisible={!isDissolving}
+          onBackClick={() =>
+            startStepTransition(
+              currentStepIndex - 1,
+              BUTTON_DISSOLVE_DURATION_MS,
+            )
+          }
+          onYesClick={getYesHandler(currentStep, currentStepIndex)}
+          transitionDurationMs={transitionDurationMs}
+        />
+        <OnboardingOverlay
+          step={nextStep ?? currentStep}
+          isVisible={nextStep !== null && isDissolving}
+          onBackClick={undefined}
+          onYesClick={
+            nextStep
+              ? getYesHandler(nextStep, nextStepIndex ?? currentStepIndex)
+              : undefined
+          }
+          transitionDurationMs={transitionDurationMs}
         />
       </div>
-      <Image
-        src="/images/onboarding/byeolsong.png"
-        alt="Byeolsong"
-        width={1035}
-        height={1035}
-        priority
-        className={characterImageClassName}
-      />
-      <OnboardingOverlay
-        step={currentStep}
-        isVisible={!isDissolving}
-        onBackClick={() =>
-          startStepTransition(currentStepIndex - 1, BUTTON_DISSOLVE_DURATION_MS)
-        }
-        onYesClick={
-          currentStep.showChoiceButtons
-            ? () =>
-                startStepTransition(
-                  currentStepIndex + 1,
-                  BUTTON_DISSOLVE_DURATION_MS,
-                )
-            : undefined
-        }
-        transitionDurationMs={transitionDurationMs}
-      />
-      <OnboardingOverlay
-        step={nextStep ?? currentStep}
-        isVisible={nextStep !== null && isDissolving}
-        onBackClick={undefined}
-        onYesClick={undefined}
-        transitionDurationMs={transitionDurationMs}
-      />
-    </main>
+      <Modal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onCancel={() => setIsUploadModalOpen(false)}
+        onConfirm={() => setIsUploadModalOpen(false)}
+        buttonVariant="double"
+        cancelText="취소"
+        confirmText="확인"
+      >
+        {uploadedImageUrl ? (
+          <div className="overflow-hidden rounded-[12px] border">
+            <Image
+              src={uploadedImageUrl}
+              alt="업로드한 사진 미리보기"
+              width={320}
+              height={320}
+              unoptimized
+              className="h-auto max-h-[320px] w-full object-contain"
+            />
+          </div>
+        ) : null}
+      </Modal>
+    </OnboardingBackground>
   );
 }

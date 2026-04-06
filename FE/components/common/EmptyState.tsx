@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 interface EmptyStateProps {
   /**
@@ -16,14 +17,15 @@ interface EmptyStateProps {
 export function EmptyState({ size = 128, className }: EmptyStateProps) {
   return (
     <div
-      style={{ width: size, height: size }}
+      className={cn('relative', className)}
+      style={className ? undefined : { width: size, height: size }}
     >
       <Image
         src="/images/onboarding/byeolsong.png"
         alt="기본 프로필 이미지"
-        layout="fill"
-        objectFit="cover"
-        priority // Load the image immediately as it's likely LCP
+        fill
+        className="object-cover"
+        priority
       />
     </div>
   );
