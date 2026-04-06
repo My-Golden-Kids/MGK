@@ -13,3 +13,11 @@ spring:
   sql:
     init:
       mode: never
+  ai:
+    google:
+      genai:
+        api-key: test-gemini-api-key
+        chat:
+          options:
+            model: gemini-2.5-flash
+            temperature: 0.5

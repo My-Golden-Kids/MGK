@@ -31,6 +31,13 @@ java {
 
 repositories {
     mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:2.0.0-M2"
+    }
 }
 
 dependencies {
@@ -39,6 +46,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
 
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'

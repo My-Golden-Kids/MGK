@@ -2,8 +2,8 @@
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: 버튼이 아닌 걸 클릭하게 만들면 키보드 이벤트도 추가해야 한다는 건데 추가해도 반응하지 않습니다. */
 'use client';
 
-import { cn } from '@/lib/utils';
 import { type ReactNode, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { default as ModalButton } from './ModalButton';
 
 export interface ModalProps {
@@ -77,17 +77,7 @@ export default function Modal({
         onClick={(e) => e.stopPropagation()}
       >
         {children && (
-          <div
-            className={cn(
-              'wrap-break-word max-h-79.5 sm:max-w-auto',
-              '[&::-webkit-scrollbar]:w-1.75',
-              '[&::-webkit-scrollbar-thumb]:rounded-xs',
-              '[&::-webkit-scrollbar-thumb]:bg-main-green',
-              '[&::-webkit-scrollbar-track]:bg-transparent',
-            )}
-          >
-            {children}
-          </div>
+          <div className={cn('wrap-break-word sm:max-w-auto')}>{children}</div>
         )}
 
         {buttonVariant !== 'none' && (
