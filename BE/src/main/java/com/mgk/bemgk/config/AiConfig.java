@@ -16,7 +16,7 @@ import org.springframework.core.retry.RetryTemplate;
 @RequiredArgsConstructor
 public class AiConfig {
 
-    @Value("AIzaSyCtga5hT8SokhIh8YxYPOFualxWKCwaYBI")
+    @Value("${spring.ai.google.genai.api-key}")
     private String apiKey;
 
     @Value("${spring.ai.google.genai.chat.options.model:gemini-2.5-flash}")
