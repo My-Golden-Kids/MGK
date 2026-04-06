@@ -38,6 +38,8 @@ export default function HomeTalkPage() {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isPressing, setIsPressing] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [shouldSubmit, setShouldSubmit] = useState(false);
   const [showMoveConfirm, setShowMoveConfirm] = useState(false);
   const [assistantMessage, setAssistantMessage] = useState('');
   const [requestedTranscript, setRequestedTranscript] = useState('');
@@ -80,10 +82,12 @@ export default function HomeTalkPage() {
     const requestTranscript = buildRequestTranscript(transcript);
 
     if (
+      !shouldSubmit ||
       !requestTranscript ||
       showMoveConfirm ||
       listening ||
       isPressing ||
+      isRequesting ||
       requestedTranscript === requestTranscript
     ) {
       return;
@@ -91,7 +95,9 @@ export default function HomeTalkPage() {
 
     const requestTalk = async () => {
       try {
+        setIsRequesting(true);
         setRequestedTranscript(requestTranscript);
+        setAssistantMessage('답변을 준비하고 있어요.');
 
         const response = await fetch(`${API_BASE_URL}/api/talk`, {
           method: 'POST',
@@ -104,6 +110,7 @@ export default function HomeTalkPage() {
         });
 
         if (!response.ok) {
+          setAssistantMessage('답변을 불러오지 못했어요.');
           return;
         }
 
@@ -112,12 +119,23 @@ export default function HomeTalkPage() {
           setAssistantMessage(data.message);
         }
       } catch {
-        setAssistantMessage('');
+        setAssistantMessage('답변을 불러오지 못했어요.');
+      } finally {
+        setIsRequesting(false);
+        setShouldSubmit(false);
       }
     };
 
     void requestTalk();
-  }, [isPressing, listening, requestedTranscript, showMoveConfirm, transcript]);
+  }, [
+    isPressing,
+    isRequesting,
+    listening,
+    requestedTranscript,
+    shouldSubmit,
+    showMoveConfirm,
+    transcript,
+  ]);
 
   const startRecording = async () => {
     if (!browserSupportsSpeechRecognition || isPressing) {
@@ -127,6 +145,7 @@ export default function HomeTalkPage() {
     resetTranscript();
     setShowMoveConfirm(false);
     setAssistantMessage('');
+    setShouldSubmit(false);
     setRequestedTranscript('');
     setIsPressing(true);
 
@@ -143,6 +162,7 @@ export default function HomeTalkPage() {
 
     setIsPressing(false);
     await SpeechRecognition.stopListening();
+    setShouldSubmit(true);
   };
 
   const bubbleMessage = !isClient
@@ -150,6 +170,8 @@ export default function HomeTalkPage() {
     : browserSupportsSpeechRecognition
     ? showMoveConfirm
       ? CONFIRM_MESSAGE
+      : isRequesting
+      ? '답변을\n준비하고 있어요.'
       : assistantMessage || transcript.trim() || DEFAULT_MESSAGE
     : '이 기기에서는\n음성 인식을 사용할 수 없어요.';
 
