@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useMemo, useRef } from 'react';
-import PetProfileImage from '@/components/home/pet/PetProfileImage';
+import { useMemo, useRef } from "react";
+import PetProfileImage from "@/components/home/pet/PetProfileImage";
 
 type Pet = {
   id: number | string;
@@ -13,6 +13,7 @@ type SelectedPetProfileProps = {
   pets: Pet[];
   selectedPetId: number | string;
   onChange: (petId: number | string) => void;
+  onSelectedClick?: (petId: number | string) => void;
 };
 
 type PositionStyle = {
@@ -24,34 +25,34 @@ type PositionStyle = {
 
 const POSITION_MAP: Record<number, PositionStyle> = {
   [-2]: {
-    translateX: '-90%',
-    scale: '0.40',
+    translateX: "-90%",
+    scale: "0.40",
     zIndex: 30,
-    opacity: '0.8',
+    opacity: "0.8",
   },
   [-1]: {
-    translateX: '-55%',
-    scale: '0.65',
+    translateX: "-55%",
+    scale: "0.65",
     zIndex: 40,
-    opacity: '0.9',
+    opacity: "0.9",
   },
   0: {
-    translateX: '0%',
-    scale: '1',
+    translateX: "0%",
+    scale: "1",
     zIndex: 50,
-    opacity: '1',
+    opacity: "1",
   },
   1: {
-    translateX: '55%',
-    scale: '0.65',
+    translateX: "55%",
+    scale: "0.65",
     zIndex: 40,
-    opacity: '0.9',
+    opacity: "0.9",
   },
   2: {
-    translateX: '90%',
-    scale: '0.40',
+    translateX: "90%",
+    scale: "0.40",
     zIndex: 30,
-    opacity: '0.8',
+    opacity: "0.8",
   },
 };
 
@@ -59,6 +60,7 @@ export default function SelectedPetProfile({
   pets,
   selectedPetId,
   onChange,
+  onSelectedClick,
 }: SelectedPetProfileProps) {
   const pointerStartX = useRef<number | null>(null);
   const pointerEndX = useRef<number | null>(null);
@@ -177,9 +179,17 @@ export default function SelectedPetProfile({
             >
               <PetProfileImage
                 imageUrl={pet.imageUrl}
-                onClick={() => onChange(pet.id)}
-                className={`h-[220px] w-[220px] md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px] ${isSelected ? '' : 'pointer-events-auto'}
-                `}
+                onClick={() => {
+                  if (isDragging.current) return;
+
+                  if (isSelected) {
+                    onSelectedClick?.(pet.id);
+                    return;
+                  }
+
+                  onChange(pet.id);
+                }}
+                className="h-[220px] w-[220px] md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px]"
               />
             </div>
           );
@@ -188,3 +198,5 @@ export default function SelectedPetProfile({
     </section>
   );
 }
+
+//
