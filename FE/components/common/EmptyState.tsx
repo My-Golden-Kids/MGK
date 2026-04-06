@@ -1,6 +1,4 @@
-import React from 'react';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
 
 interface EmptyStateProps {
   /**
@@ -18,14 +16,10 @@ interface EmptyStateProps {
 export function EmptyState({ size = 128, className }: EmptyStateProps) {
   return (
     <div
-      className={cn(
-        'relative rounded-full overflow-hidden border-4 border-white shadow-md',
-        className
-      )}
       style={{ width: size, height: size }}
     >
       <Image
-        src="/deflautimage.png"
+        src="/images/onboarding/byeolsong.png"
         alt="기본 프로필 이미지"
         layout="fill"
         objectFit="cover"
