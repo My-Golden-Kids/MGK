@@ -1,15 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import SpeechRecognition, {
   useSpeechRecognition,
 } from 'react-speech-recognition';
+import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
 import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 
 const DEFAULT_MESSAGE = '무엇이\n궁금하신가요?';
+const CONFIRM_MESSAGE = '통장 화면으로\n이동할까요?';
 
 export default function HomeTalkPage() {
+  const router = useRouter();
   const [isPressing, setIsPressing] = useState(false);
+  const [showMoveConfirm, setShowMoveConfirm] = useState(false);
   const {
     transcript,
     resetTranscript,
@@ -23,12 +28,31 @@ export default function HomeTalkPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const normalizedTranscript = transcript.replaceAll(' ', '');
+
+    if (showMoveConfirm || !normalizedTranscript) {
+      return;
+    }
+
+    const shouldMoveFinance =
+      normalizedTranscript.includes('통장') ||
+      normalizedTranscript.includes('잔고');
+
+    if (!shouldMoveFinance) {
+      return;
+    }
+
+    setShowMoveConfirm(true);
+  }, [showMoveConfirm, transcript]);
+
   const startRecording = async () => {
     if (!browserSupportsSpeechRecognition || isPressing) {
       return;
     }
 
     resetTranscript();
+    setShowMoveConfirm(false);
     setIsPressing(true);
 
     await SpeechRecognition.startListening({
@@ -47,7 +71,9 @@ export default function HomeTalkPage() {
   };
 
   const bubbleMessage = browserSupportsSpeechRecognition
-    ? transcript.trim() || DEFAULT_MESSAGE
+    ? showMoveConfirm
+      ? CONFIRM_MESSAGE
+      : transcript.trim() || DEFAULT_MESSAGE
     : '이 기기에서는\n음성 인식을 사용할 수 없어요.';
 
   return (
@@ -64,11 +90,25 @@ export default function HomeTalkPage() {
           aria-label="별송이를 길게 눌러 음성 입력"
         />
 
-        <p className="absolute right-0 bottom-[10%] left-0 z-20 text-center text-base text-[#35534E]">
-          {listening || isPressing
-            ? '듣고 있어요. 손을 떼면 멈춰요.'
-            : '별송이를 길게 눌러 말씀해보세요.'}
-        </p>
+        {!showMoveConfirm ? (
+          <p className="absolute right-0 bottom-[10%] left-0 z-20 text-center text-base text-[#35534E]">
+            {listening || isPressing
+              ? '듣고 있어요. 손을 떼면 멈춰요.'
+              : '별송이를 길게 눌러 말씀해보세요.'}
+          </p>
+        ) : null}
+
+        {showMoveConfirm ? (
+          <div className="absolute right-0 bottom-[18%] left-0 z-20">
+            <TalkChoiceButtons
+              onYesClick={() => router.push('/finance')}
+              onNoClick={() => {
+                setShowMoveConfirm(false);
+                resetTranscript();
+              }}
+            />
+          </div>
+        ) : null}
       </div>
     </OnboardingBackground>
   );
