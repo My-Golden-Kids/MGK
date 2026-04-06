@@ -6,17 +6,19 @@ import PetProfileImage from '@/components/home/pet/PetProfileImage';
 
 type OnboardingBackgroundProps = {
   bubbleMessage?: string;
-  children: ReactNode;
+  children?: ReactNode;
   centerImageUrl?: string;
+  instructionMessage?: string;
 };
 
 export default function OnboardingBackground({
   bubbleMessage,
   children,
   centerImageUrl,
+  instructionMessage,
 }: OnboardingBackgroundProps) {
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-[#A7E9E1]">
+    <div className="relative min-h-dvh overflow-hidden bg-[#A7E9E1]">
       <div className="pointer-events-none absolute inset-0 animate-breathing-circle">
         <Image
           src="/images/onboarding/circle2.png"
@@ -52,7 +54,12 @@ export default function OnboardingBackground({
           </section>
         </div>
       ) : null}
+      {instructionMessage ? (
+        <p className="-translate-x-1/2 absolute bottom-[10%] left-1/2 z-10 whitespace-pre-line text-center font-normal text-2xl text-black leading-[1.4] md:bottom-[9%] md:text-[1.7rem] lg:bottom-[8%] lg:text-[1.9rem]">
+          {instructionMessage}
+        </p>
+      ) : null}
       {children}
-    </main>
+    </div>
   );
 }

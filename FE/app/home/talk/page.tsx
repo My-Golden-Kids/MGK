@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import SpeechRecognition, {
   useSpeechRecognition,
 } from 'react-speech-recognition';
+
 import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
 import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 
@@ -168,16 +169,24 @@ export default function HomeTalkPage() {
   const bubbleMessage = !isClient
     ? DEFAULT_MESSAGE
     : browserSupportsSpeechRecognition
-    ? showMoveConfirm
-      ? CONFIRM_MESSAGE
-      : isRequesting
-      ? '답변을\n준비하고 있어요.'
-      : assistantMessage || transcript.trim() || DEFAULT_MESSAGE
-    : '이 기기에서는\n음성 인식을 사용할 수 없어요.';
+      ? showMoveConfirm
+        ? CONFIRM_MESSAGE
+        : isRequesting
+          ? '답변을\n준비하고 있어요.'
+          : assistantMessage || transcript.trim() || DEFAULT_MESSAGE
+      : '이 기기에서는\n음성 인식을 사용할 수 없어요.';
+  const instructionMessage = showMoveConfirm
+    ? undefined
+    : listening || isPressing
+      ? '듣고 있어요.\n손을 떼면 멈춰요.'
+      : '별송이를 길게 눌러\n말씀해보세요.';
 
   return (
-    <OnboardingBackground bubbleMessage={bubbleMessage}>
-      <div className="relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
+    <OnboardingBackground
+      bubbleMessage={bubbleMessage}
+      instructionMessage={instructionMessage}
+    >
+      <div className="pointer-events-none relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
         <button
           type="button"
           onPointerDown={startRecording}
@@ -185,20 +194,12 @@ export default function HomeTalkPage() {
           onPointerLeave={stopRecording}
           onPointerCancel={stopRecording}
           onContextMenu={(event) => event.preventDefault()}
-          className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] rounded-full bg-transparent md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px]"
+          className="-translate-x-1/2 -translate-y-1/2 pointer-events-auto absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] rounded-full bg-transparent md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px]"
           aria-label="별송이를 길게 눌러 음성 입력"
         />
 
-        {!showMoveConfirm ? (
-          <p className="absolute right-0 bottom-[10%] left-0 z-20 text-center text-base text-[#35534E]">
-            {listening || isPressing
-              ? '듣고 있어요. 손을 떼면 멈춰요.'
-              : '별송이를 길게 눌러 말씀해보세요.'}
-          </p>
-        ) : null}
-
         {showMoveConfirm ? (
-          <div className="absolute right-0 bottom-[18%] left-0 z-20">
+          <div className="pointer-events-auto absolute right-0 bottom-[18%] left-0 z-20">
             <TalkChoiceButtons
               onYesClick={() => router.push('/finance')}
               onNoClick={() => {

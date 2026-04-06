@@ -94,13 +94,6 @@ const onboardingSteps: OnboardingStep[] = [
   },
 ];
 
-const bubbleContainerClassName =
-  '-translate-x-1/2 absolute top-[5.5rem] left-1/2 z-10 flex w-[calc(100%-3rem)] max-w-[22rem] flex-col items-center md:top-[6.25rem] md:max-w-[24rem] lg:top-[5em] lg:max-w-[26rem]';
-const bubbleSurfaceClassName =
-  'w-full overflow-hidden rounded-[2rem] bg-[#75A39D] shadow-[0_10px_30px_rgba(0,0,0,0.08)] md:rounded-[2.25rem] lg:rounded-[2.5rem]';
-const bubbleTextClassName =
-  'whitespace-pre-line break-keep text-start font-semibold text-2xl text-white leading-[1.35] md:text-3xl lg:text-4xl';
-
 const OnboardingOverlay = memo(function OnboardingOverlay({
   step,
   isVisible,
@@ -108,6 +101,7 @@ const OnboardingOverlay = memo(function OnboardingOverlay({
   onYesClick,
   onStartClick,
   transitionDurationMs,
+  centerImageUrl,
 }: {
   step: OnboardingStep;
   isVisible: boolean;
@@ -115,6 +109,7 @@ const OnboardingOverlay = memo(function OnboardingOverlay({
   onYesClick?: () => void;
   onStartClick?: () => void;
   transitionDurationMs: number;
+  centerImageUrl?: string;
 }) {
   const [displayMessage, setDisplayMessage] = useState(step.message);
 
@@ -147,78 +142,68 @@ const OnboardingOverlay = memo(function OnboardingOverlay({
       } ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       style={{ transitionDuration: `${transitionDurationMs}ms` }}
     >
-      <div className="relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
-        {step.id === 'expense-guide' ||
-        step.id === 'schedule-guide' ||
-        step.id === 'pet-name-guide' ? (
-          <div className="absolute top-4 left-4">
-            <BackButton onClick={onBackClick} />
-          </div>
-        ) : null}
-        <div className={bubbleContainerClassName}>
-          <section className="w-full">
-            <div className={bubbleSurfaceClassName}>
-              <div className="px-6 py-5 md:px-7 md:py-6 lg:px-8 lg:py-7">
-                <p className={bubbleTextClassName}>{displayMessage}</p>
-              </div>
+      <OnboardingBackground
+        bubbleMessage={displayMessage}
+        centerImageUrl={centerImageUrl}
+        instructionMessage={step.instruction}
+      >
+        <div className="relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
+          {step.id === 'expense-guide' ||
+          step.id === 'schedule-guide' ||
+          step.id === 'pet-name-guide' ? (
+            <div className="absolute top-4 left-4">
+              <BackButton onClick={onBackClick} />
             </div>
-          </section>
+          ) : null}
+          {step.showCenterAction ? (
+            <button
+              type="button"
+              aria-label="다음 온보딩으로 이동"
+              onClick={onYesClick}
+              className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] cursor-pointer rounded-full md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px]"
+            />
+          ) : null}
+          {step.showChoiceButtons ? (
+            <div className="absolute right-0 left-0 z-20 sm:bottom-[10%] md:bottom-[8%] lg:bottom-[5%]">
+              <TalkChoiceButtons
+                onYesClick={onYesClick}
+                yesSymbolClassName="text-black"
+              />
+            </div>
+          ) : step.showStartButton ? (
+            <div className="absolute right-0 bottom-[9%] left-0 z-20 px-6 md:bottom-[8%] md:px-8 lg:bottom-[7%] lg:px-10">
+              <Button className="mx-auto w-full" onClick={onStartClick}>
+                시작하기
+              </Button>
+            </div>
+          ) : null}
+          {step.id === 'pet-name-guide' ? (
+            <div className="pointer-events-none absolute top-[55%] left-[40%] z-40 h-[96px] w-[96px] translate-x-[48px] md:h-[112px] md:w-[112px] md:translate-x-[56px] lg:h-[128px] lg:w-[128px] lg:translate-x-[64px]">
+              <Image
+                src="/images/onboarding/hand-finger.png"
+                alt=""
+                width={128}
+                height={128}
+                className="absolute inset-0 h-full w-full object-contain"
+                style={{
+                  animation: 'hand-hint 1s steps(1, end) infinite',
+                }}
+              />
+              <Image
+                src="/images/onboarding/hand-click.png"
+                alt=""
+                width={128}
+                height={128}
+                className="absolute inset-0 h-full w-full object-contain"
+                style={{
+                  animation: 'hand-hint 1s steps(1, end) infinite',
+                  animationDelay: '0.5s',
+                }}
+              />
+            </div>
+          ) : null}
         </div>
-        {step.showCenterAction ? (
-          <button
-            type="button"
-            aria-label="다음 온보딩으로 이동"
-            onClick={onYesClick}
-            className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] cursor-pointer rounded-full md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px]"
-          />
-        ) : null}
-        {step.showChoiceButtons ? (
-          <div className="absolute right-0 left-0 z-20 sm:bottom-[10%] md:bottom-[8%] lg:bottom-[5%]">
-            <TalkChoiceButtons
-              onYesClick={onYesClick}
-              yesSymbolClassName="text-black"
-            />
-          </div>
-        ) : step.showStartButton ? (
-          <div className="absolute right-0 bottom-[9%] left-0 z-20 px-6 md:bottom-[8%] md:px-8 lg:bottom-[7%] lg:px-10">
-            <Button
-              className="mx-auto w-full max-w-[22rem] md:max-w-[24rem] lg:max-w-[26rem]"
-              onClick={onStartClick}
-            >
-              시작하기
-            </Button>
-          </div>
-        ) : step.instruction ? (
-          <p className="-translate-x-1/2 absolute bottom-[10%] left-1/2 whitespace-pre-line text-center font-normal text-2xl text-black leading-[1.4] md:bottom-[9%] md:text-[1.7rem] lg:bottom-[8%] lg:text-[1.9rem]">
-            {step.instruction}
-          </p>
-        ) : null}
-        {step.id === 'pet-name-guide' ? (
-          <div className="pointer-events-none absolute top-[55%] left-[40%] z-40 h-[96px] w-[96px] translate-x-[48px] md:h-[112px] md:w-[112px] md:translate-x-[56px] lg:h-[128px] lg:w-[128px] lg:translate-x-[64px]">
-            <Image
-              src="/images/onboarding/hand-finger.png"
-              alt=""
-              width={128}
-              height={128}
-              className="absolute inset-0 h-full w-full object-contain"
-              style={{
-                animation: 'hand-hint 1s steps(1, end) infinite',
-              }}
-            />
-            <Image
-              src="/images/onboarding/hand-click.png"
-              alt=""
-              width={128}
-              height={128}
-              className="absolute inset-0 h-full w-full object-contain"
-              style={{
-                animation: 'hand-hint 1s steps(1, end) infinite',
-                animationDelay: '0.5s',
-              }}
-            />
-          </div>
-        ) : null}
-      </div>
+      </OnboardingBackground>
     </section>
   );
 });
@@ -330,6 +315,10 @@ export default function OnboardingPage() {
     currentStep.id === 'pet-chat-guide'
       ? uploadedImageUrl
       : undefined;
+  const nextCenterImageUrl =
+    nextStep?.id === 'pet-photo-complete' || nextStep?.id === 'pet-chat-guide'
+      ? uploadedImageUrl
+      : undefined;
   const handlePhotoUploadRequest = () => {
     fileInputRef.current?.click();
   };
@@ -399,7 +388,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <OnboardingBackground centerImageUrl={centerImageUrl}>
+    <>
       <style jsx>{`
         @keyframes hand-hint {
           0%,
@@ -423,6 +412,7 @@ export default function OnboardingPage() {
         <OnboardingOverlay
           step={currentStep}
           isVisible={!isDissolving}
+          centerImageUrl={centerImageUrl}
           onBackClick={() =>
             startStepTransition(
               currentStepIndex - 1,
@@ -436,6 +426,7 @@ export default function OnboardingPage() {
         <OnboardingOverlay
           step={nextStep ?? currentStep}
           isVisible={nextStep !== null && isDissolving}
+          centerImageUrl={nextCenterImageUrl}
           onBackClick={undefined}
           onYesClick={
             nextStep
@@ -468,6 +459,6 @@ export default function OnboardingPage() {
           </div>
         ) : null}
       </Modal>
-    </OnboardingBackground>
+    </>
   );
 }
