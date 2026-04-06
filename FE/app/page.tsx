@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
   const router = useRouter();
@@ -14,7 +14,7 @@ export default function Home() {
     }, 1500);
 
     const navigationId = window.setTimeout(() => {
-      router.push("/onboarding");
+      router.push('/onboarding');
     }, 1700);
 
     return () => {
@@ -25,8 +25,8 @@ export default function Home() {
 
   return (
     <main
-      className={`relative h-dvh overflow-hidden bg-[#018D70] transition-opacity duration-400 ease-in-out ${
-        isExiting ? "opacity-0" : "opacity-100"
+      className={`relative h-dvh overflow-hidden bg-[#018D70] transition-opacity duration-200 ease-out ${
+        isExiting ? 'opacity-0' : 'opacity-100'
       }`}
     >
       <div className="pointer-events-none absolute inset-0">
@@ -35,6 +35,7 @@ export default function Home() {
           alt=""
           fill
           priority
+          sizes="(max-width: 420px) 100vw, (max-width: 768px) 500px, 640px"
           className="object-cover object-center opacity-90"
         />
       </div>
@@ -42,26 +43,29 @@ export default function Home() {
         <Image
           src="/images/onboarding/logo.png"
           alt="MGK logo"
-          width={300}
-          height={169}
+          width={1323}
+          height={813}
           priority
-          className="absolute top-[5%] left-1/2 h-[min(21dvh,36vw)] w-auto -translate-x-1/2 md:h-[min(24dvh,42vw)] lg:h-[min(26dvh,44vw)]"
+          sizes="(max-width: 420px) 360px, (max-width: 768px) 420px, 480px"
+          className="-translate-x-1/2 absolute top-[4%] left-1/2 h-auto w-[87%] max-w-[480px] md:w-[84%] lg:w-[75%]"
         />
         <Image
           src="/images/onboarding/protagonist.png"
           alt="Main character"
-          width={371}
-          height={252}
+          width={1855}
+          height={1210}
           priority
-          className="absolute top-1/2 left-1/2 h-[min(26dvh,68vw)] w-auto max-w-[94vw] -translate-x-1/2 -translate-y-1/2 md:h-[min(28dvh,78vw)] lg:h-[min(30dvh,82vw)]"
+          sizes="(max-width: 420px) 320px, (max-width: 768px) 380px, 430px"
+          className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 h-auto w-[82%] max-w-[430px] md:w-[80%] lg:w-[76%]"
         />
         <Image
           src="/images/onboarding/characters.png"
           alt="Supporting characters"
-          width={358}
-          height={272}
+          width={1940}
+          height={1460}
           priority
-          className="absolute bottom-[1%] left-1/2 h-[min(32dvh,72vw)] w-auto max-w-[94vw] -translate-x-1/2 md:h-[min(34dvh,82vw)] lg:h-[min(36dvh,86vw)]"
+          sizes="(max-width: 420px) 350px, (max-width: 768px) 420px, 440px"
+          className="-translate-x-1/2 absolute bottom-[1%] left-1/2 h-auto w-[90%] max-w-[500px] md:w-[88%] lg:w-[74%]"
         />
       </div>
     </main>
