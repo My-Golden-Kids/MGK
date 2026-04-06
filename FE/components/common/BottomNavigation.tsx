@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { HeartPulse, Wallet, Map } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { HeartPulse, Wallet, ShoppingBag, HouseIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
   href: string;
@@ -13,19 +13,27 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: '/health', label: '건강', icon: HeartPulse },
-  { href: '/finance', label: '재정', icon: Wallet },
-  { href: '/map', label: '지도', icon: Map },
+  { href: "/home", label: "홈", icon: HouseIcon },
+  { href: "/health", label: "건강", icon: HeartPulse },
+  { href: "/finance", label: "재정", icon: Wallet },
+  { href: "/product", label: "상품", icon: ShoppingBag },
 ];
 
 export function BottomNavigation() {
   const pathname = usePathname();
 
+  const isActivePath = (href: string) => {
+    if (href === "/home") {
+      return pathname === "/home" || pathname === "/";
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 h-20 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-      <div className="grid h-full grid-cols-3">
+    <nav className="sticky bottom-0 z-50 mt-auto h-20 border-t border-gray-100 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+      <div className="grid h-full grid-cols-4">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = isActivePath(item.href);
           const Icon = item.icon;
 
           return (
@@ -36,18 +44,19 @@ export function BottomNavigation() {
             >
               <Icon
                 className={cn(
-                  'h-6 w-6 mb-1 transition-colors',
-                  isActive ? 'text-green-600' : 'text-gray-400'
+                  "mb-1 h-6 w-6 transition-colors",
+                  isActive ? "text-green-600" : "text-gray-400",
                 )}
               />
               <span
                 className={cn(
-                  'transition-colors',
-                  isActive ? 'text-green-600' : 'text-gray-500'
+                  "transition-colors",
+                  isActive ? "text-green-600" : "text-gray-500",
                 )}
               >
                 {item.label}
               </span>
+
               {isActive && (
                 <div className="absolute bottom-2 h-1 w-6 rounded-full bg-green-500" />
               )}
