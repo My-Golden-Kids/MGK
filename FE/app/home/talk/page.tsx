@@ -10,17 +10,47 @@ import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 
 const DEFAULT_MESSAGE = '무엇이\n궁금하신가요?';
 const CONFIRM_MESSAGE = '통장 화면으로\n이동할까요?';
+const API_BASE_URL = 'http://localhost:8080';
+const MAX_REQUEST_TRANSCRIPT_LENGTH = 60;
+
+function buildRequestTranscript(transcript: string) {
+  const normalizedTranscript = transcript
+    .replace(/\s+/g, ' ')
+    .replace(/[.?!]+/g, '.')
+    .trim();
+
+  if (!normalizedTranscript) {
+    return '';
+  }
+
+  const segments = normalizedTranscript
+    .split(/[.\n]/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  const condensedTranscript =
+    segments.length > 0 ? segments[segments.length - 1] : normalizedTranscript;
+
+  return condensedTranscript.slice(0, MAX_REQUEST_TRANSCRIPT_LENGTH);
+}
 
 export default function HomeTalkPage() {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
   const [isPressing, setIsPressing] = useState(false);
   const [showMoveConfirm, setShowMoveConfirm] = useState(false);
+  const [assistantMessage, setAssistantMessage] = useState('');
+  const [requestedTranscript, setRequestedTranscript] = useState('');
   const {
     transcript,
     resetTranscript,
     browserSupportsSpeechRecognition,
     listening,
   } = useSpeechRecognition();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -46,6 +76,49 @@ export default function HomeTalkPage() {
     setShowMoveConfirm(true);
   }, [showMoveConfirm, transcript]);
 
+  useEffect(() => {
+    const requestTranscript = buildRequestTranscript(transcript);
+
+    if (
+      !requestTranscript ||
+      showMoveConfirm ||
+      listening ||
+      isPressing ||
+      requestedTranscript === requestTranscript
+    ) {
+      return;
+    }
+
+    const requestTalk = async () => {
+      try {
+        setRequestedTranscript(requestTranscript);
+
+        const response = await fetch(`${API_BASE_URL}/api/talk`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transcript: requestTranscript,
+          }),
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as { message?: string };
+        if (data.message) {
+          setAssistantMessage(data.message);
+        }
+      } catch {
+        setAssistantMessage('');
+      }
+    };
+
+    void requestTalk();
+  }, [isPressing, listening, requestedTranscript, showMoveConfirm, transcript]);
+
   const startRecording = async () => {
     if (!browserSupportsSpeechRecognition || isPressing) {
       return;
@@ -53,10 +126,12 @@ export default function HomeTalkPage() {
 
     resetTranscript();
     setShowMoveConfirm(false);
+    setAssistantMessage('');
+    setRequestedTranscript('');
     setIsPressing(true);
 
     await SpeechRecognition.startListening({
-      continuous: true,
+      continuous: false,
       language: 'ko-KR',
     });
   };
@@ -70,10 +145,12 @@ export default function HomeTalkPage() {
     await SpeechRecognition.stopListening();
   };
 
-  const bubbleMessage = browserSupportsSpeechRecognition
+  const bubbleMessage = !isClient
+    ? DEFAULT_MESSAGE
+    : browserSupportsSpeechRecognition
     ? showMoveConfirm
       ? CONFIRM_MESSAGE
-      : transcript.trim() || DEFAULT_MESSAGE
+      : assistantMessage || transcript.trim() || DEFAULT_MESSAGE
     : '이 기기에서는\n음성 인식을 사용할 수 없어요.';
 
   return (
@@ -104,6 +181,7 @@ export default function HomeTalkPage() {
               onYesClick={() => router.push('/finance')}
               onNoClick={() => {
                 setShowMoveConfirm(false);
+                setAssistantMessage('');
                 resetTranscript();
               }}
             />
