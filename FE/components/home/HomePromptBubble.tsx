@@ -12,13 +12,13 @@ export default function HomePromptBubble({
   showAnswerButtons = false,
   onYesClick,
   onNoClick,
-  yesLabel = 'O',
-  noLabel = 'X',
+  yesLabel = "O",
+  noLabel = "X",
 }: HomePromptBubbleProps) {
   return (
     <section className="w-full">
       <div
-        className={`mx-20 overflow-hidden bg-[#0000004D] ${showAnswerButtons ? 'border border-[#B2B2B2]' : ''} rounded-[24px] md:rounded-[28px] lg:rounded-[32px]`}
+        className={`mx-20 overflow-hidden bg-[#0000004D] ${showAnswerButtons ? "border border-[#B2B2B2]" : ""} rounded-[24px] md:rounded-[28px] lg:rounded-[32px]`}
       >
         {/* 텍스트 영역 */}
         <div className="px-6 py-5 md:px-7 md:py-6 lg:px-8 lg:py-7">
@@ -33,7 +33,7 @@ export default function HomePromptBubble({
             <button
               type="button"
               onClick={onNoClick}
-              className="flex items-center justify-center border-[#B2B2B2] border-r font-extrabold text-[#DB1F26] text-[34px] transition active:scale-[0.98] md:text-[42px] lg:text-[50px]"
+              className="flex items-center justify-center border-[#B2B2B2] border-r font-extrabold text-[#DB1F26] text-[34px] transition active:scale-[0.98] cursor-pointer md:text-[42px] lg:text-[50px]"
               aria-label={noLabel}
             >
               {noLabel}
@@ -42,7 +42,7 @@ export default function HomePromptBubble({
             <button
               type="button"
               onClick={onYesClick}
-              className="flex items-center justify-center font-extrabold text-[#018D70] text-[34px] transition active:scale-[0.98] md:text-[42px] lg:text-[50px]"
+              className="flex items-center justify-center font-extrabold text-[#018D70] text-[34px] transition active:scale-[0.98] cursor-pointer md:text-[42px] lg:text-[50px]"
               aria-label={yesLabel}
             >
               {yesLabel}

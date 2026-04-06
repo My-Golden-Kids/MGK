@@ -189,7 +189,7 @@ export default function SelectedPetProfile({
 
                   onChange(pet.id);
                 }}
-                className="h-[220px] w-[220px] md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px]"
+                className="h-[220px] w-[220px] md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px] cursor-pointer"
               />
             </div>
           );
