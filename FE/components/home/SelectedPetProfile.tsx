@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useMemo, useRef } from "react";
-import PetProfileImage from "@/components/home/pet/PetProfileImage";
+import { useMemo, useRef } from 'react';
+import PetProfileImage from '@/components/home/pet/PetProfileImage';
 
 type Pet = {
   id: number | string;
@@ -10,8 +10,8 @@ type Pet = {
 };
 
 type SelectedPetProfileProps = {
-  pets: Pet[];
-  selectedPetId: number | string;
+  pets?: Pet[] | null;
+  selectedPetId?: number | string | null;
   onChange: (petId: number | string) => void;
   onSelectedClick?: (petId: number | string) => void;
 };
@@ -25,34 +25,34 @@ type PositionStyle = {
 
 const POSITION_MAP: Record<number, PositionStyle> = {
   [-2]: {
-    translateX: "-90%",
-    scale: "0.40",
+    translateX: '-90%',
+    scale: '0.40',
     zIndex: 30,
-    opacity: "0.8",
+    opacity: '0.8',
   },
   [-1]: {
-    translateX: "-55%",
-    scale: "0.65",
+    translateX: '-55%',
+    scale: '0.65',
     zIndex: 40,
-    opacity: "0.9",
+    opacity: '0.9',
   },
   0: {
-    translateX: "0%",
-    scale: "1",
+    translateX: '0%',
+    scale: '1',
     zIndex: 50,
-    opacity: "1",
+    opacity: '1',
   },
   1: {
-    translateX: "55%",
-    scale: "0.65",
+    translateX: '55%',
+    scale: '0.65',
     zIndex: 40,
-    opacity: "0.9",
+    opacity: '0.9',
   },
   2: {
-    translateX: "90%",
-    scale: "0.40",
+    translateX: '90%',
+    scale: '0.40',
     zIndex: 30,
-    opacity: "0.8",
+    opacity: '0.8',
   },
 };
 
@@ -62,25 +62,28 @@ export default function SelectedPetProfile({
   onChange,
   onSelectedClick,
 }: SelectedPetProfileProps) {
+  const isPets = pets ?? [];
+  const isSelectedId = selectedPetId ?? isPets[0]?.id ?? null;
+
   const pointerStartX = useRef<number | null>(null);
   const pointerEndX = useRef<number | null>(null);
   const isDragging = useRef(false);
 
-  const selectedIndex = useMemo(
-    () => pets.findIndex((pet) => pet.id === selectedPetId),
-    [pets, selectedPetId],
-  );
+  const selectedIndex = useMemo(() => {
+    if (!isPets.length || isSelectedId == null) return -1;
+    return isPets.findIndex((pet) => pet.id === isSelectedId);
+  }, [isPets, isSelectedId]);
 
   const moveToPrev = () => {
-    if (pets.length <= 1 || selectedIndex < 0) return;
-    const prevIndex = (selectedIndex - 1 + pets.length) % pets.length;
-    onChange(pets[prevIndex].id);
+    if (isPets.length <= 1 || selectedIndex < 0) return;
+    const prevIndex = (selectedIndex - 1 + isPets.length) % isPets.length;
+    onChange(isPets[prevIndex].id);
   };
 
   const moveToNext = () => {
-    if (pets.length <= 1 || selectedIndex < 0) return;
-    const nextIndex = (selectedIndex + 1) % pets.length;
-    onChange(pets[nextIndex].id);
+    if (isPets.length <= 1 || selectedIndex < 0) return;
+    const nextIndex = (selectedIndex + 1) % isPets.length;
+    onChange(isPets[nextIndex].id);
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -129,7 +132,7 @@ export default function SelectedPetProfile({
   };
 
   const visibleOffsets = useMemo(() => {
-    const total = pets.length;
+    const total = isPets.length;
 
     if (total <= 0) return [];
     if (total === 1) return [0];
@@ -138,21 +141,31 @@ export default function SelectedPetProfile({
     if (total === 4) return [-1, 0, 1, 2];
 
     return [-2, -1, 0, 1, 2];
-  }, [pets.length]);
+  }, [isPets.length]);
 
   const visiblePets = useMemo(() => {
-    if (selectedIndex < 0 || pets.length === 0) return [];
+    if (selectedIndex < 0 || isPets.length === 0) return [];
 
     return visibleOffsets.map((offset) => {
-      const petIndex = (selectedIndex + offset + pets.length) % pets.length;
+      const petIndex = (selectedIndex + offset + isPets.length) % isPets.length;
       return {
-        pet: pets[petIndex],
+        pet: isPets[petIndex],
         offset,
       };
     });
-  }, [pets, selectedIndex, visibleOffsets]);
+  }, [isPets, selectedIndex, visibleOffsets]);
 
-  if (!pets.length || selectedIndex < 0) return null;
+  if (!isPets.length) {
+    return (
+      <section className="w-full">
+        <div className="flex h-[250px] items-center justify-center md:h-[290px] lg:h-[340px]">
+          <PetProfileImage className="h-[220px] w-[220px] md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px]" />
+        </div>
+      </section>
+    );
+  }
+
+  if (selectedIndex < 0) return null;
 
   return (
     <section className="w-full">
@@ -189,7 +202,7 @@ export default function SelectedPetProfile({
 
                   onChange(pet.id);
                 }}
-                className="h-[220px] w-[220px] md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px] cursor-pointer"
+                className="h-[220px] w-[220px] cursor-pointer md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px]"
               />
             </div>
           );
@@ -198,5 +211,3 @@ export default function SelectedPetProfile({
     </section>
   );
 }
-
-//

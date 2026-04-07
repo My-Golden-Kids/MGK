@@ -6,10 +6,10 @@ type PetProfileImageProps = {
 
 export default function PetProfileImage({
   imageUrl,
-  className = "",
+  className = '',
   onClick,
 }: PetProfileImageProps) {
-  const src = imageUrl || "/images/onboarding/byeolsong.png";
+  const src = imageUrl || '/images/onboarding/byeolsong.png';
 
   return (
     <button
