@@ -47,7 +47,7 @@ export default function OnboardingBackground({
         />
       </div>
       {bubbleMessage ? (
-        <div className="-translate-x-1/2 absolute top-[5.5rem] left-1/2 z-10 flex w-[calc(100%-3rem)] max-w-[22rem] flex-col items-center md:top-[6.25rem] md:max-w-[24rem] lg:top-[7rem] lg:max-w-[26rem]">
+        <div className="-translate-x-1/2 absolute top-[5.5rem] left-1/2 z-10 flex w-[calc(100%-3rem)] max-w-[22rem] flex-col items-center md:max-w-[24rem] lg:max-w-[26rem]">
           <TalkBubble
             message={bubbleMessage}
             messageFrames={bubbleMessageFrames}

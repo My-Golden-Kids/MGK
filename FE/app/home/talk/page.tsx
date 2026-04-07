@@ -1,18 +1,21 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SpeechRecognition, {
   useSpeechRecognition,
 } from 'react-speech-recognition';
 
+import TalkBubble from '@/components/home/talk/TalkBubble';
 import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
 import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 
-const DEFAULT_MESSAGE = '무엇이\n궁금하신가요?';
-const CONFIRM_MESSAGE = '통장 화면으로\n이동할까요?';
+const DEFAULT_MESSAGE = '무엇이 궁금하신가요?';
+const CONFIRM_MESSAGE = '통장 화면으로 이동할까요?';
 const API_BASE_URL = 'http://localhost:8080';
 const MAX_REQUEST_TRANSCRIPT_LENGTH = 60;
+const PREPARING_MESSAGE = '답변을 준비하고 있어요.';
+const REQUEST_ERROR_MESSAGE = '답변을 불러오지 못했어요.';
 
 function buildRequestTranscript(transcript: string) {
   const normalizedTranscript = transcript
@@ -37,6 +40,7 @@ function buildRequestTranscript(transcript: string) {
 
 export default function HomeTalkPage() {
   const router = useRouter();
+  const lastSpokenBubbleMessageRef = useRef('');
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
@@ -58,6 +62,7 @@ export default function HomeTalkPage() {
   useEffect(() => {
     return () => {
       SpeechRecognition.stopListening();
+      window.speechSynthesis?.cancel();
     };
   }, []);
 
@@ -98,7 +103,7 @@ export default function HomeTalkPage() {
       try {
         setIsRequesting(true);
         setRequestedTranscript(requestTranscript);
-        setAssistantMessage('답변을 준비하고 있어요.');
+        setAssistantMessage(PREPARING_MESSAGE);
 
         const response = await fetch(`${API_BASE_URL}/api/talk`, {
           method: 'POST',
@@ -111,7 +116,7 @@ export default function HomeTalkPage() {
         });
 
         if (!response.ok) {
-          setAssistantMessage('답변을 불러오지 못했어요.');
+          setAssistantMessage(REQUEST_ERROR_MESSAGE);
           return;
         }
 
@@ -120,7 +125,7 @@ export default function HomeTalkPage() {
           setAssistantMessage(data.message);
         }
       } catch {
-        setAssistantMessage('답변을 불러오지 못했어요.');
+        setAssistantMessage(REQUEST_ERROR_MESSAGE);
       } finally {
         setIsRequesting(false);
         setShouldSubmit(false);
@@ -149,6 +154,7 @@ export default function HomeTalkPage() {
     setShouldSubmit(false);
     setRequestedTranscript('');
     setIsRecording(true);
+    window.speechSynthesis?.cancel();
 
     await SpeechRecognition.startListening({
       continuous: false,
@@ -185,14 +191,54 @@ export default function HomeTalkPage() {
       ? showMoveConfirm
         ? CONFIRM_MESSAGE
         : isRequesting
-          ? '답변을\n준비하고 있어요.'
-          : assistantMessage || transcript.trim() || DEFAULT_MESSAGE
-      : '이 기기에서는\n음성 인식을 사용할 수 없어요.';
+          ? '답변을 준비하고 있어요.'
+          : assistantMessage || DEFAULT_MESSAGE
+      : '이 기기에서는 음성 인식을 사용할 수 없어요.';
+  const speechBubbleMessage = transcript.trim();
   const instructionMessage = showMoveConfirm
     ? undefined
-    : listening || isRecording
-      ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
-      : '별송이를 한 번 눌러\n말씀해보세요.';
+    : !speechBubbleMessage
+      ? listening || isRecording
+        ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
+        : '별송이를 한 번 눌러\n말씀해보세요.'
+      : undefined;
+
+  useEffect(() => {
+    if (
+      !isClient ||
+      !bubbleMessage ||
+      bubbleMessage === PREPARING_MESSAGE ||
+      lastSpokenBubbleMessageRef.current === bubbleMessage
+    ) {
+      return;
+    }
+
+    const speechSynthesis = window.speechSynthesis;
+
+    if (!speechSynthesis) {
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(
+      bubbleMessage.replaceAll('\n', ' '),
+    );
+    utterance.lang = 'ko-KR';
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+
+    const availableVoices = speechSynthesis.getVoices();
+    const koreanVoice = availableVoices.find((voice) =>
+      voice.lang.toLowerCase().startsWith('ko'),
+    );
+
+    if (koreanVoice) {
+      utterance.voice = koreanVoice;
+    }
+
+    lastSpokenBubbleMessageRef.current = bubbleMessage;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  }, [bubbleMessage, isClient]);
 
   return (
     <OnboardingBackground
@@ -213,6 +259,18 @@ export default function HomeTalkPage() {
               : '별송이를 눌러 음성 입력 시작'
           }
         />
+
+        {!showMoveConfirm && speechBubbleMessage ? (
+          <div className="pointer-events-none absolute right-6 bottom-[5.5rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:max-w-[24rem] lg:max-w-[26rem]">
+            <TalkBubble
+              message={speechBubbleMessage}
+              className="w-full"
+              bubbleClassName="w-full overflow-hidden rounded-[2rem] bg-[#75A39D] shadow-[0_10px_30px_rgba(0,0,0,0.08)] md:rounded-[2.25rem] lg:rounded-[2.5rem]"
+              contentClassName="px-6 py-5 md:px-7 md:py-6 lg:px-8 lg:py-7"
+              textClassName="whitespace-pre-line break-keep text-start font-semibold text-2xl text-white leading-[1.35] md:text-3xl lg:text-4xl"
+            />
+          </div>
+        ) : null}
 
         {showMoveConfirm ? (
           <div className="pointer-events-auto absolute right-0 bottom-[18%] left-0 z-20">

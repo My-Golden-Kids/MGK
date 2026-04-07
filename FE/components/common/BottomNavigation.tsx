@@ -14,8 +14,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/home", label: "홈", icon: HouseIcon },
-  { href: "/health", label: "건강", icon: HeartPulse },
   { href: "/finance", label: "재정", icon: Wallet },
+  { href: "/health", label: "건강", icon: HeartPulse },
   { href: "/product", label: "상품", icon: ShoppingBag },
 ];
 
