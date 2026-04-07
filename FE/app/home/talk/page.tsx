@@ -6,6 +6,7 @@ import SpeechRecognition, {
   useSpeechRecognition,
 } from 'react-speech-recognition';
 
+import TalkBubble from '@/components/home/talk/TalkBubble';
 import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
 import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 
@@ -186,13 +187,16 @@ export default function HomeTalkPage() {
         ? CONFIRM_MESSAGE
         : isRequesting
           ? '답변을\n준비하고 있어요.'
-          : assistantMessage || transcript.trim() || DEFAULT_MESSAGE
+          : assistantMessage || DEFAULT_MESSAGE
       : '이 기기에서는\n음성 인식을 사용할 수 없어요.';
+  const speechBubbleMessage = transcript.trim();
   const instructionMessage = showMoveConfirm
     ? undefined
-    : listening || isRecording
-      ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
-      : '별송이를 한 번 눌러\n말씀해보세요.';
+    : !speechBubbleMessage
+      ? listening || isRecording
+        ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
+        : '별송이를 한 번 눌러\n말씀해보세요.'
+      : undefined;
 
   return (
     <OnboardingBackground
@@ -213,6 +217,18 @@ export default function HomeTalkPage() {
               : '별송이를 눌러 음성 입력 시작'
           }
         />
+
+        {!showMoveConfirm && speechBubbleMessage ? (
+          <div className="pointer-events-none absolute right-6 bottom-[22%] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:max-w-[24rem] lg:max-w-[26rem]">
+            <TalkBubble
+              message={speechBubbleMessage}
+              className="w-full"
+              bubbleClassName="w-full overflow-hidden rounded-[2rem] bg-[#75A39D] shadow-[0_10px_30px_rgba(0,0,0,0.08)] md:rounded-[2.25rem] lg:rounded-[2.5rem]"
+              contentClassName="px-6 py-5 md:px-7 md:py-6 lg:px-8 lg:py-7"
+              textClassName="whitespace-pre-line break-keep text-start font-semibold text-2xl text-white leading-[1.35] md:text-3xl lg:text-4xl"
+            />
+          </div>
+        ) : null}
 
         {showMoveConfirm ? (
           <div className="pointer-events-auto absolute right-0 bottom-[18%] left-0 z-20">
