@@ -37,6 +37,9 @@ public class Product extends BaseEntity {
     @Column(length = 1000)
     private String description;
 
+    @Column(length = 255)
+    private String url;
+
     @Column(name = "benefit_rate", precision = 10, scale = 2)
     private BigDecimal benefitRate;
 
@@ -66,7 +69,7 @@ public class Product extends BaseEntity {
     @Builder
 
     // 상품 추천 계산에 필요한 핵심 조건만 저장
-    public Product(String name, ProductType productType, String description,
+    public Product(String name, ProductType productType, String description, String url,
                    BigDecimal benefitRate, BigDecimal benefitAmount,
                    BigDecimal benefitLimitAmount, Integer benefitLimitCount,
                    BenefitPeriod benefitPeriod, String targetCategory,
@@ -74,6 +77,7 @@ public class Product extends BaseEntity {
         this.name = name;
         this.productType = productType;
         this.description = description;
+        this.url = url;
         this.benefitRate = benefitRate;
         this.benefitAmount = benefitAmount;
         this.benefitLimitAmount = benefitLimitAmount;
