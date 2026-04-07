@@ -38,6 +38,7 @@ export default function OnboardingBackground({
         <PetProfileImage
           imageUrl={centerImageUrl}
           className={`${centerMediaClassName} cursor-default`}
+          ariaLabel="Onboarding pet profile"
         />
       </div>
       {bubbleMessage ? (
