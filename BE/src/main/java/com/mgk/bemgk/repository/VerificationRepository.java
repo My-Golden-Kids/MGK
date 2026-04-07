@@ -7,4 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface VerificationRepository extends JpaRepository<Verification, Long> {
 
     Optional<Verification> findTopByIdentifierOrderByCreatedAtDesc(String identifier);
+
+    Optional<Verification> findByToken(String token);
+
+    void deleteByToken(String token);
 }

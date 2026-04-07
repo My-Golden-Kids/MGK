@@ -115,6 +115,34 @@ public class AuthService {
         userRepository.softDeleteByEmail(email, LocalDateTime.now());
     }
 
+    @Transactional
+    public AuthResponse verifyMagicLink(String token) {
+        Verification verification = verificationRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다."));
+
+        if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("만료된 토큰입니다.");
+        }
+
+        User user = verification.getUser();
+        verificationRepository.deleteByToken(token);
+        return buildAuthResponse(user);
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        Verification verification = verificationRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다."));
+
+        if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("만료된 토큰입니다.");
+        }
+
+        User user = verification.getUser();
+        userRepository.updatePassword(user.getId(), passwordEncoder.encode(newPassword));
+        verificationRepository.deleteByToken(token);
+    }
+
     private AuthResponse buildAuthResponse(User user) {
         return AuthResponse.builder()
                 .accessToken(jwtProvider.generateAccessToken(user.getId(), user.getEmail()))

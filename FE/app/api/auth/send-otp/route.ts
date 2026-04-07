@@ -1,19 +1,16 @@
-import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
+import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const { email, type } = await request.json();
 
     if (!email) {
       return NextResponse.json({ error: '이메일을 입력해주세요.' }, { status: 400 });
     }
 
-    // Spring AuthController: POST /api/auth/send-otp
-    // Request:  { email: string }
-    // Response: { token: string }
     const springRes = await fetch(`${process.env.SPRING_API_URL}/api/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -25,18 +22,24 @@ export async function POST(request: Request) {
     }
 
     const { token } = await springRes.json();
-    const magicLink = `${process.env.NEXTAUTH_URL}/login/verify?token=${token}`;
+
+    const link =
+      type === 'reset'
+        ? `${process.env.NEXTAUTH_URL}/login/changepasswd?token=${token}`
+        : `${process.env.NEXTAUTH_URL}/login/verify?token=${token}`;
+
+    const isReset = type === 'reset';
 
     await resend.emails.send({
       from: process.env.RESEND_FROM!,
       to: email,
-      subject: '로그인 링크',
+      subject: isReset ? '비밀번호 재설정 링크' : '로그인 링크',
       html: `
-        <p>아래 버튼을 클릭하면 로그인됩니다. 링크는 일정 시간 후 만료됩니다.</p>
-        <a href="${magicLink}" style="display:inline-block;padding:12px 24px;background:#2D6A4F;color:#fff;border-radius:8px;text-decoration:none;">
-          로그인하기
+        <p>${isReset ? '아래 버튼을 클릭하면 비밀번호를 재설정할 수 있습니다.' : '아래 버튼을 클릭하면 로그인됩니다.'} 링크는 일정 시간 후 만료됩니다.</p>
+        <a href="${link}" style="display:inline-block;padding:12px 24px;background:#2D6A4F;color:#fff;border-radius:8px;text-decoration:none;">
+          ${isReset ? '비밀번호 재설정하기' : '로그인하기'}
         </a>
-        <p style="color:#888;font-size:12px;">버튼이 작동하지 않으면 아래 링크를 복사해 브라우저에 붙여넣으세요.<br/>${magicLink}</p>
+        <p style="color:#888;font-size:12px;">버튼이 작동하지 않으면 아래 링크를 복사해 브라우저에 붙여넣으세요.<br/>${link}</p>
       `,
     });
 

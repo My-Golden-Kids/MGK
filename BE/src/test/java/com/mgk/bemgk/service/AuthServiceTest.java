@@ -17,6 +17,7 @@ import com.mgk.bemgk.dto.auth.RefreshRequest;
 import com.mgk.bemgk.dto.auth.RefreshResponse;
 import com.mgk.bemgk.dto.auth.SignupRequest;
 import com.mgk.bemgk.entity.User;
+import com.mgk.bemgk.entity.Verification;
 import com.mgk.bemgk.repository.AccountRepository;
 import com.mgk.bemgk.repository.UserRepository;
 import com.mgk.bemgk.repository.VerificationRepository;
@@ -242,5 +243,106 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.deleteAccount("none@test.com"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("존재하지 않는 이메일");
+    }
+
+    // ── verifyMagicLink ────────────────────────────────────────
+
+    @Test
+    @DisplayName("verifyMagicLink: 성공")
+    void verifyMagicLink_success() {
+        User user = mockUser(1L, "test@test.com");
+        Verification verification = Verification.builder()
+                .user(user)
+                .identifier("test@test.com")
+                .token("valid-token")
+                .expiresAt(java.time.LocalDateTime.now().plusMinutes(10))
+                .build();
+
+        given(verificationRepository.findByToken("valid-token")).willReturn(Optional.of(verification));
+        given(jwtProvider.generateAccessToken(1L, "test@test.com")).willReturn("access");
+        given(jwtProvider.generateRefreshToken(1L)).willReturn("refresh");
+
+        AuthResponse response = authService.verifyMagicLink("valid-token");
+
+        assertThat(response.getEmail()).isEqualTo("test@test.com");
+        then(verificationRepository).should().deleteByToken("valid-token");
+    }
+
+    @Test
+    @DisplayName("verifyMagicLink: 존재하지 않는 토큰 시 예외")
+    void verifyMagicLink_invalidToken_throws() {
+        given(verificationRepository.findByToken("bad-token")).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.verifyMagicLink("bad-token"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("유효하지 않은 토큰");
+    }
+
+    @Test
+    @DisplayName("verifyMagicLink: 만료된 토큰 시 예외")
+    void verifyMagicLink_expiredToken_throws() {
+        User user = mockUser(1L, "test@test.com");
+        Verification verification = Verification.builder()
+                .user(user)
+                .identifier("test@test.com")
+                .token("expired-token")
+                .expiresAt(java.time.LocalDateTime.now().minusMinutes(1))
+                .build();
+
+        given(verificationRepository.findByToken("expired-token")).willReturn(Optional.of(verification));
+
+        assertThatThrownBy(() -> authService.verifyMagicLink("expired-token"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("만료된 토큰");
+    }
+
+    // ── resetPassword ──────────────────────────────────────────
+
+    @Test
+    @DisplayName("resetPassword: 성공")
+    void resetPassword_success() {
+        User user = mockUser(1L, "test@test.com");
+        Verification verification = Verification.builder()
+                .user(user)
+                .identifier("test@test.com")
+                .token("valid-token")
+                .expiresAt(java.time.LocalDateTime.now().plusMinutes(10))
+                .build();
+
+        given(verificationRepository.findByToken("valid-token")).willReturn(Optional.of(verification));
+        given(passwordEncoder.encode("NewPass1!")).willReturn("encodedNew");
+
+        authService.resetPassword("valid-token", "NewPass1!");
+
+        then(userRepository).should().updatePassword(1L, "encodedNew");
+        then(verificationRepository).should().deleteByToken("valid-token");
+    }
+
+    @Test
+    @DisplayName("resetPassword: 존재하지 않는 토큰 시 예외")
+    void resetPassword_invalidToken_throws() {
+        given(verificationRepository.findByToken("bad-token")).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.resetPassword("bad-token", "NewPass1!"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("유효하지 않은 토큰");
+    }
+
+    @Test
+    @DisplayName("resetPassword: 만료된 토큰 시 예외")
+    void resetPassword_expiredToken_throws() {
+        User user = mockUser(1L, "test@test.com");
+        Verification verification = Verification.builder()
+                .user(user)
+                .identifier("test@test.com")
+                .token("expired-token")
+                .expiresAt(java.time.LocalDateTime.now().minusMinutes(1))
+                .build();
+
+        given(verificationRepository.findByToken("expired-token")).willReturn(Optional.of(verification));
+
+        assertThatThrownBy(() -> authService.resetPassword("expired-token", "NewPass1!"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("만료된 토큰");
     }
 }

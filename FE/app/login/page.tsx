@@ -2,70 +2,34 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 import ModalButton from '@/components/common/ModalButton';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
-
-function extractPetsTableData(payload: unknown) {
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
-
-  const data = payload as Record<string, unknown>;
-
-  if (Array.isArray(data.pets)) {
-    return data.pets;
-  }
-
-  if (data.user && typeof data.user === 'object') {
-    const user = data.user as Record<string, unknown>;
-
-    if (Array.isArray(user.pets)) {
-      return user.pets;
-    }
-  }
-
-  return null;
-}
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async () => {
-    if (isSubmitting) {
-      return;
-    }
+    if (isSubmitting) return;
+    setError('');
+    setIsSubmitting(true);
 
     try {
-      setIsSubmitting(true);
-
-      const response = await fetch(`${API_BASE_URL}/api/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+      const result = await signIn('email-password', {
+        email,
+        password,
+        redirect: false,
       });
 
-      if (!response.ok) {
-        throw new Error('login failed');
+      if (result?.ok) {
+        router.replace('/home');
+      } else {
+        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
       }
-
-      const data = (await response.json()) as unknown;
-      const petsTableData = extractPetsTableData(data);
-      const hasNoPetData =
-        Array.isArray(petsTableData) && petsTableData.length === 0;
-
-      router.push(hasNoPetData ? '/onboarding/7' : '/home');
-    } catch (error) {
-      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -88,8 +52,8 @@ export default function LoginPage() {
         />
         <form
           className="mt-10 flex w-full max-w-auto flex-col items-center gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
+          onSubmit={(e) => {
+            e.preventDefault();
             void handleLogin();
           }}
         >
@@ -97,28 +61,31 @@ export default function LoginPage() {
             type="email"
             placeholder="이메일"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className='w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]'
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]"
           />
           <input
             type="password"
             placeholder="비밀번호"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className='w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]'
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]"
           />
           <button
             type="button"
             onClick={() => router.push('/login/findpasswd')}
-            className='cursor-pointer text-[#8E8E8E] text-[17px] transition-opacity hover:text-black sm:text-[17px] md:text-[20px] lg:text-[28px]'
+            className="cursor-pointer text-[17px] text-[#8E8E8E] transition-opacity hover:text-black sm:text-[17px] md:text-[20px] lg:text-[28px]"
           >
             비밀번호를 잊으셨나요?
           </button>
+          {error && (
+            <p className="text-[15px] font-medium text-red-500">{error}</p>
+          )}
           <div className="mt-2 flex w-full flex-col gap-3">
             <ModalButton
               type="submit"
               disabled={isSubmitting}
-              className='py-4 text-[20px] disabled:cursor-not-allowed disabled:opacity-60 sm:text-[20px] md:text-[28px] lg:text-[34px]'
+              className="py-4 text-[20px] disabled:cursor-not-allowed disabled:opacity-60 sm:text-[20px] md:text-[28px] lg:text-[34px]"
             >
               로그인
             </ModalButton>

@@ -54,4 +54,14 @@ public class AuthController {
 	public void deleteAccount(@RequestBody String email) {
 		authService.deleteAccount(email);
 	}
+
+	@PostMapping("/verify")
+	public AuthResponse verify(@RequestBody String token) {
+		return authService.verifyMagicLink(token);
+	}
+
+	@PostMapping("/reset-password")
+	public void resetPassword(@RequestBody java.util.Map<String, String> body) {
+		authService.resetPassword(body.get("token"), body.get("newPassword"));
+	}
 }
