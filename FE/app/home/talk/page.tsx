@@ -38,7 +38,7 @@ function buildRequestTranscript(transcript: string) {
 export default function HomeTalkPage() {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
-  const [isPressing, setIsPressing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [shouldSubmit, setShouldSubmit] = useState(false);
   const [showMoveConfirm, setShowMoveConfirm] = useState(false);
@@ -87,7 +87,7 @@ export default function HomeTalkPage() {
       !requestTranscript ||
       showMoveConfirm ||
       listening ||
-      isPressing ||
+      isRecording ||
       isRequesting ||
       requestedTranscript === requestTranscript
     ) {
@@ -129,7 +129,7 @@ export default function HomeTalkPage() {
 
     void requestTalk();
   }, [
-    isPressing,
+    isRecording,
     isRequesting,
     listening,
     requestedTranscript,
@@ -139,7 +139,7 @@ export default function HomeTalkPage() {
   ]);
 
   const startRecording = async () => {
-    if (!browserSupportsSpeechRecognition || isPressing) {
+    if (!browserSupportsSpeechRecognition || isRecording) {
       return;
     }
 
@@ -148,7 +148,7 @@ export default function HomeTalkPage() {
     setAssistantMessage('');
     setShouldSubmit(false);
     setRequestedTranscript('');
-    setIsPressing(true);
+    setIsRecording(true);
 
     await SpeechRecognition.startListening({
       continuous: false,
@@ -157,13 +157,26 @@ export default function HomeTalkPage() {
   };
 
   const stopRecording = async () => {
-    if (!isPressing) {
+    if (!isRecording) {
       return;
     }
 
-    setIsPressing(false);
+    setIsRecording(false);
     await SpeechRecognition.stopListening();
     setShouldSubmit(true);
+  };
+
+  const toggleRecording = async () => {
+    if (isRequesting) {
+      return;
+    }
+
+    if (isRecording || listening) {
+      await stopRecording();
+      return;
+    }
+
+    await startRecording();
   };
 
   const bubbleMessage = !isClient
@@ -177,9 +190,9 @@ export default function HomeTalkPage() {
       : '이 기기에서는\n음성 인식을 사용할 수 없어요.';
   const instructionMessage = showMoveConfirm
     ? undefined
-    : listening || isPressing
-      ? '듣고 있어요.\n손을 떼면 멈춰요.'
-      : '별송이를 길게 눌러\n말씀해보세요.';
+    : listening || isRecording
+      ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
+      : '별송이를 한 번 눌러\n말씀해보세요.';
 
   return (
     <OnboardingBackground
@@ -189,13 +202,16 @@ export default function HomeTalkPage() {
       <div className="pointer-events-none relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
         <button
           type="button"
-          onPointerDown={startRecording}
-          onPointerUp={stopRecording}
-          onPointerLeave={stopRecording}
-          onPointerCancel={stopRecording}
+          onClick={() => {
+            void toggleRecording();
+          }}
           onContextMenu={(event) => event.preventDefault()}
           className="-translate-x-1/2 -translate-y-1/2 pointer-events-auto absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] rounded-full bg-transparent md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px]"
-          aria-label="별송이를 길게 눌러 음성 입력"
+          aria-label={
+            isRecording || listening
+              ? '별송이를 눌러 음성 입력 종료'
+              : '별송이를 눌러 음성 입력 시작'
+          }
         />
 
         {showMoveConfirm ? (
