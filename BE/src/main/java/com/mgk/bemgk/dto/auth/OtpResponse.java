@@ -5,5 +5,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class LoginResponse {
+public class OtpResponse {
+
+    private String token;
 }

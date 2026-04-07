@@ -16,7 +16,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           // Spring AuthController: POST /api/auth/login
           // Request:  { email: string, password: string }
-          // Response: { accessToken: string, refreshToken: string, user: { id: string, email: string } }
+          // Response: { accessToken, refreshToken, userId, email, name }
           const res = await fetch(
             `${process.env.SPRING_API_URL}/api/auth/login`,
             {
@@ -34,8 +34,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const data = await res.json();
 
           return {
-            id: data.user.id,
-            email: data.user.email,
+            id: String(data.userId),
+            email: data.email,
+            name: data.name,
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
           };
@@ -57,7 +58,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           // Spring AuthController: POST /api/auth/verify
           // Request:  { token: string }
-          // Response: { accessToken: string, refreshToken: string, user: { id: string, email: string } }
+          // Response: { accessToken, refreshToken, userId, email, name }
           const res = await fetch(
             `${process.env.SPRING_API_URL}/api/auth/verify`,
             {
@@ -72,8 +73,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const data = await res.json();
 
           return {
-            id: data.user.id,
-            email: data.user.email,
+            id: String(data.userId),
+            email: data.email,
+            name: data.name,
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
           };
@@ -91,8 +93,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const u = user as User;
         token.accessToken = u.accessToken;
         token.refreshToken = u.refreshToken;
-        // Spring AuthController: accessTokenExpiry를 ms 단위로 반환할 경우 저장
-        // token.accessTokenExpiry = user.accessTokenExpiry;
+        token.userId = String(u.id);
+        token.name = u.name ?? null;
         return token;
       }
 
@@ -126,6 +128,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string;
+      session.user = {
+        ...session.user,
+        id: token.userId,
+        name: (token.name as string) ?? null,
+      };
       if (token.error === 'RefreshTokenError') {
         // 클라이언트에서 useSession()으로 에러 감지 후 로그아웃 처리 가능
         (session as any).error = 'RefreshTokenError';

@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const magicLink = `${process.env.NEXTAUTH_URL}/login/verify?token=${token}`;
 
     await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: process.env.RESEND_FROM!,
       to: email,
       subject: '로그인 링크',
       html: `

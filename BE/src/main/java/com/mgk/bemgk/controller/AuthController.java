@@ -1,18 +1,18 @@
 package com.mgk.bemgk.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.mgk.bemgk.dto.auth.AuthResponse;
 import com.mgk.bemgk.dto.auth.LoginRequest;
-import com.mgk.bemgk.dto.auth.LoginResponse;
 import com.mgk.bemgk.dto.auth.OtpRequest;
-import com.mgk.bemgk.dto.auth.OtpRespponse;
+import com.mgk.bemgk.dto.auth.OtpResponse;
 import com.mgk.bemgk.dto.auth.RefreshRequest;
 import com.mgk.bemgk.dto.auth.RefreshResponse;
 import com.mgk.bemgk.dto.auth.SignupRequest;
-import com.mgk.bemgk.dto.auth.SignupResponse;
 import com.mgk.bemgk.service.AuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -24,25 +24,25 @@ public class AuthController {
 	private final AuthService authService;
 
 	@PostMapping("/login")
-	public LoginResponse login(@RequestBody LoginRequest request) {
-		return authService.login(LoginRequest request);
+	public AuthResponse login(@RequestBody @Valid LoginRequest request) {
+		return authService.login(request);
 	}
 
 	@PostMapping("/signup")
-	public SignupResponse signup(@RequestBody SignupRequest request) {
-		return authService.signup(SignupRequest request);
+	public AuthResponse signup(@RequestBody @Valid SignupRequest request) {
+		return authService.signup(request);
 
 	}
 
 	@PostMapping("/send-otp")
-	public OtpRespponse sendOtp(@RequestBody OtpRequest request) {
-		return authService.getOtpToken(OtpRequest request);
+	public OtpResponse sendOtp(@RequestBody @Valid OtpRequest request) {
+		return authService.getOtpToken(request);
 
 	}
 
 	@PostMapping("/refresh")
-	public RefreshResponse refresh(@RequestBody RefreshRequest request) {
-		return authService.refreshToken(RefreshRequest request);
+	public RefreshResponse refresh(@RequestBody @Valid RefreshRequest request) {
+		return authService.refreshToken(request);
 	}
 
 	@PostMapping("/logout")
