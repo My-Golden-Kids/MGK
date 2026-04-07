@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SpeechRecognition, {
   useSpeechRecognition,
 } from 'react-speech-recognition';
@@ -14,6 +14,8 @@ const DEFAULT_MESSAGE = '무엇이\n궁금하신가요?';
 const CONFIRM_MESSAGE = '통장 화면으로\n이동할까요?';
 const API_BASE_URL = 'http://localhost:8080';
 const MAX_REQUEST_TRANSCRIPT_LENGTH = 60;
+const PREPARING_MESSAGE = '답변을 준비하고 있어요.';
+const REQUEST_ERROR_MESSAGE = '답변을 불러오지 못했어요.';
 
 function buildRequestTranscript(transcript: string) {
   const normalizedTranscript = transcript
@@ -38,6 +40,7 @@ function buildRequestTranscript(transcript: string) {
 
 export default function HomeTalkPage() {
   const router = useRouter();
+  const lastSpokenBubbleMessageRef = useRef('');
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
@@ -59,6 +62,7 @@ export default function HomeTalkPage() {
   useEffect(() => {
     return () => {
       SpeechRecognition.stopListening();
+      window.speechSynthesis?.cancel();
     };
   }, []);
 
@@ -99,7 +103,7 @@ export default function HomeTalkPage() {
       try {
         setIsRequesting(true);
         setRequestedTranscript(requestTranscript);
-        setAssistantMessage('답변을 준비하고 있어요.');
+        setAssistantMessage(PREPARING_MESSAGE);
 
         const response = await fetch(`${API_BASE_URL}/api/talk`, {
           method: 'POST',
@@ -112,7 +116,7 @@ export default function HomeTalkPage() {
         });
 
         if (!response.ok) {
-          setAssistantMessage('답변을 불러오지 못했어요.');
+          setAssistantMessage(REQUEST_ERROR_MESSAGE);
           return;
         }
 
@@ -121,7 +125,7 @@ export default function HomeTalkPage() {
           setAssistantMessage(data.message);
         }
       } catch {
-        setAssistantMessage('답변을 불러오지 못했어요.');
+        setAssistantMessage(REQUEST_ERROR_MESSAGE);
       } finally {
         setIsRequesting(false);
         setShouldSubmit(false);
@@ -150,6 +154,7 @@ export default function HomeTalkPage() {
     setShouldSubmit(false);
     setRequestedTranscript('');
     setIsRecording(true);
+    window.speechSynthesis?.cancel();
 
     await SpeechRecognition.startListening({
       continuous: false,
@@ -197,6 +202,43 @@ export default function HomeTalkPage() {
         ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
         : '별송이를 한 번 눌러\n말씀해보세요.'
       : undefined;
+
+  useEffect(() => {
+    if (
+      !isClient ||
+      !bubbleMessage ||
+      bubbleMessage === PREPARING_MESSAGE ||
+      lastSpokenBubbleMessageRef.current === bubbleMessage
+    ) {
+      return;
+    }
+
+    const speechSynthesis = window.speechSynthesis;
+
+    if (!speechSynthesis) {
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(
+      bubbleMessage.replaceAll('\n', ' '),
+    );
+    utterance.lang = 'ko-KR';
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+
+    const availableVoices = speechSynthesis.getVoices();
+    const koreanVoice = availableVoices.find((voice) =>
+      voice.lang.toLowerCase().startsWith('ko'),
+    );
+
+    if (koreanVoice) {
+      utterance.voice = koreanVoice;
+    }
+
+    lastSpokenBubbleMessageRef.current = bubbleMessage;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  }, [bubbleMessage, isClient]);
 
   return (
     <OnboardingBackground
