@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { BottomNavigation } from "@/components/common/BottomNavigation";
 import HomePromptBubble from "@/components/home/HomePromptBubble";
 import SelectedPetProfile from "@/components/home/SelectedPetProfile";
-import { BottomNavigation } from "@/components/common/BottomNavigation";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const pets = [
   {
@@ -32,7 +32,7 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#FFFFFF]">
-      <main className="flex-1 px-4 pt-6 pb-4">
+      <main className="flex-1 px-4 py-4">
         <header className="mb-4 flex justify-end">
           <Link
             href="/settings"
