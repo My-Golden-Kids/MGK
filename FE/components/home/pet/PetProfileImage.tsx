@@ -1,16 +1,16 @@
 type PetProfileImageProps = {
-  imageUrl: string;
-  //   alt: string;
+  imageUrl?: string; // optional로 변경
   className?: string;
   onClick?: () => void;
 };
 
 export default function PetProfileImage({
   imageUrl,
-  //   alt,
-  className = '',
+  className = "",
   onClick,
 }: PetProfileImageProps) {
+  const src = imageUrl || "/images/onboarding/byeolsong.png";
+
   return (
     <button
       type="button"
@@ -19,7 +19,7 @@ export default function PetProfileImage({
       aria-label="Pet Profile"
     >
       <img
-        src={imageUrl}
+        src={src}
         alt="Pet Profile"
         className="h-full w-full object-cover"
         draggable={false}
