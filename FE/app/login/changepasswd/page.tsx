@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import BackButton from '@/components/common/BackButton';
 import ModalButton from '@/components/common/ModalButton';
+import { resetPasswordByToken } from '@/lib/auth';
 
 function ChangePasswordForm() {
   const router = useRouter();
@@ -12,6 +13,10 @@ function ChangePasswordForm() {
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{
+    newPassword?: string;
+    passwordConfirm?: string;
+  }>({});
   const [status, setStatus] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -19,41 +24,29 @@ function ChangePasswordForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!newPassword || !confirmPassword) {
-      setStatus({ type: 'error', message: '비밀번호를 입력해주세요.' });
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setStatus({ type: 'error', message: '비밀번호가 일치하지 않습니다.' });
-      return;
-    }
-
-    if (!token) {
-      setStatus({ type: 'error', message: '유효하지 않은 링크입니다.' });
-      return;
-    }
-
-    setIsSubmitting(true);
+    setFieldErrors({});
     setStatus(null);
+    setIsSubmitting(true);
 
-    const res = await fetch('/api/auth/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, newPassword }),
+    const result = await resetPasswordByToken({
+      token,
+      newPassword,
+      passwordConfirm: confirmPassword,
     });
 
     setIsSubmitting(false);
 
-    if (res.ok) {
-      setStatus({ type: 'success', message: '비밀번호가 변경되었어요!' });
-      setTimeout(() => router.replace('/login'), 1500);
-    } else {
-      setStatus({
-        type: 'error',
-        message: '링크가 만료되었거나 유효하지 않습니다.',
-      });
+    if (!result.ok) {
+      if (result.fieldErrors) {
+        setFieldErrors(result.fieldErrors);
+      } else {
+        setStatus({ type: 'error', message: result.errorMessage ?? '비밀번호 변경에 실패했어요.' });
+      }
+      return;
     }
+
+    setStatus({ type: 'success', message: '비밀번호가 변경되었어요!' });
+    setTimeout(() => router.replace('/login'), 1500);
   };
 
   return (
@@ -73,20 +66,34 @@ function ChangePasswordForm() {
             handleSubmit();
           }}
         >
-          <input
-            type="password"
-            placeholder="새 비밀번호"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]"
-          />
-          <input
-            type="password"
-            placeholder="새 비밀번호 확인"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]"
-          />
+          <div className="w-full flex flex-col gap-1">
+            <input
+              type="password"
+              placeholder="새 비밀번호"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]"
+            />
+            {fieldErrors.newPassword && (
+              <p className="text-[#DC1F1F] text-[14px] md:text-[17px] lg:text-[20px] pl-1">
+                {fieldErrors.newPassword}
+              </p>
+            )}
+          </div>
+          <div className="w-full flex flex-col gap-1">
+            <input
+              type="password"
+              placeholder="새 비밀번호 확인"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]"
+            />
+            {fieldErrors.passwordConfirm && (
+              <p className="text-[#DC1F1F] text-[14px] md:text-[17px] lg:text-[20px] pl-1">
+                {fieldErrors.passwordConfirm}
+              </p>
+            )}
+          </div>
 
           <div className="mt-24 flex w-full flex-col items-center gap-2">
             <div className="flex min-h-[24px] items-center justify-center">

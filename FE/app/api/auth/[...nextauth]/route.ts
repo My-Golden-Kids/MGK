@@ -57,14 +57,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         try {
           // Spring AuthController: POST /api/auth/verify
-          // Request:  { token: string }
+          // BE: @RequestBody String token → raw text/plain 으로 전송해야 함
+          // Request:  raw string (UUID token)
           // Response: { accessToken, refreshToken, userId, email, name }
           const res = await fetch(
             `${process.env.SPRING_API_URL}/api/auth/verify`,
             {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token: credentials.token }),
+              headers: { 'Content-Type': 'text/plain' },
+              body: credentials.token as string,
             },
           );
 
@@ -95,12 +96,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.refreshToken = u.refreshToken;
         token.userId = String(u.id);
         token.name = u.name ?? null;
+        // accessToken 만료 시각 저장 (security.yml access-expiration: 3600000ms = 1h)
+        // 60초 여유를 두고 만료 처리
+        token.accessTokenExpiry = Date.now() + 3600000 - 60_000;
         return token;
       }
 
-      // accessToken 만료 여부 확인 (Spring이 만료 시각을 반환하는 경우)
-      // const isExpired = Date.now() > (token.accessTokenExpiry as number ?? 0);
-      // if (!isExpired) return token;
+      // accessToken 아직 유효하면 refresh 건너뜀
+      if (Date.now() < (token.accessTokenExpiry as number ?? 0)) {
+        return token;
+      }
 
       // Spring AuthController: POST /api/auth/refresh
       // Request:  { refreshToken: string }
@@ -119,6 +124,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const { accessToken } = await res.json();
         token.accessToken = accessToken;
+        token.accessTokenExpiry = Date.now() + 3600000 - 60_000;
       } catch {
         // refresh 실패 → 세션 무효화 (다음 auth() 호출 시 null 반환)
         return { ...token, error: 'RefreshTokenError' };

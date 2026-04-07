@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     const isReset = type === 'reset';
 
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: process.env.RESEND_FROM!,
       to: email,
       subject: isReset ? '비밀번호 재설정 링크' : '로그인 링크',
@@ -43,8 +43,18 @@ export async function POST(request: Request) {
       `,
     });
 
+    if (error) {
+      console.error('[Resend Error]', error);
+      return NextResponse.json(
+        { error: '이메일 발송에 실패했습니다.', detail: error.message },
+        { status: 500 },
+      );
+    }
+
+    console.log('[Resend OK] id:', data?.id, '→', email);
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (err) {
+    console.error('[send-otp] 서버 오류:', err);
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 }

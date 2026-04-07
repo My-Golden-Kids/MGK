@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 
 import com.mgk.bemgk.auth.JwtProvider;
 import com.mgk.bemgk.dto.auth.AuthResponse;
+import com.mgk.bemgk.dto.auth.ChangePasswordRequest;
 import com.mgk.bemgk.dto.auth.LoginRequest;
 import com.mgk.bemgk.dto.auth.OtpRequest;
 import com.mgk.bemgk.dto.auth.OtpResponse;
@@ -28,8 +29,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -344,5 +347,56 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.resetPassword("expired-token", "NewPass1!"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("만료된 토큰");
+    }
+
+    // ── changePassword ─────────────────────────────────────────
+
+    @Test
+    @DisplayName("changePassword: 성공")
+    void changePassword_success() {
+        User user = mockUser(1L, "test@test.com");
+        ChangePasswordRequest request = new ChangePasswordRequest("Test1234!", "NewPass1!");
+
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(passwordEncoder.matches("Test1234!", "encodedPassword")).willReturn(true);
+        given(passwordEncoder.encode("NewPass1!")).willReturn("encodedNew");
+
+        authService.changePassword(1L, request);
+
+        then(userRepository).should().updatePassword(1L, "encodedNew");
+    }
+
+    @Test
+    @DisplayName("changePassword: 존재하지 않는 userId 시 401")
+    void changePassword_userNotFound_throws401() {
+        ChangePasswordRequest request = new ChangePasswordRequest("Test1234!", "NewPass1!");
+
+        given(userRepository.findById(99L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.changePassword(99L, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    assertThat(((ResponseStatusException) ex).getStatusCode())
+                            .isEqualTo(HttpStatus.UNAUTHORIZED);
+                });
+    }
+
+    @Test
+    @DisplayName("changePassword: 현재 비밀번호 불일치 시 401")
+    void changePassword_wrongCurrentPassword_throws401() {
+        User user = mockUser(1L, "test@test.com");
+        ChangePasswordRequest request = new ChangePasswordRequest("WrongPass!", "NewPass1!");
+
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(passwordEncoder.matches("WrongPass!", "encodedPassword")).willReturn(false);
+
+        assertThatThrownBy(() -> authService.changePassword(1L, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    assertThat(((ResponseStatusException) ex).getStatusCode())
+                            .isEqualTo(HttpStatus.UNAUTHORIZED);
+                    assertThat(ex.getMessage()).contains("현재 비밀번호가 일치하지 않습니다");
+                });
+        then(userRepository).should(never()).updatePassword(any(), any());
     }
 }

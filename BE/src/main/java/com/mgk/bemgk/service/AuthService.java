@@ -2,6 +2,7 @@ package com.mgk.bemgk.service;
 
 import com.mgk.bemgk.auth.JwtProvider;
 import com.mgk.bemgk.dto.auth.AuthResponse;
+import com.mgk.bemgk.dto.auth.ChangePasswordRequest;
 import com.mgk.bemgk.dto.auth.LoginRequest;
 import com.mgk.bemgk.dto.auth.OtpRequest;
 import com.mgk.bemgk.dto.auth.OtpResponse;
@@ -18,9 +19,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -104,10 +107,6 @@ public class AuthService {
                 .build();
     }
 
-    public void logout(String refreshToken) {
-        // stateless — 클라이언트에서 토큰 폐기
-    }
-
     @Transactional
     public void deleteAccount(String email) {
         userRepository.findByEmail(email)
@@ -141,6 +140,18 @@ public class AuthService {
         User user = verification.getUser();
         userRepository.updatePassword(user.getId(), passwordEncoder.encode(newPassword));
         verificationRepository.deleteByToken(token);
+    }
+
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 유효하지 않습니다."));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        userRepository.updatePassword(userId, passwordEncoder.encode(request.getNewPassword()));
     }
 
     private AuthResponse buildAuthResponse(User user) {
