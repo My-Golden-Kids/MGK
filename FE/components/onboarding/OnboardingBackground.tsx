@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 
-import { EmptyState } from '@/components/common/EmptyState';
 import PetProfileImage from '@/components/home/pet/PetProfileImage';
 
 type OnboardingBackgroundProps = {
@@ -36,14 +35,10 @@ export default function OnboardingBackground({
         />
       </div>
       <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
-        {centerImageUrl ? (
-          <PetProfileImage
-            imageUrl={centerImageUrl}
-            className={`${centerMediaClassName} cursor-default`}
-          />
-        ) : (
-          <EmptyState size={1} className={centerMediaClassName} />
-        )}
+        <PetProfileImage
+          imageUrl={centerImageUrl}
+          className={`${centerMediaClassName} cursor-default`}
+        />
       </div>
       {bubbleMessage ? (
         <div className="-translate-x-1/2 absolute top-[5.5rem] left-1/2 z-10 flex w-[calc(100%-3rem)] max-w-[22rem] flex-col items-center md:top-[6.25rem] md:max-w-[24rem] lg:top-[7rem] lg:max-w-[26rem]">
