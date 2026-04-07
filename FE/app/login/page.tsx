@@ -1,8 +1,8 @@
 'use client';
 
-import ModalButton from '@/components/common/ModalButton';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import ModalButton from '@/components/common/ModalButton';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,17 +26,17 @@ export default function LoginPage() {
           <input
             type="email"
             placeholder="이메일"
-            className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] sm:text-[20px] md:text-[28px] lg:text-[34px] text-black outline-none placeholder:text-[#C4C4C4]"
+            className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]"
           />
           <input
             type="password"
             placeholder="비밀번호"
-            className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] sm:text-[20px] md:text-[28px] lg:text-[34px] text-black outline-none placeholder:text-[#C4C4C4]"
+            className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-4 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]"
           />
           <button
             type="button"
             onClick={() => router.push('/login/findpasswd')}
-            className="text-[17px] sm:text-[17px] md:text-[20px] lg:text-[28px] text-[#8E8E8E] transition-opacity hover:text-black cursor-pointer"
+            className="cursor-pointer text-[#8E8E8E] text-[17px] transition-opacity hover:text-black sm:text-[17px] md:text-[20px] lg:text-[28px]"
           >
             비밀번호를 잊으셨나요?
           </button>
