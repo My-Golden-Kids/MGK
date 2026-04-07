@@ -10,8 +10,8 @@ import TalkBubble from '@/components/home/talk/TalkBubble';
 import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
 import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 
-const DEFAULT_MESSAGE = '무엇이\n궁금하신가요?';
-const CONFIRM_MESSAGE = '통장 화면으로\n이동할까요?';
+const DEFAULT_MESSAGE = '무엇이 궁금하신가요?';
+const CONFIRM_MESSAGE = '통장 화면으로 이동할까요?';
 const API_BASE_URL = 'http://localhost:8080';
 const MAX_REQUEST_TRANSCRIPT_LENGTH = 60;
 
@@ -186,9 +186,9 @@ export default function HomeTalkPage() {
       ? showMoveConfirm
         ? CONFIRM_MESSAGE
         : isRequesting
-          ? '답변을\n준비하고 있어요.'
+          ? '답변을 준비하고 있어요.'
           : assistantMessage || DEFAULT_MESSAGE
-      : '이 기기에서는\n음성 인식을 사용할 수 없어요.';
+      : '이 기기에서는 음성 인식을 사용할 수 없어요.';
   const speechBubbleMessage = transcript.trim();
   const instructionMessage = showMoveConfirm
     ? undefined
@@ -219,7 +219,7 @@ export default function HomeTalkPage() {
         />
 
         {!showMoveConfirm && speechBubbleMessage ? (
-          <div className="pointer-events-none absolute right-6 bottom-[5.5rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:bottom-[6.25rem] md:max-w-[24rem] lg:bottom-[7rem] lg:max-w-[26rem]">
+          <div className="pointer-events-none absolute right-6 bottom-[5.5rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:max-w-[24rem] lg:max-w-[26rem]">
             <TalkBubble
               message={speechBubbleMessage}
               className="w-full"
