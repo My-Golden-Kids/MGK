@@ -15,7 +15,7 @@ export default function PetProfileImage({
     <button
       type="button"
       onClick={onClick}
-      className={`overflow-hidden rounded-full border border-black bg-white ${className}`}
+      className={`overflow-hidden rounded-full border bg-white ${className}`}
       aria-label="Pet Profile"
     >
       <img
