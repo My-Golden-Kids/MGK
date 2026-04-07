@@ -219,7 +219,7 @@ export default function HomeTalkPage() {
         />
 
         {!showMoveConfirm && speechBubbleMessage ? (
-          <div className="pointer-events-none absolute right-6 bottom-[22%] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:max-w-[24rem] lg:max-w-[26rem]">
+          <div className="pointer-events-none absolute right-6 bottom-[5.5rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:bottom-[6.25rem] md:max-w-[24rem] lg:bottom-[7rem] lg:max-w-[26rem]">
             <TalkBubble
               message={speechBubbleMessage}
               className="w-full"
