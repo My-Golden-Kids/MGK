@@ -31,11 +31,13 @@ public class AuthController {
 	@PostMapping("/signup")
 	public SignupResponse signup(@RequestBody SignupRequest request) {
 		return authService.signup(SignupRequest request);
+
 	}
 
 	@PostMapping("/send-otp")
 	public OtpRespponse sendOtp(@RequestBody OtpRequest request) {
 		return authService.getOtpToken(OtpRequest request);
+
 	}
 
 	@PostMapping("/refresh")
