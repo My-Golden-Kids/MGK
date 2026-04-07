@@ -14,18 +14,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtProvider {
 
-    @Value("${jwt.secret}")
-    private String secretKey;
+	@Value("${jwt.secret}")
+	private String secretKey;
 
-    @Value("${jwt.access-expiration}")
-    private long accessExpiration;
+	@Value("${jwt.access-expiration}")
+	private long accessExpiration;
 
     @Value("${jwt.refresh-expiration}")
-    private long refreshExpiration;
+	private long refreshExpiration;
 
     private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyBytes);
+		return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateAccessToken(Long userId, String email) {
@@ -51,10 +51,10 @@ public class JwtProvider {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
-                    .build()
-                    .parseClaimsJws(token);
+			Jwts.parserBuilder()
+				.setSigningKey(getSigningKey())
+				.build()
+				.parseClaimsJws(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
