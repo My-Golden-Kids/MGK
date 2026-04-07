@@ -38,6 +38,9 @@ public class Pet extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String species;
 
+    @Column(length = 100)
+    private String image;
+
     @Column(nullable = false)
     private Integer age;
 
@@ -59,12 +62,13 @@ public class Pet extends BaseEntity {
     private MealStatus eatMeal;
 
     @Builder
-    public Pet(User user, String name, String species, Integer age, PetSize size,
+    public Pet(User user, String name, String species, String image, Integer age, PetSize size,
                Integer walkCount, Integer walkTime, LocalDateTime lastWalkAt,
                MealStatus eatMeal) {
         this.user = user;
         this.name = name;
         this.species = species;
+        this.image = image;
         this.age = age;
         this.size = size;
         this.walkCount = walkCount;
