@@ -248,6 +248,11 @@ export default function OnboardingStepPage({
   };
 
   const handleYesClick = () => {
+    if (step.id === 'health-guide') {
+      navigateWithDissolve('/login', 'push');
+      return;
+    }
+
     if (step.id === 'pet-photo-request') {
       handlePhotoUploadRequest();
       return;
@@ -309,6 +314,7 @@ export default function OnboardingStepPage({
       >
         <OnboardingBackground
           bubbleMessage={messageOverride ?? step.message}
+          bubbleMessageFrames={messageOverride ? undefined : step.messageFrames}
           centerImageUrl={centerImageUrl}
           instructionMessage={step.instruction}
         >

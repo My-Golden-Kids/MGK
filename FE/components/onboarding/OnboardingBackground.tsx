@@ -1,10 +1,14 @@
+'use client';
+
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 
 import PetProfileImage from '@/components/home/pet/PetProfileImage';
+import TalkBubble from '@/components/home/talk/TalkBubble';
 
 type OnboardingBackgroundProps = {
   bubbleMessage?: string;
+  bubbleMessageFrames?: string[];
   children?: ReactNode;
   centerImageUrl?: string;
   instructionMessage?: string;
@@ -12,6 +16,7 @@ type OnboardingBackgroundProps = {
 
 export default function OnboardingBackground({
   bubbleMessage,
+  bubbleMessageFrames,
   children,
   centerImageUrl,
   instructionMessage,
@@ -43,15 +48,14 @@ export default function OnboardingBackground({
       </div>
       {bubbleMessage ? (
         <div className="-translate-x-1/2 absolute top-[5.5rem] left-1/2 z-10 flex w-[calc(100%-3rem)] max-w-[22rem] flex-col items-center md:top-[6.25rem] md:max-w-[24rem] lg:top-[7rem] lg:max-w-[26rem]">
-          <section className="w-full">
-            <div className="w-full overflow-hidden rounded-[2rem] bg-[#75A39D] shadow-[0_10px_30px_rgba(0,0,0,0.08)] md:rounded-[2.25rem] lg:rounded-[2.5rem]">
-              <div className="px-6 py-5 md:px-7 md:py-6 lg:px-8 lg:py-7">
-                <p className="whitespace-pre-line break-keep text-start font-semibold text-2xl text-white leading-[1.35] md:text-3xl lg:text-4xl">
-                  {bubbleMessage}
-                </p>
-              </div>
-            </div>
-          </section>
+          <TalkBubble
+            message={bubbleMessage}
+            messageFrames={bubbleMessageFrames}
+            className="w-full"
+            bubbleClassName="w-full overflow-hidden rounded-[2rem] bg-[#75A39D] shadow-[0_10px_30px_rgba(0,0,0,0.08)] md:rounded-[2.25rem] lg:rounded-[2.5rem]"
+            contentClassName="px-6 py-5 md:px-7 md:py-6 lg:px-8 lg:py-7"
+            textClassName="whitespace-pre-line break-keep text-start font-semibold text-2xl text-white leading-[1.35] md:text-3xl lg:text-4xl"
+          />
         </div>
       ) : null}
       {instructionMessage ? (
