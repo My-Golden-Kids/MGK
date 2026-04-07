@@ -1,9 +1,9 @@
 'use client';
 
-import { BottomNavigation } from '@/components/common/BottomNavigation';
-import { HealthButton } from '@/components/health/HealthButton';
 import { Footprints, NotebookPen, Syringe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { BottomNavigation } from '@/components/common/BottomNavigation';
+import { HealthButton } from '@/components/health/HealthButton';
 
 export default function HealthPage() {
   const router = useRouter();
@@ -20,10 +20,16 @@ export default function HealthPage() {
             icon={<Footprints />}
             label="산책"
           />
-          <HealthButton variant="mint" size="square" icon={<Syringe />} label="접종" />
+          <HealthButton
+            variant="mint"
+            size="square"
+            icon={<Syringe />}
+            label="접종"
+          />
           <HealthButton
             variant="yellow"
             size="square"
+            onClick={() => router.push('/health/medical-records')}
             icon={<NotebookPen />}
             label="병원기록"
           />
