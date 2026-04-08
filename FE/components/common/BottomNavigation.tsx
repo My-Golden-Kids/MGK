@@ -40,17 +40,19 @@ export function BottomNavigation() {
             <Link
               href={item.href}
               key={item.label}
-              className="relative flex flex-col items-center justify-center text-sm font-medium"
+              className="relative flex h-full flex-col items-center justify-center pt-2 pb-3 text-sm font-medium"
             >
-              <Icon
-                className={cn(
-                  "mb-1 h-6 w-6 transition-colors",
-                  isActive ? "text-green-600" : "text-gray-400",
-                )}
-              />
+              <div className="flex h-7 items-center justify-center">
+                <Icon
+                  className={cn(
+                    "h-6 w-6 shrink-0 transition-colors",
+                    isActive ? "text-green-600" : "text-gray-400",
+                  )}
+                />
+              </div>
               <span
                 className={cn(
-                  "transition-colors",
+                  "mt-1 min-h-[20px] leading-none transition-colors",
                   isActive ? "text-green-600" : "text-gray-500",
                 )}
               >

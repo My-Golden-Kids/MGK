@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import BackButton from "@/components/common/BackButton";
 import { BottomNavigation } from "@/components/common/BottomNavigation";
+import Modal from "@/components/common/Modal";
 import PetSettingCard from "@/components/settings/PetSettingCard";
 
 type Pet = {
@@ -25,7 +26,7 @@ const text = {
   alarmSetting: "알람 설정",
   alarmOn: "켜기",
   alarmOff: "끄기",
-  changePassword: "비밀번호 변경",
+  changePassword: "개인정보 변경",
   logout: "로그아웃",
   withdraw: "회원탈퇴",
   dog: "강아지",
@@ -103,7 +104,14 @@ function MenuRow({ label, onClick, rightSlot }: MenuRowProps) {
 export default function SettingsPage() {
   const router = useRouter();
   const [isAlarmEnabled, setIsAlarmEnabled] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [pets, setPets] = useState<Pet[]>(initialPets);
+
+  const handleLogout = () => {
+    console.log("logout");
+    setIsLogoutModalOpen(false);
+    // TODO: 실제 로그아웃 로직 (토큰 삭제, 라우팅 등)
+  };
 
   const menuItems = useMemo(
     () => [
@@ -113,7 +121,7 @@ export default function SettingsPage() {
       },
       {
         label: text.logout,
-        onClick: () => console.log("logout"),
+        onClick: () => setIsLogoutModalOpen(true),
       },
       {
         label: text.withdraw,
@@ -147,7 +155,28 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-transparent">
+    <div className="relative flex min-h-dvh flex-col bg-transparent">
+      <Modal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        buttonVariant="double"
+        confirmText="네"
+        cancelText="아니오"
+        onConfirm={handleLogout}
+        onCancel={() => setIsLogoutModalOpen(false)}
+      >
+        <div className="mx-auto my-0 flex w-full max-w-[200px] flex-col items-center justify-center gap-3 px-2 py-6 md:my-4 md:max-w-[296px] md:gap-4 md:py-8 lg:my-5 lg:max-w-[344px] lg:gap-5 lg:py-10">
+          <div className="flex min-h-[132px] w-full flex-col items-center justify-center md:min-h-[164px] lg:min-h-[196px]">
+            <p className="font-semibold text-[#111111] text-[30px] leading-none md:text-[40px] lg:text-[50px]">
+              로그아웃
+            </p>
+            <p className="mt-3 text-[#222222] text-[30px] leading-none md:mt-4 md:text-[40px] lg:mt-5 lg:text-[50px]">
+              하시겠습니까?
+            </p>
+          </div>
+        </div>
+      </Modal>
+
       <main className="flex flex-1 flex-col px-5 pt-3 sm:px-6 sm:pt-4 md:px-8 md:pt-5 lg:px-10 lg:pt-6">
         <div className="pb-3 sm:pb-4 md:pb-5 lg:pb-6">
           <BackButton onClick={() => console.log("back")} />

@@ -23,7 +23,7 @@ export default function RootLayout({
     <html lang="ko" className={pretendard.variable}>
       <body className="bg-[#F2F2F2]">
           {/* 앱 프레임: 화면을 넘지 않게 고정 */}
-          <div className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col bg-white md:max-w-[500px] lg:max-w-[640px]">
+          <div className="mx-auto flex h-dvh w-full max-w-[420px] flex-col overflow-y-auto bg-white [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:max-w-[500px] lg:max-w-[640px]">
             {children}
           </div>
       </body>

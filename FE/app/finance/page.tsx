@@ -1,6 +1,6 @@
+import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { BottomNavigation } from '@/components/common/BottomNavigation';
 
 const summaryCards = [
   { label: '오늘 지출', value: '58,000' },
@@ -17,7 +17,7 @@ const expenseItems = [
 export default function FinancePage() {
   return (
     <div className="flex min-h-dvh flex-col bg-white text-[#27312D]">
-      <main className="flex-1 px-4 pt-6 pb-4">
+      <main className="flex-1 px-4 py-4">
         <section className="overflow-hidden rounded-[26px] border border-[#7ACFC2] bg-[#EAF8F6]">
           <div className="px-4 pt-4 pb-5">
             <div className="flex items-start justify-between gap-4">
