@@ -32,6 +32,7 @@ type FlowState = {
 };
 
 const DISSOLVE_DURATION_MS = 0;
+const TTS_AUTO_ADVANCE_DELAY_MS = 700;
 const ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY = 'onboarding-internal-entry';
 const TTS_UNLOCKED_SESSION_KEY = 'mgk-onboarding-tts-unlocked';
 
@@ -93,6 +94,7 @@ export default function OnboardingStepPage({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigationTimeoutRef = useRef<number | null>(null);
   const lastSpokenMessageRef = useRef('');
+  const ttsAutoAdvanceHandledRef = useRef(false);
   const [isTtsUnlocked, setIsTtsUnlocked] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [pendingImagePreviewUrl, setPendingImagePreviewUrl] = useState('');
@@ -186,6 +188,8 @@ export default function OnboardingStepPage({
   }, []);
 
   useEffect(() => {
+    ttsAutoAdvanceHandledRef.current = false;
+
     if (
       step.autoAdvanceDelay === undefined ||
       stepNumber >= LAST_ONBOARDING_STEP
@@ -193,14 +197,26 @@ export default function OnboardingStepPage({
       return undefined;
     }
 
+    if (
+      typeof window !== 'undefined' &&
+      isTtsUnlocked &&
+      window.speechSynthesis
+    ) {
+      return undefined;
+    }
+
     const timeoutId = window.setTimeout(() => {
+      if (ttsAutoAdvanceHandledRef.current) {
+        return;
+      }
+
       navigateWithDissolve(buildOnboardingHref(stepNumber + 1, flowState));
     }, step.autoAdvanceDelay);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [flowState, step.autoAdvanceDelay, stepNumber]);
+  }, [flowState, isTtsUnlocked, step.autoAdvanceDelay, stepNumber]);
 
   const messageOverride =
     retryPetName && step.id === 'pet-name-guide'
@@ -242,6 +258,18 @@ export default function OnboardingStepPage({
     utterance.onstart = () => {
       lastSpokenMessageRef.current = bubbleMessage;
     };
+    utterance.onend = () => {
+      if (
+        step.autoAdvanceDelay !== undefined &&
+        stepNumber < LAST_ONBOARDING_STEP &&
+        !ttsAutoAdvanceHandledRef.current
+      ) {
+        ttsAutoAdvanceHandledRef.current = true;
+        navigationTimeoutRef.current = window.setTimeout(() => {
+          navigateWithDissolve(buildOnboardingHref(stepNumber + 1, flowState));
+        }, TTS_AUTO_ADVANCE_DELAY_MS);
+      }
+    };
     utterance.onerror = () => {
       if (lastSpokenMessageRef.current === bubbleMessage) {
         lastSpokenMessageRef.current = '';
@@ -259,7 +287,14 @@ export default function OnboardingStepPage({
 
     speechSynthesis.cancel();
     speechSynthesis.speak(utterance);
-  }, [browserSupportsSpeechRecognition, bubbleMessage, isTtsUnlocked]);
+  }, [
+    browserSupportsSpeechRecognition,
+    bubbleMessage,
+    flowState,
+    isTtsUnlocked,
+    step.autoAdvanceDelay,
+    stepNumber,
+  ]);
 
   const navigateWithDissolve = (
     href: string,
