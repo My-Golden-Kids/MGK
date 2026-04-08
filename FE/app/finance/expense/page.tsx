@@ -1,17 +1,19 @@
 'use client';
 
 import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
-
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import ExpenseItem, {
   type ExpenseItemProps,
+  type ExpenseType,
 } from '@/components/finance/ExpenseItem';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { clientFetch } from '@/lib/auth';
 
 type ExpenseGroup = {
   id: string;
@@ -19,103 +21,148 @@ type ExpenseGroup = {
   items: ExpenseItemProps[];
 };
 
+type FinanceExpenseItem = {
+  id: number;
+  title: string;
+  category: 'Food' | 'Hospital' | 'Etc';
+  amount: number;
+  memo: string | null;
+  spendDate: string;
+};
+
+type FinanceExpenseSummaryResponse = {
+  year: number;
+  month: number;
+  monthlyExpense: number;
+  todayExpense: number;
+  items: FinanceExpenseItem[];
+};
+
 const RESPONSIVE_TEXT_SIZE =
   'text-[20px] sm:text-[20px] md:text-[28px] lg:text-[34px]';
 
-const monthSummaries = [
-  {
-    month: '4월',
-    monthlyExpense: 5_100_000,
-    todayExpense: 5_050_000,
-    groups: [
-      {
-        id: '2025-04-15',
-        dateLabel: '15일 수요일',
-        items: [
-          {
-            title: '성원동물병원',
-            category: '의료비',
-            amount: 5_000_000,
-            type: 'medical',
-          },
-          {
-            title: '그린마트',
-            category: '식비',
-            amount: 50_000,
-            type: 'food',
-          },
-        ],
-      },
-      {
-        id: '2025-04-04',
-        dateLabel: '4일 수요일',
-        items: [
-          {
-            title: '나이스투씨유 편의점입니다 테헤란로점',
-            category: '기타',
-            amount: 50_000,
-            type: 'other',
-          },
-        ],
-      },
-    ] satisfies ExpenseGroup[],
-  },
-  {
-    month: '3월',
-    monthlyExpense: 1_870_000,
-    todayExpense: 0,
-    groups: [
-      {
-        id: '2025-03-28',
-        dateLabel: '28일 금요일',
-        items: [
-          {
-            title: '별빛동물메디컬센터',
-            category: '의료비',
-            amount: 1_200_000,
-            type: 'medical',
-          },
-          {
-            title: '펫푸드하우스',
-            category: '식비',
-            amount: 120_000,
-            type: 'food',
-          },
-        ],
-      },
-      {
-        id: '2025-03-10',
-        dateLabel: '10일 월요일',
-        items: [
-          {
-            title: '동네마트',
-            category: '기타',
-            amount: 550_000,
-            type: 'other',
-          },
-        ],
-      },
-    ] satisfies ExpenseGroup[],
-  },
-];
+const DAY_LABELS = [
+  '일요일',
+  '월요일',
+  '화요일',
+  '수요일',
+  '목요일',
+  '금요일',
+  '토요일',
+] as const;
+
+const CATEGORY_LABEL_MAP: Record<FinanceExpenseItem['category'], string> = {
+  Food: '식비',
+  Hospital: '의료비',
+  Etc: '기타',
+};
+
+const CATEGORY_TYPE_MAP: Record<FinanceExpenseItem['category'], ExpenseType> = {
+  Food: 'food',
+  Hospital: 'medical',
+  Etc: 'other',
+};
 
 function formatCurrency(value: number) {
   return `${value.toLocaleString()} 원`;
 }
 
-export default function FinanceExpensesPage() {
-  const [monthIndex, setMonthIndex] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
+function getMonthDate(baseDate: Date, offset: number) {
+  return new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
+}
 
-  const currentMonth = monthSummaries[monthIndex];
+function formatMonthLabel(date: Date) {
+  return `${date.getMonth() + 1}월`;
+}
+
+function formatDateLabel(value: string) {
+  const date = new Date(value);
+  return `${date.getDate()}일 ${DAY_LABELS[date.getDay()]}`;
+}
+
+export default function FinanceExpensesPage() {
+  const today = useMemo(() => new Date(), []);
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expenseSummary, setExpenseSummary] =
+    useState<FinanceExpenseSummaryResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  const currentMonth = useMemo(
+    () => getMonthDate(today, monthOffset),
+    [monthOffset, today],
+  );
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const groupedExpenses = useMemo(() => {
+    if (!expenseSummary) {
+      return [];
+    }
+
+    const groupedMap = new Map<string, ExpenseGroup>();
+
+    for (const item of expenseSummary.items) {
+      const groupKey = item.spendDate.slice(0, 10);
+      const currentGroup = groupedMap.get(groupKey);
+      const mappedItem: ExpenseItemProps = {
+        title: item.title,
+        category: CATEGORY_LABEL_MAP[item.category],
+        amount: item.amount,
+        type: CATEGORY_TYPE_MAP[item.category],
+      };
+
+      if (currentGroup) {
+        currentGroup.items.push(mappedItem);
+        continue;
+      }
+
+      groupedMap.set(groupKey, {
+        id: groupKey,
+        dateLabel: formatDateLabel(item.spendDate),
+        items: [mappedItem],
+      });
+    }
+
+    return Array.from(groupedMap.values());
+  }, [expenseSummary]);
+
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      setIsLoading(true);
+      setLoadError('');
+
+      try {
+        const response = await clientFetch(
+          `/api/account-books?year=${currentMonth.getFullYear()}&month=${
+            currentMonth.getMonth() + 1
+          }`,
+        );
+
+        if (!response.ok) {
+          setLoadError('지출 내역을 불러오지 못했어요.');
+          setExpenseSummary(null);
+          return;
+        }
+
+        const data = (await response.json()) as FinanceExpenseSummaryResponse;
+        setExpenseSummary(data);
+      } catch {
+        setLoadError('지출 내역을 불러오지 못했어요.');
+        setExpenseSummary(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchExpenses();
+  }, [currentMonth]);
 
   const filteredGroups = useMemo(() => {
     if (!normalizedQuery) {
-      return currentMonth.groups;
+      return groupedExpenses;
     }
 
-    return currentMonth.groups
+    return groupedExpenses
       .map((group) => ({
         ...group,
         items: group.items.filter((item) => {
@@ -128,17 +175,15 @@ export default function FinanceExpensesPage() {
         }),
       }))
       .filter((group) => group.items.length > 0);
-  }, [currentMonth.groups, normalizedQuery]);
+  }, [groupedExpenses, normalizedQuery]);
 
   const moveMonth = (direction: -1 | 1) => {
-    setMonthIndex((currentIndex) => {
-      const nextIndex = currentIndex + direction;
-
-      if (nextIndex < 0 || nextIndex >= monthSummaries.length) {
-        return currentIndex;
+    setMonthOffset((currentOffset) => {
+      if (direction === 1 && currentOffset >= 0) {
+        return currentOffset;
       }
 
-      return nextIndex;
+      return currentOffset + direction;
     });
   };
 
@@ -157,7 +202,6 @@ export default function FinanceExpensesPage() {
               size="icon-sm"
               className="rounded-full bg-[var(--color-main-green)]/10 text-[var(--color-main-green)] hover:bg-[var(--color-main-green)]/15"
               onClick={() => moveMonth(-1)}
-              disabled={monthIndex === 0}
               aria-label="이전 달 보기"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -165,7 +209,7 @@ export default function FinanceExpensesPage() {
             <h1
               className={`${RESPONSIVE_TEXT_SIZE} font-semibold text-foreground tracking-[-0.03em]`}
             >
-              {currentMonth.month}
+              {formatMonthLabel(currentMonth)}
             </h1>
             <Button
               type="button"
@@ -173,22 +217,23 @@ export default function FinanceExpensesPage() {
               size="icon-sm"
               className="rounded-full bg-[var(--color-main-green)]/10 text-[var(--color-main-green)] hover:bg-[var(--color-main-green)]/15"
               onClick={() => moveMonth(1)}
-              disabled={monthIndex === monthSummaries.length - 1}
+              disabled={monthOffset >= 0}
               aria-label="다음 달 보기"
             >
               <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="rounded-full text-[var(--color-main-green)] hover:bg-[var(--color-main-green)]/10 hover:text-[var(--color-main-green)]"
-            aria-label="지출 추가"
-          >
-            <Plus className="h-8 w-8" />
-          </Button>
+          <Link href="/finance/expense/add-expense" aria-label="지출 추가">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="rounded-full text-[var(--color-main-green)] hover:bg-[var(--color-main-green)]/10 hover:text-[var(--color-main-green)]"
+            >
+              <Plus className="h-8 w-8" />
+            </Button>
+          </Link>
         </section>
 
         <section className="mt-6 space-y-1">
@@ -201,7 +246,7 @@ export default function FinanceExpensesPage() {
             <span
               className={`${RESPONSIVE_TEXT_SIZE} font-semibold text-foreground tracking-[-0.03em]`}
             >
-              {formatCurrency(currentMonth.monthlyExpense)}
+              {formatCurrency(expenseSummary?.monthlyExpense ?? 0)}
             </span>
           </div>
           <div className="flex items-baseline justify-between gap-4">
@@ -213,7 +258,7 @@ export default function FinanceExpensesPage() {
             <span
               className={`${RESPONSIVE_TEXT_SIZE} font-semibold text-foreground tracking-[-0.03em]`}
             >
-              {formatCurrency(currentMonth.todayExpense)}
+              {formatCurrency(expenseSummary?.todayExpense ?? 0)}
             </span>
           </div>
         </section>
@@ -231,7 +276,23 @@ export default function FinanceExpensesPage() {
         </Card>
 
         <section className="mt-8 space-y-7">
-          {filteredGroups.length > 0 ? (
+          {isLoading ? (
+            <Card className="rounded-3xl border-none bg-muted px-6 py-8 shadow-none">
+              <p
+                className={`${RESPONSIVE_TEXT_SIZE} text-center text-muted-foreground`}
+              >
+                불러오는 중이에요.
+              </p>
+            </Card>
+          ) : loadError ? (
+            <Card className="rounded-3xl border-none bg-muted px-6 py-8 shadow-none">
+              <p
+                className={`${RESPONSIVE_TEXT_SIZE} text-center text-muted-foreground`}
+              >
+                {loadError}
+              </p>
+            </Card>
+          ) : filteredGroups.length > 0 ? (
             filteredGroups.map((group) => (
               <article key={group.id}>
                 <h2

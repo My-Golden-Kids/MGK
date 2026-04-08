@@ -3,12 +3,38 @@ package com.mgk.bemgk.repository;
 import com.mgk.bemgk.entity.AccountBook;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface AccountBookRepository extends JpaRepository<AccountBook, Long> {
+
+    @Query("""
+            select a
+            from AccountBook a
+            where a.user.id = :userId
+              and a.spendDate between :startDateTime and :endDateTime
+            order by a.spendDate desc, a.id desc
+            """)
+    List<AccountBook> findMonthlyExpensesByUserId(
+            @Param("userId") Long userId,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime
+    );
+
+    @Query("""
+            select coalesce(sum(a.amount), 0)
+            from AccountBook a
+            where a.user.id = :userId
+              and a.spendDate between :startDateTime and :endDateTime
+            """)
+    BigDecimal sumAmountByUserIdAndSpendDateTimeBetween(
+            @Param("userId") Long userId,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime
+    );
 
     @Query("""
             select coalesce(sum(a.amount), 0)
