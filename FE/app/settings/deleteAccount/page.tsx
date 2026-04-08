@@ -73,19 +73,19 @@ export default function DeleteAccountPage() {
               {errorMessage}
             </p>
 
-            <div className="mt-8 flex gap-4 md:mt-10 md:gap-5">
+            <div className="mt-10 flex gap-3 sm:mt-12 sm:gap-4 md:mt-14 md:gap-6 lg:mt-16 lg:gap-7">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
-                className="h-auto flex-1 rounded-[18px] border-[#B9B9B9] bg-white py-4 font-semibold text-[#222222] text-[1.7rem] hover:bg-[#F6F6F6] md:rounded-[20px] md:py-5 md:text-[2rem] lg:text-[2.25rem]"
+                className="h-auto min-h-[52px] flex-1 rounded-[16px] border-[#B9B9B9] bg-white py-3 font-semibold text-[#222222] text-[1.45rem] hover:bg-[#F6F6F6] sm:min-h-[60px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[74px] md:rounded-[22px] md:py-5 md:text-[2.2rem] lg:min-h-[86px] lg:rounded-[24px] lg:py-6 lg:text-[2.55rem]"
               >
                 취소하기
               </Button>
               <Button
                 type="button"
                 onClick={handleDeleteAccount}
-                className="h-auto flex-1 rounded-[18px] bg-[#F02222] py-4 font-semibold text-[1.7rem] text-white hover:bg-[#db1b1b] md:rounded-[20px] md:py-5 md:text-[2rem] lg:text-[2.25rem]"
+                className="h-auto min-h-[52px] flex-1 rounded-[16px] bg-[#F02222] py-3 font-semibold text-[1.45rem] text-white hover:bg-[#db1b1b] sm:min-h-[60px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[74px] md:rounded-[22px] md:py-5 md:text-[2.2rem] lg:min-h-[86px] lg:rounded-[24px] lg:py-6 lg:text-[2.55rem]"
               >
                 탈퇴
               </Button>

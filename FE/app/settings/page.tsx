@@ -125,7 +125,7 @@ export default function SettingsPage() {
       },
       {
         label: text.withdraw,
-        onClick: () => console.log("withdraw"),
+        onClick: () => router.push("/settings/deleteAccount"),
       },
     ],
     [router],
