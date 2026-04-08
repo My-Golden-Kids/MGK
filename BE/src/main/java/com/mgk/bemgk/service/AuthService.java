@@ -53,9 +53,9 @@ public class AuthService {
                 .user(user)
                 .accountNumber(request.getAccountNum())
                 .bankName(DEFAULT_BANK_NAME)
-                .moneyAmount(BigDecimal.ZERO)
+                .moneyAmount(new BigDecimal("1000000"))
                 .rewardAmount(BigDecimal.ZERO)
-                .totalAmount(BigDecimal.ZERO)
+                .totalAmount(new BigDecimal("10000000"))
                 .build());
 
         return buildAuthResponse(user);
