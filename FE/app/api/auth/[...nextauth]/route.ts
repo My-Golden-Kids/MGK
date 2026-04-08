@@ -1,6 +1,21 @@
 import NextAuth, { type User } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 
+async function readErrorBody(res: Response) {
+  const contentType = res.headers.get('content-type') ?? '';
+
+  try {
+    if (contentType.includes('application/json')) {
+      return await res.json();
+    }
+
+    const text = await res.text();
+    return text || null;
+  } catch {
+    return null;
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     // 이메일/비밀번호 로그인
@@ -29,7 +44,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
           );
 
-          if (!res.ok) return null;
+          if (!res.ok) {
+            const errorBody = await readErrorBody(res);
+            console.error('[auth][email-password] authorize failed', {
+              status: res.status,
+              statusText: res.statusText,
+              email: credentials.email,
+              body: errorBody,
+            });
+            return null;
+          }
 
           const data = await res.json();
 
@@ -40,7 +64,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
           };
-        } catch {
+        } catch (error) {
+          console.error('[auth][email-password] authorize exception', {
+            email: credentials.email,
+            error,
+          });
           return null;
         }
       },
@@ -69,7 +97,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
           );
 
-          if (!res.ok) return null;
+          if (!res.ok) {
+            const errorBody = await readErrorBody(res);
+            console.error('[auth][magic-link] authorize failed', {
+              status: res.status,
+              statusText: res.statusText,
+              body: errorBody,
+            });
+            return null;
+          }
 
           const data = await res.json();
 
@@ -80,7 +116,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             accessToken: data.accessToken,
             refreshToken: data.refreshToken,
           };
-        } catch {
+        } catch (error) {
+          console.error('[auth][magic-link] authorize exception', { error });
           return null;
         }
       },
