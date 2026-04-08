@@ -13,7 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -55,11 +55,11 @@ public class AccountBook extends BaseEntity {
     private String memo;
 
     @Column(name = "spend_date", nullable = false)
-    private LocalDate spendDate;
+    private LocalDateTime spendDate;
 
     @Builder
     public AccountBook(User user, Pet pet, Account account, String title, BigDecimal amount,
-                        AccountBookCategory category, String memo, LocalDate spendDate) {
+                        AccountBookCategory category, String memo, LocalDateTime spendDate) {
         this.user = user;
         this.pet = pet;
         this.account = account;
