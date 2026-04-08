@@ -55,22 +55,24 @@ function AlarmToggle({
       aria-checked={enabled}
       aria-label={`${text.alarmSetting} ${enabled ? text.alarmOn : text.alarmOff}`}
       onClick={onToggle}
-      className={`relative inline-flex h-10 w-[6rem] cursor-pointer items-center rounded-full px-1.5 transition-colors md:h-12 md:w-[6.9rem] lg:h-13 lg:w-[7.4rem] ${
+      className={`relative inline-flex h-9 w-[5.4rem] cursor-pointer items-center rounded-full px-1 transition-colors sm:h-10 sm:w-[6rem] sm:px-1.5 md:h-12 md:w-[6.9rem] lg:h-13 lg:w-[7.4rem] ${
         enabled ? "bg-[#16B364]" : "bg-[#EE3124]"
       }`}
     >
       <span
-        className={`flex w-full items-center font-bold text-sm text-white transition-all md:text-base lg:text-lg ${
+        className={`flex w-full items-center font-bold text-[0.8rem] text-white transition-all sm:text-sm md:text-base lg:text-lg ${
           enabled
-            ? "justify-start pl-2.5 md:pl-3"
-            : "justify-end pr-3 md:pr-3.5"
+            ? "justify-start pl-2 sm:pl-2.5 md:pl-3"
+            : "justify-end pr-2.5 sm:pr-3 md:pr-3.5"
         }`}
       >
         {enabled ? text.alarmOn : text.alarmOff}
       </span>
       <span
-        className={`absolute top-1 h-8 w-8 rounded-full bg-white shadow-sm transition-all md:top-1.5 md:h-9 md:w-9 lg:h-10 lg:w-10 ${
-          enabled ? "left-[3.2rem] md:left-[3.8rem] lg:left-[4rem]" : "left-1.5"
+        className={`absolute top-1 h-7 w-7 rounded-full bg-white shadow-sm transition-all sm:left-1.5 sm:h-8 sm:w-8 md:top-1.5 md:h-9 md:w-9 lg:h-10 lg:w-10 ${
+          enabled
+            ? "left-[2.85rem] sm:left-[3.2rem] md:left-[3.8rem] lg:left-[4rem]"
+            : "left-1"
         }`}
       />
     </button>
@@ -79,14 +81,14 @@ function AlarmToggle({
 
 function MenuRow({ label, onClick, rightSlot }: MenuRowProps) {
   const labelClassName =
-    "font-medium text-[#222222] text-[1.28rem] md:text-[1.6rem] lg:text-[1.85rem]";
+    "font-medium text-[#222222] text-[1.08rem] sm:text-[1.28rem] md:text-[1.6rem] lg:text-[1.85rem]";
 
   if (onClick) {
     return (
       <button
         type="button"
         onClick={onClick}
-        className="flex min-h-[64px] w-full items-center justify-between border-[#9D9D9D] border-b py-3 text-left md:min-h-[76px] md:py-4 lg:min-h-[84px] lg:py-5"
+        className="flex min-h-[56px] w-full items-center justify-between border-[#9D9D9D] border-b py-2.5 text-left sm:min-h-[64px] sm:py-3 md:min-h-[76px] md:py-4 lg:min-h-[84px] lg:py-5"
       >
         <span className={labelClassName}>{label}</span>
         {rightSlot}
@@ -95,7 +97,7 @@ function MenuRow({ label, onClick, rightSlot }: MenuRowProps) {
   }
 
   return (
-    <div className="flex min-h-[64px] w-full items-center justify-between border-[#9D9D9D] border-b py-3 text-left md:min-h-[76px] md:py-4 lg:min-h-[84px] lg:py-5">
+    <div className="flex min-h-[56px] w-full items-center justify-between border-[#9D9D9D] border-b py-2.5 text-left sm:min-h-[64px] sm:py-3 md:min-h-[76px] md:py-4 lg:min-h-[84px] lg:py-5">
       <span className={labelClassName}>{label}</span>
       {rightSlot}
     </div>
@@ -199,7 +201,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={handleAddPet}
-              className="text-right font-semibold text-[#222222] text-[1.2rem] md:text-[1.45rem] lg:text-[1.7rem]"
+              className="cursor-pointer text-right font-semibold text-[#222222] text-[1.05rem] sm:text-[1.2rem] md:text-[1.45rem] lg:text-[1.7rem]"
             >
               {text.addPet}
             </button>

@@ -139,11 +139,11 @@ export default function ChangePasswordPage() {
             </div>
           </div>
 
-          <div className="mt-12 flex gap-4 md:mt-14 md:gap-5">
+          <div className="mt-10 flex gap-3 sm:mt-12 sm:gap-4 md:mt-14 md:gap-6 lg:mt-16 lg:gap-7">
             <Button
               type="button"
               onClick={handleChangePassword}
-              className="h-auto flex-1 rounded-[18px] bg-[#08B7A4] py-4 font-semibold text-[1.7rem] text-white shadow-none hover:bg-[#06a291] md:rounded-[20px] md:py-5 md:text-[2rem] lg:text-[2.25rem]"
+              className="h-auto min-h-[58px] flex-[1.35] rounded-[16px] bg-[#08B7A4] py-3.5 font-semibold text-[1.45rem] text-white shadow-none hover:bg-[#06a291] sm:min-h-[68px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[84px] md:rounded-[22px] md:py-5.5 md:text-[2.2rem] lg:min-h-[96px] lg:rounded-[24px] lg:py-6.5 lg:text-[2.55rem]"
             >
               변경하기
             </Button>
@@ -151,7 +151,7 @@ export default function ChangePasswordPage() {
               type="button"
               variant="outline"
               onClick={() => router.back()}
-              className="h-auto flex-1 rounded-[18px] border-[#AFAFAF] bg-white py-4 font-semibold text-[#222222] text-[1.7rem] shadow-none hover:bg-[#F4F4F4] md:rounded-[20px] md:py-5 md:text-[2rem] lg:text-[2.25rem]"
+              className="h-auto min-h-[58px] flex-1 rounded-[16px] border-[#AFAFAF] bg-white py-3.5 font-semibold text-[#222222] text-[1.45rem] shadow-none hover:bg-[#F4F4F4] sm:min-h-[68px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[84px] md:rounded-[22px] md:py-5.5 md:text-[2.2rem] lg:min-h-[96px] lg:rounded-[24px] lg:py-6.5 lg:text-[2.55rem]"
             >
               취소
             </Button>

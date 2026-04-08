@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { ImageUp } from 'lucide-react';
-import Image from 'next/image';
-import { useParams } from 'next/navigation';
-import type { ChangeEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
-import BackButton from '@/components/common/BackButton';
-import { BottomNavigation } from '@/components/common/BottomNavigation';
-import { Button } from '@/components/common/Button';
+import { ImageUp } from "lucide-react";
+import Image from "next/image";
+import { useParams } from "next/navigation";
+import type { ChangeEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import BackButton from "@/components/common/BackButton";
+import { BottomNavigation } from "@/components/common/BottomNavigation";
+import { Button } from "@/components/common/Button";
 
-type PetType = 'dog' | 'cat';
-type PetSize = 'small' | 'medium' | 'large';
+type PetType = "dog" | "cat";
+type PetSize = "small" | "medium" | "large";
 
 type SegmentOption<T extends string> = {
   label: string;
@@ -18,14 +18,14 @@ type SegmentOption<T extends string> = {
 };
 
 const petTypeOptions: SegmentOption<PetType>[] = [
-  { label: '강아지', value: 'dog' },
-  { label: '고양이', value: 'cat' },
+  { label: "강아지", value: "dog" },
+  { label: "고양이", value: "cat" },
 ];
 
 const petSizeOptions: SegmentOption<PetSize>[] = [
-  { label: '소형', value: 'small' },
-  { label: '중형', value: 'medium' },
-  { label: '대형', value: 'large' },
+  { label: "소형", value: "small" },
+  { label: "중형", value: "medium" },
+  { label: "대형", value: "large" },
 ];
 
 function SegmentedControl<T extends string>({
@@ -49,8 +49,8 @@ function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             className={`min-w-[5.3rem] cursor-pointer rounded-xl px-4 py-2 font-semibold text-lg transition-colors md:min-w-[6rem] md:px-5 md:text-xl ${
               isSelected
-                ? 'bg-white text-[#1E1E1E] shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
-                : 'text-[#8A8A8A]'
+                ? "bg-white text-[#1E1E1E] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                : "text-[#8A8A8A]"
             }`}
           >
             {option.label}
@@ -68,10 +68,10 @@ export default function PetDetailPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
-  const [name, setName] = useState('댕댕이');
-  const [age, setAge] = useState('16');
-  const [type, setType] = useState<PetType>('dog');
-  const [size, setSize] = useState<PetSize>('small');
+  const [name, setName] = useState("댕댕이");
+  const [age, setAge] = useState("16");
+  const [type, setType] = useState<PetType>("dog");
+  const [size, setSize] = useState<PetSize>("small");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
 
@@ -108,7 +108,7 @@ export default function PetDetailPage() {
   };
 
   const handleSave = () => {
-    console.log('save pet', {
+    console.log("save pet", {
       petId,
       name,
       age,
@@ -119,7 +119,7 @@ export default function PetDetailPage() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#F6F6F3]">
+    <div className="flex min-h-dvh flex-col bg-[#ffffff]">
       <main className="flex flex-1 flex-col px-5 pt-3 sm:px-6 sm:pt-4 md:px-8 md:pt-5 lg:px-10 lg:pt-6">
         <div className="pb-4 sm:pb-5 md:pb-6">
           <BackButton />
@@ -201,7 +201,7 @@ export default function PetDetailPage() {
                   inputMode="numeric"
                   value={age}
                   onChange={(event) =>
-                    setAge(event.target.value.replace(/[^0-9]/g, ''))
+                    setAge(event.target.value.replace(/[^0-9]/g, ""))
                   }
                   className="w-24 cursor-pointer bg-transparent font-medium text-[#222222] text-[2rem] outline-none placeholder:text-[#B2B2B2] md:w-28 md:text-[2.35rem] lg:text-[2.7rem]"
                   placeholder="0"

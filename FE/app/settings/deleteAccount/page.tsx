@@ -78,14 +78,14 @@ export default function DeleteAccountPage() {
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
-                className="h-auto min-h-[52px] flex-1 rounded-[16px] border-[#B9B9B9] bg-white py-3 font-semibold text-[#222222] text-[1.45rem] hover:bg-[#F6F6F6] sm:min-h-[60px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[74px] md:rounded-[22px] md:py-5 md:text-[2.2rem] lg:min-h-[86px] lg:rounded-[24px] lg:py-6 lg:text-[2.55rem]"
+                className="h-auto min-h-[58px] flex-[2] rounded-[16px] border-[#B9B9B9] bg-white py-3.5 font-semibold text-[#222222] text-[1.45rem] hover:bg-[#F6F6F6] sm:min-h-[68px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[84px] md:rounded-[22px] md:py-5.5 md:text-[2.2rem] lg:min-h-[96px] lg:rounded-[24px] lg:py-6.5 lg:text-[2.55rem]"
               >
                 취소하기
               </Button>
               <Button
                 type="button"
                 onClick={handleDeleteAccount}
-                className="h-auto min-h-[52px] flex-1 rounded-[16px] bg-[#F02222] py-3 font-semibold text-[1.45rem] text-white hover:bg-[#db1b1b] sm:min-h-[60px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[74px] md:rounded-[22px] md:py-5 md:text-[2.2rem] lg:min-h-[86px] lg:rounded-[24px] lg:py-6 lg:text-[2.55rem]"
+                className="h-auto min-h-[58px] flex-1 rounded-[16px] bg-[#F02222] py-3.5 font-semibold text-[1.45rem] text-white hover:bg-[#db1b1b] sm:min-h-[68px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[84px] md:rounded-[22px] md:py-5.5 md:text-[2.2rem] lg:min-h-[96px] lg:rounded-[24px] lg:py-6.5 lg:text-[2.55rem]"
               >
                 탈퇴
               </Button>
