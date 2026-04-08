@@ -1,6 +1,7 @@
 'use client';
 
 import { BottomNavigation } from '@/components/common/BottomNavigation';
+import { TypeSelect } from '@/components/common/TypeSelect';
 import MedicalRecordItem from '@/components/health/medical/MedicalRecordItem';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -64,27 +65,13 @@ export default function MedicalRecordsPage() {
           </button>
         </div>
 
-        <section className="my-10 rounded-full bg-[#D9D9D9] p-1">
-          <div className="grid grid-cols-3 gap-1">
-            {tabs.map((tab) => {
-              const isActive = tab === selectedTab;
-
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setSelectedTab(tab)}
-                  className={`flex h-[44px] cursor-pointer items-center justify-center rounded-full text-[22px] transition-colors ${
-                    isActive
-                      ? 'bg-white font-bold text-[#1F2A27] shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
-                      : 'font-normal text-[#1F2A27]'
-                  }`}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </div>
+        <section className="my-10">
+          <TypeSelect
+            options={tabs}
+            value={selectedTab}
+            onValueChange={(value) => setSelectedTab(value as MedicalRecordTab)}
+            variant="tabs"
+          />
         </section>
 
         <section className="mt-4 space-y-4">
