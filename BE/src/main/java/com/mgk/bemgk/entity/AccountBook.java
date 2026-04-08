@@ -3,6 +3,8 @@ package com.mgk.bemgk.entity;
 import com.mgk.bemgk.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -45,8 +47,9 @@ public class AccountBook extends BaseEntity {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
-    @Column(nullable = false, length = 100)
-    private String category;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private AccountBookCategory category;
 
     @Column(length = 1000)
     private String memo;
@@ -56,7 +59,7 @@ public class AccountBook extends BaseEntity {
 
     @Builder
     public AccountBook(User user, Pet pet, Account account, String title, BigDecimal amount,
-                       String category, String memo, LocalDate spendDate) {
+                        AccountBookCategory category, String memo, LocalDate spendDate) {
         this.user = user;
         this.pet = pet;
         this.account = account;
