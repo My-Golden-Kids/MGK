@@ -29,6 +29,17 @@ public class ProductService {
     private final AccountRepository accountRepository;
     private final AccountBookRepository accountBookRepository;
 
+    // 전체 상품 조회
+    public List<Product> getProducts(){
+        return productRepository.findAll();
+    }
+
+    // 단일 상품 조회
+    public Product getProduct(Long productId) {
+        return productRepository.findById(productId)
+            .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않습니다."));
+    }
+
     // 활성화된 모든 상품에 대해 사용자 기준 예상 혜택 계산
     public List<ProductRecommendationResponse> getActiveProductRecommendations(Long userId) {
         return productRepository.findByIsActiveTrue()
