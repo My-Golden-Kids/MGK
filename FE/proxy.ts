@@ -2,7 +2,29 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+const PUBLIC_PATH_PREFIXES = [
+  '/',
+  '/login',
+  '/signup',
+  '/onboarding',
+  '/api/auth',
+];
+
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  const isPublicPath = PUBLIC_PATH_PREFIXES.some((prefix) => {
+    if (prefix === '/') {
+      return pathname === '/';
+    }
+
+    return pathname === prefix || pathname.startsWith(`${prefix}/`);
+  });
+
+  if (isPublicPath) {
+    return NextResponse.next();
+  }
+
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
@@ -16,6 +38,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // 개발단계주석처리
-  // matcher: ['/home/:path*', '/finance/:path*'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 };
