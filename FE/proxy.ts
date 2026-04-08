@@ -8,6 +8,8 @@ const DEV_BYPASS_AUTH = process.env.NODE_ENV === 'development';
 // 보호할 경로 (DEV_BYPASS_AUTH가 true여도 막을 거라면 별도 관리)
 const PROTECTED_PATHS = [
   '/finance',
+  '/home',
+  '/health'
 ];
 
 // 공개 경로
