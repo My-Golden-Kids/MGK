@@ -108,10 +108,7 @@ export async function resetPasswordByToken({
     return { ok: false, errorMessage: '유효하지 않은 링크입니다.' };
   }
 
-  const endpoint =
-    process.env.NEXT_PUBLIC_USE_MOCK === 'true'
-      ? '/api/mock/auth/reset-password'
-      : '/api/auth/reset-password';
+  const endpoint = '/api/auth/reset-password';
 
   const res = await fetch(endpoint, {
     method: 'POST',

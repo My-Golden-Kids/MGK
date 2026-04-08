@@ -53,17 +53,10 @@ export async function changePasswordWithCurrent({
     return { ok: false, fieldErrors };
   }
 
-  const useMock = process.env.USE_MOCK === 'true';
-  const res = useMock
-    ? await fetch(`${process.env.NEXTAUTH_URL}/api/mock/auth/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      })
-    : await serverFetch('/api/auth/change-password', {
-        method: 'POST',
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
+  const res = await serverFetch('/api/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
 
   if (res.status === 401) {
     return { ok: false, fieldErrors: { currentPassword: '현재 비밀번호가 일치하지 않습니다.' } };
