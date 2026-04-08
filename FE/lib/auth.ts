@@ -1,7 +1,28 @@
 import { getSession, signOut } from 'next-auth/react';
+import { changePasswordSchema, changePasswordWithCurrentSchema } from '@/lib/validator';
 
 const BASE_URL =
   process.env.SPRING_API_URL ?? process.env.NEXT_PUBLIC_SPRING_API_URL ?? '';
+
+// ─── 클라이언트 컴포넌트용 fetch ──────────────────────────────────────────────
+
+export async function clientFetch(path: string, init?: RequestInit) {
+  const session = await getSession();
+
+  if ((session as any)?.error === 'RefreshTokenError') {
+    await signOut({ callbackUrl: '/login' });
+    return new Response(null, { status: 401 });
+  }
+
+  return fetch(`${BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...init?.headers,
+      Authorization: `Bearer ${session?.accessToken ?? ''}`,
+    },
+  });
+}
 
 // ─── 회원가입 ────────────────────────────────────────────────────────────────
 
@@ -74,8 +95,6 @@ export async function sendOtp({
 
 // ─── 비밀번호 변경 (매직링크 방식) ────────────────────────────────────────────
 
-import { changePasswordSchema } from '@/lib/validator';
-
 interface ResetPasswordByTokenParams {
   token: string;
   newPassword: string;
@@ -108,9 +127,7 @@ export async function resetPasswordByToken({
     return { ok: false, errorMessage: '유효하지 않은 링크입니다.' };
   }
 
-  const endpoint = '/api/auth/reset-password';
-
-  const res = await fetch(endpoint, {
+  const res = await fetch('/api/auth/reset-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, newPassword }),
@@ -123,22 +140,50 @@ export async function resetPasswordByToken({
   return { ok: true };
 }
 
-// ─── 클라이언트 컴포넌트용 fetch ──────────────────────────────────────────────
+// ─── 비밀번호 변경 (현재 비밀번호 입력 방식) ──────────────────────────────────
 
-export async function clientFetch(path: string, init?: RequestInit) {
-  const session = await getSession();
+interface ChangePasswordWithCurrentParams {
+  currentPassword: string;
+  newPassword: string;
+  passwordConfirm: string;
+}
 
-  if ((session as any)?.error === 'RefreshTokenError') {
-    await signOut({ callbackUrl: '/login' });
-    return new Response(null, { status: 401 });
+interface ChangePasswordWithCurrentResult {
+  ok: boolean;
+  fieldErrors?: Partial<Record<'currentPassword' | 'newPassword' | 'passwordConfirm', string>>;
+  errorMessage?: string;
+}
+
+export async function changePasswordWithCurrent(
+  params: ChangePasswordWithCurrentParams,
+): Promise<ChangePasswordWithCurrentResult> {
+  const parsed = changePasswordWithCurrentSchema.safeParse(params);
+  if (!parsed.success) {
+    const fieldErrors: ChangePasswordWithCurrentResult['fieldErrors'] = {};
+    for (const issue of parsed.error.issues) {
+      const field = issue.path[0] as keyof typeof fieldErrors;
+      if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+    }
+    return { ok: false, fieldErrors };
   }
 
-  return fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
-      Authorization: `Bearer ${session?.accessToken ?? ''}`,
-    },
+  const res = await clientFetch('/api/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({
+      currentPassword: params.currentPassword,
+      newPassword: params.newPassword,
+    }),
   });
+
+  if (!res.ok) {
+    if (res.status === 400 || res.status === 401) {
+      return {
+        ok: false,
+        fieldErrors: { currentPassword: '현재 비밀번호가 올바르지 않습니다' },
+      };
+    }
+    return { ok: false, errorMessage: '비밀번호 변경에 실패했어요. 다시 시도해주세요.' };
+  }
+
+  return { ok: true };
 }

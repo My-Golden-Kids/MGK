@@ -72,7 +72,9 @@ export const changePasswordWithCurrentSchema = z
   });
 
 export type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
-export type ChangePasswordWithCurrentValues = z.infer<typeof changePasswordWithCurrentSchema>;
+export type ChangePasswordWithCurrentValues = z.infer<
+  typeof changePasswordWithCurrentSchema
+>;
 
 /**
  * 비밀번호 변경 필드별 단일 검증 함수
@@ -93,8 +95,12 @@ export function validateChangePasswordField(
 
   if (key === 'newPassword' && ctx?.currentPassword) {
     const baseResult = newPasswordField.safeParse(value);
-    if (!baseResult.success) return baseResult.error.issues[0]?.message ?? '입력값이 올바르지 않습니다';
-    if (value === ctx.currentPassword) return '현재 비밀번호와 다른 비밀번호를 입력해주세요';
+    if (!baseResult.success)
+      return (
+        baseResult.error.issues[0]?.message ?? '입력값이 올바르지 않습니다'
+      );
+    if (value === ctx.currentPassword)
+      return '현재 비밀번호와 다른 비밀번호를 입력해주세요';
     return '';
   }
 
