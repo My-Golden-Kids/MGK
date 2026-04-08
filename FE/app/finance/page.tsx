@@ -1,6 +1,6 @@
-import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { BottomNavigation } from '@/components/common/BottomNavigation';
 
 const summaryCards = [
   { label: '오늘 지출', value: '58,000' },
@@ -108,7 +108,7 @@ export default function FinancePage() {
         </section>
 
         <Link
-          href="/finance/reports"
+          href="/finance/report"
           className="flex h-16 items-center justify-center rounded-[16px] bg-[#57B6A7] text-2xl text-white"
         >
           리포트 보러가기

@@ -51,7 +51,7 @@ export default function HomePage() {
         <header className="mb-4 flex justify-end">
           <Link
             href="/settings"
-            className="cursor-pointer text-[24px] font-extrabold leading-none text-black"
+            className="cursor-pointer font-extrabold text-[24px] text-black leading-none"
           >
             설정
           </Link>
@@ -84,13 +84,13 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => router.push("/home/talk")}
-              className="flex flex-1 cursor-pointer items-center justify-center bg-[#25C3A8] text-[18px] font-extrabold text-white"
+              className="flex flex-1 cursor-pointer items-center justify-center bg-[#25C3A8] font-extrabold text-[18px] text-white"
             >
               말하기
             </button>
             <button
               type="button"
-              className="flex flex-1 cursor-pointer items-center justify-center bg-white text-[18px] font-extrabold text-[#25C3A8]"
+              className="flex flex-1 cursor-pointer items-center justify-center bg-white font-extrabold text-[#25C3A8] text-[18px]"
             >
               직접입력
             </button>
