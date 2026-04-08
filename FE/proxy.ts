@@ -16,5 +16,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/home/:path*', '/finance/:path*'],
+  // 개발단계주석처리
+  // matcher: ['/home/:path*', '/finance/:path*'],
 };
