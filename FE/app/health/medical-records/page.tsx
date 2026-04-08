@@ -6,7 +6,7 @@ import MedicalRecordItem from '@/components/health/medical/MedicalRecordItem';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-const tabs = ['정기검진', '진료', '응급'] as const;
+const tabs = ['진료', '접종'] as const;
 type MedicalRecordTab = (typeof tabs)[number];
 
 const medicalRecords = [
@@ -44,7 +44,7 @@ const medicalRecords = [
 
 export default function MedicalRecordsPage() {
   const router = useRouter();
-  const [selectedTab, setSelectedTab] = useState<MedicalRecordTab>('정기검진');
+  const [selectedTab, setSelectedTab] = useState<MedicalRecordTab>(tabs[0]);
   const filteredRecords = medicalRecords.filter(
     (record) => record.category === selectedTab,
   );

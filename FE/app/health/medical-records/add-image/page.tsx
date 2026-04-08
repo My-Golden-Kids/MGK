@@ -1,11 +1,11 @@
 'use client';
 
-import BackButton from '@/components/common/BackButton';
-import { BottomNavigation } from '@/components/common/BottomNavigation';
-import { Button } from '@/components/common/Button';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
+import BackButton from '@/components/common/BackButton';
+import { BottomNavigation } from '@/components/common/BottomNavigation';
+import { Button } from '@/components/common/Button';
 
 const MEDICAL_RECORD_IMAGE_STORAGE_KEY = 'medical-record-image-data-url';
 
@@ -14,6 +14,7 @@ export default function AddMedicalRecordIntroPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState('');
   const [uploadMessage, setUploadMessage] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handlePhotoUploadRequest = () => {
     fileInputRef.current?.click();
@@ -38,10 +39,6 @@ export default function AddMedicalRecordIntroPage() {
           return;
         }
 
-        sessionStorage.setItem(
-          MEDICAL_RECORD_IMAGE_STORAGE_KEY,
-          reader.result,
-        );
         setPreviewImageUrl(reader.result);
         setUploadMessage('');
       };
@@ -57,6 +54,19 @@ export default function AddMedicalRecordIntroPage() {
     } finally {
       event.target.value = '';
     }
+  };
+
+  const handleNext = async () => {
+    if (!previewImageUrl || isProcessing) {
+      setUploadMessage(
+        '먼저 진단서(처방전, 영수증 등) 사진을 업로드해 주세요.',
+      );
+      return;
+    }
+
+    setIsProcessing(true);
+    sessionStorage.setItem(MEDICAL_RECORD_IMAGE_STORAGE_KEY, previewImageUrl);
+    router.push('/health/medical-records/processing');
   };
 
   return (
@@ -83,17 +93,17 @@ export default function AddMedicalRecordIntroPage() {
         <div className="flex min-h-0 flex-1 flex-col">
           <section className="flex min-h-0 flex-1 flex-col gap-2">
             <h2 className="font-bold text-[#27312D] text-[18px]">
-              진단서(처방전)
+              진단서(처방전, 영수증 등)
             </h2>
             <button
               type="button"
               onClick={handlePhotoUploadRequest}
-              className="relative flex min-h-0 flex-1 w-full cursor-pointer items-center justify-center overflow-hidden rounded-[14px] bg-[#F4F6F5] text-[18px] text-[#B4BBB8]"
+              className="relative flex min-h-0 w-full flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-[14px] bg-[#F4F6F5] text-[#B4BBB8] text-[18px]"
             >
               {previewImageUrl ? (
                 <Image
                   src={previewImageUrl}
-                  alt="업로드한 진단서(처방전)"
+                  alt="업로드한 진단서(처방전, 영수증 등)"
                   width={1200}
                   height={1200}
                   className="absolute inset-0 h-full w-full object-cover"
@@ -103,13 +113,16 @@ export default function AddMedicalRecordIntroPage() {
               )}
             </button>
             {uploadMessage ? (
-              <p className="text-[16px] text-[#66706D]">{uploadMessage}</p>
+              <p className="text-[#66706D] text-[16px]">{uploadMessage}</p>
             ) : null}
           </section>
 
           <Button
             type="button"
-            onClick={() => router.push('/health/medical-records/add-record')}
+            onClick={() => {
+              void handleNext();
+            }}
+            disabled={isProcessing}
             className="mt-10 w-full"
           >
             다음

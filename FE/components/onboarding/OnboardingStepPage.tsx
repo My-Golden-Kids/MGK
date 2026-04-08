@@ -32,6 +32,7 @@ type FlowState = {
 };
 
 const DISSOLVE_DURATION_MS = 0;
+const ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY = 'onboarding-internal-entry';
 const TTS_UNLOCKED_SESSION_KEY = 'mgk-onboarding-tts-unlocked';
 
 function HandHint() {
@@ -108,6 +109,38 @@ export default function OnboardingStepPage({
     retryPetName,
     photoSkipped,
     petImage: petImage || undefined,
+  };
+
+  const markInternalEntry = (targetStep: number) => {
+    sessionStorage.setItem(
+      ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY,
+      JSON.stringify({ targetStep }),
+    );
+  };
+
+  const clearInternalEntry = () => {
+    sessionStorage.removeItem(ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY);
+  };
+
+  const isInternalOnboardingEntry = () => {
+    const storedValue = sessionStorage.getItem(
+      ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY,
+    );
+
+    if (!storedValue) {
+      return false;
+    }
+
+    try {
+      const parsedValue = JSON.parse(storedValue) as {
+        targetStep?: number;
+      };
+
+      return parsedValue.targetStep === stepNumber;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
   };
 
   useEffect(() => {
@@ -248,6 +281,7 @@ export default function OnboardingStepPage({
   };
 
   const goToStep = (targetStep: number, state: FlowState) => {
+    markInternalEntry(targetStep);
     navigateWithDissolve(buildOnboardingHref(targetStep, state));
   };
 
@@ -326,11 +360,18 @@ export default function OnboardingStepPage({
   };
 
   const handleBackClick = () => {
+    if (!isInternalOnboardingEntry()) {
+      clearInternalEntry();
+      router.back();
+      return;
+    }
+
     goToStep(Math.max(1, stepNumber - 1), flowState);
   };
 
   const handleYesClick = () => {
     if (step.id === 'health-guide') {
+      clearInternalEntry();
       navigateWithDissolve('/login', 'push');
       return;
     }
@@ -403,7 +444,7 @@ export default function OnboardingStepPage({
           <div className="pointer-events-none relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
             {BACK_BUTTON_STEP_IDS.has(step.id) ? (
               <div className="pointer-events-auto absolute top-4 left-4">
-                <BackButton onClick={handleBackClick} />
+                <BackButton onClick={handleBackClick} useHistory={false} />
               </div>
             ) : null}
             {step.showCenterAction ? (

@@ -4,13 +4,17 @@ import { useRouter } from 'next/navigation';
 
 type BackButtonProps = {
   onClick?: () => void;
+  useHistory?: boolean;
 };
 
-export default function BackButton({ onClick }: BackButtonProps) {
+export default function BackButton({
+  onClick,
+  useHistory = true,
+}: BackButtonProps) {
   const router = useRouter();
 
   const handleBack = () => {
-    if (onClick) {
+    if (!useHistory && onClick) {
       onClick();
       return;
     }
@@ -22,7 +26,10 @@ export default function BackButton({ onClick }: BackButtonProps) {
 
     if (document.referrer) {
       window.location.href = document.referrer;
+      return;
     }
+
+    onClick?.();
   };
 
   return (
