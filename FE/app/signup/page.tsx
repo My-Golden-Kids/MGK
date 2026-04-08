@@ -1,23 +1,26 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { useEffect, useRef, useState } from 'react';
 import Modal from '@/components/common/Modal';
 import CheckboxButton from '@/components/signup/CheckboxButton';
 import InputField from '@/components/signup/InputField';
+import { signup } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { type SignupValues, validateSignupField } from '@/lib/validator';
 import { STEPS, TERMS } from './constants';
 
-//TODO: NextAuth 연동해서 로그인 처리한다음에
-//TODO: 백엔드 토큰 발급해달라고 해야하니까 연동처리 고민하기
-
 export default function Page() {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isTermsPhase, setIsTermsPhase] = useState(false);
   const [checkedTerms, setCheckedTerms] = useState<Record<string, boolean>>({});
   const [openTermKey, setOpenTermKey] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [signupError, setSignupError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -56,8 +59,34 @@ export default function Page() {
     }
   };
 
-  const handleSignup = () => {
-    console.log('회원가입:', values);
+  const handleSignup = async () => {
+    setIsLoading(true);
+    setSignupError('');
+
+    const { ok, errorMessage } = await signup({
+      email: values.email,
+      password: values.password,
+      accountNum: values.accountNum,
+    });
+
+    if (!ok) {
+      setSignupError(errorMessage ?? '');
+      setIsLoading(false);
+      return;
+    }
+
+    const result = await signIn('email-password', {
+      email: values.email,
+      password: values.password,
+      redirect: false,
+    });
+
+    if (result?.ok) {
+      router.replace('/home');
+    } else {
+      setSignupError('로그인에 실패했어요. 다시 로그인해주세요.');
+      router.replace('/login');
+    }
   };
 
   const allChecked = TERMS.every((term) => checkedTerms[term.key]);
@@ -92,6 +121,10 @@ export default function Page() {
           />
         ))}
 
+        {isTermsPhase && signupError && (
+          <p className="font-bold text-[18px] text-error-red">{signupError}</p>
+        )}
+
         {isTermsPhase && (
           <div className="mt-12 mb-14 flex flex-col gap-4">
             {TERMS.map((term) => (
@@ -115,7 +148,7 @@ export default function Page() {
       <button
         type="button"
         onClick={isTermsPhase ? handleSignup : handleConfirm}
-        disabled={isTermsPhase && !allChecked}
+        disabled={(isTermsPhase && !allChecked) || isLoading}
         className={cn(
           'mb-26.5 w-full rounded-[10px] bg-main-green py-2.5 text-[28px] text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-300',
           isTermsPhase && 'font-bold',

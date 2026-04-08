@@ -1,38 +1,45 @@
 'use client';
 
-import BackButton from '@/components/common/BackButton';
-import ModalButton from '@/components/common/ModalButton';
 import Image from 'next/image';
 import { useState } from 'react';
+import BackButton from '@/components/common/BackButton';
+import ModalButton from '@/components/common/ModalButton';
+import { sendOtp } from '@/lib/auth';
 
 export default function FindPasswordPage() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<{
-    type: 'success' | 'notFound' | 'sendError';
+    type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSendLink = () => {
+  const handleSendLink = async () => {
     if (!email.trim()) {
-      setStatus({
-        type: 'notFound',
-        message: '해당하는 아이디가 없습니다.',
-      });
+      setStatus({ type: 'error', message: '이메일을 입력해주세요.' });
       return;
     }
 
-    if (email.toLowerCase().includes('fail')) {
-      setStatus({
-        type: 'sendError',
-        message: '이메일 전송 실패',
-      });
-      return;
-    }
+    setIsSubmitting(true);
+    setStatus(null);
 
-    setStatus({
-      type: 'success',
-      message: '이메일 링크 전송 완료!',
-    });
+    const result = await sendOtp({ email, type: 'reset' });
+
+    setIsSubmitting(false);
+
+    if (result.ok) {
+      setStatus({
+        type: 'success',
+        message: '비밀번호 재설정 링크를 전송했어요!',
+      });
+    } else {
+      setStatus({
+        type: 'error',
+        message:
+          result.errorMessage ??
+          '해당하는 계정이 없거나 이메일 전송에 실패했어요.',
+      });
+    }
   };
 
   return (
@@ -70,8 +77,8 @@ export default function FindPasswordPage() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-3 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]"
             />
-            <p className="text-center text-[15px] text-[#8E8E8E] sm:text-[15px] md:text-[18px] lg:text-[22px]">
-              가입한 이메일로 로그인 링크를 보내드립니다.
+            <p className='text-center text-[#8E8E8E] text-[15px] sm:text-[15px] md:text-[18px] lg:text-[22px]'>
+              가입한 이메일로 비밀번호 재설정 링크를 보내드립니다.
             </p>
           </div>
 
@@ -79,8 +86,10 @@ export default function FindPasswordPage() {
             <div className="flex min-h-[24px] items-center justify-center sm:min-h-[24px] md:min-h-[30px] lg:min-h-[36px]">
               {status && (
                 <p
-                  className={`text-center text-[16px] font-medium sm:text-[16px] md:text-[20px] lg:text-[24px] ${
-                    status.type === 'success' ? 'text-[#34CB5F]' : 'text-[#DC1F1F]'
+                  className={`text-center font-medium text-[16px] sm:text-[16px] md:text-[20px] lg:text-[24px] ${
+                    status.type === 'success'
+                      ? 'text-[#34CB5F]'
+                      : 'text-[#DC1F1F]'
                   }`}
                 >
                   {status.message}
@@ -89,9 +98,10 @@ export default function FindPasswordPage() {
             </div>
             <ModalButton
               type="submit"
-              className="text-[20px] sm:text-[20px] md:text-[28px] lg:text-[34px]"
+              disabled={isSubmitting}
+              className="py-4 text-[20px] sm:text-[20px] md:text-[28px] lg:text-[34px]"
             >
-              링크 보내기
+              {isSubmitting ? '전송 중...' : '링크 보내기'}
             </ModalButton>
           </div>
         </form>
