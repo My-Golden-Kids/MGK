@@ -10,8 +10,11 @@ import com.mgk.bemgk.dto.auth.RefreshRequest;
 import com.mgk.bemgk.dto.auth.RefreshResponse;
 import com.mgk.bemgk.dto.auth.SignupRequest;
 import com.mgk.bemgk.entity.Account;
+import com.mgk.bemgk.entity.AccountBook;
+import com.mgk.bemgk.entity.AccountBookCategory;
 import com.mgk.bemgk.entity.User;
 import com.mgk.bemgk.entity.Verification;
+import com.mgk.bemgk.repository.AccountBookRepository;
 import com.mgk.bemgk.repository.AccountRepository;
 import com.mgk.bemgk.repository.UserRepository;
 import com.mgk.bemgk.repository.VerificationRepository;
@@ -36,8 +39,9 @@ public class AuthService {
 	private final VerificationRepository verificationRepository;
 	private final JwtProvider jwtProvider;
     private final BCryptPasswordEncoder passwordEncoder;
+	private final AccountBookRepository accountBookRepository;
 
-    @Transactional
+	@Transactional
     public AuthResponse signup(SignupRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
@@ -49,14 +53,22 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .build());
 
-        accountRepository.save(Account.builder()
-                .user(user)
-                .accountNumber(request.getAccountNum())
-                .bankName(DEFAULT_BANK_NAME)
-                .moneyAmount(new BigDecimal("1000000"))
-                .rewardAmount(BigDecimal.ZERO)
-                .totalAmount(new BigDecimal("10000000"))
-                .build());
+        Account newAccount = accountRepository.save(
+			Account.builder().user(user).accountNumber(request.getAccountNum())
+				.bankName(DEFAULT_BANK_NAME)
+				.moneyAmount(new BigDecimal("1000000"))
+				.rewardAmount(BigDecimal.ZERO)
+				.totalAmount(new BigDecimal("10000000"))
+				.build());
+
+		accountBookRepository.save(AccountBook.builder()
+				.user(user)
+				.account(newAccount)
+				.title("첫 계좌연결")
+				.amount(BigDecimal.ZERO)
+				.spendDate(LocalDateTime.now())
+				.category(AccountBookCategory.Etc)
+			.build());
 
         return buildAuthResponse(user);
     }

@@ -34,10 +34,6 @@ public class AccountBook extends BaseEntity {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pet_id")
-    private Pet pet;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id")
     private Account account;
 
@@ -61,7 +57,6 @@ public class AccountBook extends BaseEntity {
     public AccountBook(User user, Pet pet, Account account, String title, BigDecimal amount,
                         AccountBookCategory category, String memo, LocalDateTime spendDate) {
         this.user = user;
-        this.pet = pet;
         this.account = account;
         this.title = title;
         this.amount = amount;

@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.*;
 
 import com.mgk.bemgk.auth.JwtProvider;
 import com.mgk.bemgk.dto.auth.AuthResponse;
@@ -17,8 +17,10 @@ import com.mgk.bemgk.dto.auth.OtpResponse;
 import com.mgk.bemgk.dto.auth.RefreshRequest;
 import com.mgk.bemgk.dto.auth.RefreshResponse;
 import com.mgk.bemgk.dto.auth.SignupRequest;
+import com.mgk.bemgk.entity.AccountBook;
 import com.mgk.bemgk.entity.User;
 import com.mgk.bemgk.entity.Verification;
+import com.mgk.bemgk.repository.AccountBookRepository;
 import com.mgk.bemgk.repository.AccountRepository;
 import com.mgk.bemgk.repository.UserRepository;
 import com.mgk.bemgk.repository.VerificationRepository;
@@ -44,6 +46,8 @@ class AuthServiceTest {
     private UserRepository userRepository;
     @Mock
     private AccountRepository accountRepository;
+	@Mock
+	private AccountBookRepository accountBookRepository;
     @Mock
     private VerificationRepository verificationRepository;
     @Mock
@@ -78,6 +82,7 @@ class AuthServiceTest {
         given(userRepository.save(any(User.class))).willReturn(saved);
         given(jwtProvider.generateAccessToken(1L, "new@test.com")).willReturn("access");
         given(jwtProvider.generateRefreshToken(1L)).willReturn("refresh");
+		given(accountBookRepository.save(any())).willReturn(mock(AccountBook.class));
 
         AuthResponse response = authService.signup(request);
 
@@ -85,6 +90,7 @@ class AuthServiceTest {
         assertThat(response.getRefreshToken()).isEqualTo("refresh");
         assertThat(response.getEmail()).isEqualTo("new@test.com");
         then(accountRepository).should().save(any());
+        then(accountBookRepository).should().save(any());
     }
 
     @Test
