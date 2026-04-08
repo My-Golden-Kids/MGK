@@ -20,7 +20,7 @@ export const onboardingSteps: OnboardingStep[] = [
     id: 'intro',
     message: '안녕하세요\n저는 어르신을\n도와드릴 별송이에요!',
     instruction: '핸드폰\n옆의 버튼을 눌러\n소리를 키워주세요!',
-    autoAdvanceDelay: TRANSITION_DELAY_MS,
+    showCenterAction: true,
   },
   {
     id: 'volume-guide',

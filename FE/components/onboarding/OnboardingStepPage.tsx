@@ -3,6 +3,9 @@
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from 'react-speech-recognition';
 
 import BackButton from '@/components/common/BackButton';
 import { Button } from '@/components/common/Button';
@@ -29,6 +32,7 @@ type FlowState = {
 };
 
 const DISSOLVE_DURATION_MS = 0;
+const TTS_UNLOCKED_SESSION_KEY = 'mgk-onboarding-tts-unlocked';
 
 function HandHint() {
   return (
@@ -87,11 +91,14 @@ export default function OnboardingStepPage({
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigationTimeoutRef = useRef<number | null>(null);
+  const lastSpokenMessageRef = useRef('');
+  const [isTtsUnlocked, setIsTtsUnlocked] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [pendingImagePreviewUrl, setPendingImagePreviewUrl] = useState('');
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const { browserSupportsSpeechRecognition } = useSpeechRecognition();
 
   const step = getOnboardingStep(stepNumber);
   const retryPetName = searchParams.get('retryPetName') === '1';
@@ -102,6 +109,29 @@ export default function OnboardingStepPage({
     photoSkipped,
     petImage: petImage || undefined,
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (window.sessionStorage.getItem(TTS_UNLOCKED_SESSION_KEY) === '1') {
+      setIsTtsUnlocked(true);
+      return;
+    }
+
+    const unlockTts = () => {
+      window.sessionStorage.setItem(TTS_UNLOCKED_SESSION_KEY, '1');
+      setIsTtsUnlocked(true);
+      window.removeEventListener('pointerdown', unlockTts);
+    };
+
+    window.addEventListener('pointerdown', unlockTts);
+
+    return () => {
+      window.removeEventListener('pointerdown', unlockTts);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -116,6 +146,9 @@ export default function OnboardingStepPage({
       if (navigationTimeoutRef.current !== null) {
         window.clearTimeout(navigationTimeoutRef.current);
       }
+
+      void SpeechRecognition.stopListening();
+      window.speechSynthesis?.cancel();
     };
   }, []);
 
@@ -142,9 +175,58 @@ export default function OnboardingStepPage({
       : photoSkipped && step.id === 'pet-chat-guide'
         ? SKIP_PHOTO_CHAT_GUIDE_MESSAGE
         : undefined;
+  const bubbleMessage = messageOverride ?? step.message;
   const centerImageUrl = CENTER_IMAGE_STEP_IDS.has(step.id)
     ? petImage || undefined
     : undefined;
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !isTtsUnlocked ||
+      !bubbleMessage ||
+      lastSpokenMessageRef.current === bubbleMessage
+    ) {
+      return;
+    }
+
+    const speechSynthesis = window.speechSynthesis;
+
+    if (!speechSynthesis) {
+      return;
+    }
+
+    if (browserSupportsSpeechRecognition) {
+      void SpeechRecognition.stopListening();
+    }
+
+    const utterance = new SpeechSynthesisUtterance(
+      bubbleMessage.replaceAll('\n', ' '),
+    );
+    utterance.lang = 'ko-KR';
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+    utterance.onstart = () => {
+      lastSpokenMessageRef.current = bubbleMessage;
+    };
+    utterance.onerror = () => {
+      if (lastSpokenMessageRef.current === bubbleMessage) {
+        lastSpokenMessageRef.current = '';
+      }
+    };
+
+    const availableVoices = speechSynthesis.getVoices();
+    const koreanVoice = availableVoices.find((voice) =>
+      voice.lang.toLowerCase().startsWith('ko'),
+    );
+
+    if (koreanVoice) {
+      utterance.voice = koreanVoice;
+    }
+
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+  }, [browserSupportsSpeechRecognition, bubbleMessage, isTtsUnlocked]);
 
   const navigateWithDissolve = (
     href: string,
@@ -313,7 +395,7 @@ export default function OnboardingStepPage({
         style={{ transitionDuration: `${DISSOLVE_DURATION_MS}ms` }}
       >
         <OnboardingBackground
-          bubbleMessage={messageOverride ?? step.message}
+          bubbleMessage={bubbleMessage}
           bubbleMessageFrames={messageOverride ? undefined : step.messageFrames}
           centerImageUrl={centerImageUrl}
           instructionMessage={step.instruction}
