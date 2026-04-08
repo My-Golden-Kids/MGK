@@ -117,7 +117,7 @@ export default function SettingsPage() {
     () => [
       {
         label: text.changePassword,
-        onClick: () => console.log("change password"),
+        onClick: () => router.push("/settings/changePassword"),
       },
       {
         label: text.logout,
@@ -128,7 +128,7 @@ export default function SettingsPage() {
         onClick: () => console.log("withdraw"),
       },
     ],
-    [],
+    [router],
   );
 
   const handleAddPet = () => {
