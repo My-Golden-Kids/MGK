@@ -73,7 +73,7 @@ export default function Modal({
       }}
     >
       <div
-        className={`max-h-138.25 w-full min-w-75 animate-card-in rounded-[15px] bg-white p-3.75 shadow-[0_2px_13px_-5px_rgba(0,0,0,0.25)] sm:max-h-140`}
+        className={`w-full min-w-75 animate-card-in rounded-[15px] bg-white p-3.75 shadow-[0_2px_13px_-5px_rgba(0,0,0,0.25)]`}
         onClick={(e) => e.stopPropagation()}
       >
         {children && (
