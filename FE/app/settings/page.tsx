@@ -1,5 +1,6 @@
 "use client";
 
+import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
@@ -108,9 +109,8 @@ export default function SettingsPage() {
   const [pets, setPets] = useState<Pet[]>(initialPets);
 
   const handleLogout = () => {
-    console.log("logout");
     setIsLogoutModalOpen(false);
-    // TODO: 실제 로그아웃 로직 (토큰 삭제, 라우팅 등)
+    signOut({ callbackUrl: "/login" });
   };
 
   const menuItems = useMemo(
