@@ -52,6 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               email: credentials.email,
               body: errorBody,
             });
+
             return null;
           }
 
@@ -140,7 +141,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       // accessToken 아직 유효하면 refresh 건너뜀
-      if (Date.now() < (token.accessTokenExpiry as number ?? 0)) {
+      if (Date.now() < ((token.accessTokenExpiry as number) ?? 0)) {
         return token;
       }
 

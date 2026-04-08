@@ -23,12 +23,13 @@ export default function LoginPage() {
         email,
         password,
         redirect: false,
+        callbackUrl: '/home',
       });
 
-      if (result?.ok) {
-        router.replace('/home');
-      } else {
+      if (result?.error) {
         setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      } else {
+        router.replace('/home');
       }
     } finally {
       setIsSubmitting(false);
@@ -37,7 +38,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-dvh bg-white p-10">
-      <section className="flex flex-col justify-between h-full items-center text-center">
+      <section className="flex h-full flex-col items-center justify-between text-center">
         <h1 className="text-[28px] leading-none sm:text-[28px] md:text-[34px] lg:text-[40px]">
           로그인
         </h1>
@@ -48,7 +49,7 @@ export default function LoginPage() {
           height={813}
           priority
           sizes="(max-width: 420px) 260px, (max-width: 768px) 420px, 480px"
-          className=" h-auto w-[87%] max-w-[400px] md:w-[84%] lg:w-[75%]"
+          className="h-auto w-[87%] max-w-100 md:w-[84%] lg:w-[75%]"
         />
         <form
           className="flex w-full max-w-auto flex-col items-center"
@@ -63,23 +64,24 @@ export default function LoginPage() {
               placeholder="이메일"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-3 text-start text-[20px] sm:text-[20px] md:text-[28px] lg:text-[34px] text-black outline-none placeholder:text-[#C4C4C4]"
+              className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-3 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]"
             />
             <input
               type="password"
               placeholder="비밀번호"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-3 text-start text-[20px] sm:text-[20px] md:text-[28px] lg:text-[34px] text-black outline-none placeholder:text-[#C4C4C4]"
+              className="w-full rounded-[10px] bg-[#EDEDED] px-5 py-3 text-start text-[20px] text-black outline-none placeholder:text-[#C4C4C4] sm:text-[20px] md:text-[28px] lg:text-[34px]"
             />
           </div>
           <button
             type="button"
             onClick={() => router.push('/login/findpasswd')}
-            className="mt-3 text-[17px] sm:text-[17px] md:text-[20px] lg:text-[28px] text-[#8E8E8E] transition-opacity hover:text-black cursor-pointer"
+            className="mt-3 cursor-pointer text-[#8E8E8E] text-[17px] transition-opacity hover:text-black sm:text-[17px] md:text-[20px] lg:text-[28px]"
           >
             비밀번호를 잊으셨나요?
           </button>
+          {error && <p className="text-error-red">{error}</p>}
           <div className="my-15 flex w-full flex-col gap-4">
             <ModalButton
               type="submit"
