@@ -94,7 +94,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("signup: 이메일 중복 시 예외")
+    @DisplayName("signup: 이메일 중복 시 409")
     void signup_duplicateEmail_throws() {
         SignupRequest request = SignupRequest.builder()
                 .email("dup@test.com")
@@ -105,8 +105,9 @@ class AuthServiceTest {
         given(userRepository.existsByEmail("dup@test.com")).willReturn(true);
 
         assertThatThrownBy(() -> authService.signup(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("이미 사용 중인 이메일");
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.CONFLICT));
         then(userRepository).should(never()).save(any());
     }
 
@@ -133,7 +134,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("login: 존재하지 않는 이메일 시 예외")
+    @DisplayName("login: 존재하지 않는 이메일 시 401")
     void login_emailNotFound_throws() {
         LoginRequest request = LoginRequest.builder()
                 .email("none@test.com")
@@ -143,12 +144,13 @@ class AuthServiceTest {
         given(userRepository.findByEmail("none@test.com")).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("이메일 또는 비밀번호");
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.UNAUTHORIZED));
     }
 
     @Test
-    @DisplayName("login: 비밀번호 불일치 시 예외")
+    @DisplayName("login: 비밀번호 불일치 시 401")
     void login_wrongPassword_throws() {
         LoginRequest request = LoginRequest.builder()
                 .email("test@test.com")
@@ -160,8 +162,9 @@ class AuthServiceTest {
         given(passwordEncoder.matches("WrongPass!", "encodedPassword")).willReturn(false);
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("이메일 또는 비밀번호");
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.UNAUTHORIZED));
     }
 
     // ── getOtpToken ────────────────────────────────────────────
@@ -183,7 +186,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("getOtpToken: 존재하지 않는 이메일 시 예외")
+    @DisplayName("getOtpToken: 존재하지 않는 이메일 시 404")
     void getOtpToken_emailNotFound_throws() {
         OtpRequest request = OtpRequest.builder()
                 .email("none@test.com")
@@ -192,8 +195,9 @@ class AuthServiceTest {
         given(userRepository.findByEmail("none@test.com")).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.getOtpToken(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("존재하지 않는 이메일");
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
     }
 
     // ── refreshToken ───────────────────────────────────────────
@@ -217,7 +221,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("refreshToken: 유효하지 않은 토큰 시 예외")
+    @DisplayName("refreshToken: 유효하지 않은 토큰 시 401")
     void refreshToken_invalidToken_throws() {
         RefreshRequest request = RefreshRequest.builder()
                 .refreshToken("invalid-token")
@@ -226,8 +230,9 @@ class AuthServiceTest {
         given(jwtProvider.validateToken("invalid-token")).willReturn(false);
 
         assertThatThrownBy(() -> authService.refreshToken(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("유효하지 않은 리프레시 토큰");
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.UNAUTHORIZED));
     }
 
     // ── deleteAccount ──────────────────────────────────────────
@@ -245,13 +250,14 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("deleteAccount: 존재하지 않는 이메일 시 예외")
+    @DisplayName("deleteAccount: 존재하지 않는 이메일 시 404")
     void deleteAccount_emailNotFound_throws() {
         given(userRepository.findByEmail("none@test.com")).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.deleteAccount("none@test.com"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("존재하지 않는 이메일");
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
     }
 
     // ── verifyMagicLink ────────────────────────────────────────
@@ -278,17 +284,18 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("verifyMagicLink: 존재하지 않는 토큰 시 예외")
+    @DisplayName("verifyMagicLink: 존재하지 않는 토큰 시 400")
     void verifyMagicLink_invalidToken_throws() {
         given(verificationRepository.findByToken("bad-token")).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.verifyMagicLink("bad-token"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("유효하지 않은 토큰");
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.BAD_REQUEST));
     }
 
     @Test
-    @DisplayName("verifyMagicLink: 만료된 토큰 시 예외")
+    @DisplayName("verifyMagicLink: 만료된 토큰 시 410")
     void verifyMagicLink_expiredToken_throws() {
         User user = mockUser(1L, "test@test.com");
         Verification verification = Verification.builder()
@@ -301,8 +308,9 @@ class AuthServiceTest {
         given(verificationRepository.findByToken("expired-token")).willReturn(Optional.of(verification));
 
         assertThatThrownBy(() -> authService.verifyMagicLink("expired-token"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("만료된 토큰");
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.GONE));
     }
 
     // ── resetPassword ──────────────────────────────────────────
@@ -328,17 +336,18 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("resetPassword: 존재하지 않는 토큰 시 예외")
+    @DisplayName("resetPassword: 존재하지 않는 토큰 시 400")
     void resetPassword_invalidToken_throws() {
         given(verificationRepository.findByToken("bad-token")).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.resetPassword("bad-token", "NewPass1!"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("유효하지 않은 토큰");
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.BAD_REQUEST));
     }
 
     @Test
-    @DisplayName("resetPassword: 만료된 토큰 시 예외")
+    @DisplayName("resetPassword: 만료된 토큰 시 410")
     void resetPassword_expiredToken_throws() {
         User user = mockUser(1L, "test@test.com");
         Verification verification = Verification.builder()
@@ -351,8 +360,9 @@ class AuthServiceTest {
         given(verificationRepository.findByToken("expired-token")).willReturn(Optional.of(verification));
 
         assertThatThrownBy(() -> authService.resetPassword("expired-token", "NewPass1!"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("만료된 토큰");
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.GONE));
     }
 
     // ── changePassword ─────────────────────────────────────────

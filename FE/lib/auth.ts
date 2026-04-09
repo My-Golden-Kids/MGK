@@ -190,7 +190,7 @@ export async function changePasswordWithCurrent(
   });
 
   if (!res.ok) {
-    if (res.status === 400 || res.status === 401) {
+    if (res.status === 401) {
       return {
         ok: false,
         fieldErrors: { currentPassword: '현재 비밀번호가 올바르지 않습니다' },

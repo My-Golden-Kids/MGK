@@ -18,14 +18,10 @@ public class GlobalExceptionHandler {
             IllegalArgumentException exception,
             HttpServletRequest request
     ) {
-        HttpStatus status = isAuthFailure(request.getRequestURI())
-                ? HttpStatus.UNAUTHORIZED
-                : HttpStatus.BAD_REQUEST;
-
-        return ResponseEntity.status(status).body(new ApiErrorResponse(
+        return ResponseEntity.badRequest().body(new ApiErrorResponse(
                 LocalDateTime.now(),
-                status.value(),
-                status.getReasonPhrase(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
                 exception.getMessage(),
                 request.getRequestURI()
         ));
@@ -69,10 +65,4 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    private boolean isAuthFailure(String path) {
-        return "/api/auth/login".equals(path)
-                || "/api/auth/verify".equals(path)
-                || "/api/auth/refresh".equals(path)
-                || "/api/auth/change-password".equals(path);
-    }
 }
