@@ -1,5 +1,6 @@
 'use client';
 
+import { ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import PetProfileImage from '@/components/home/pet/PetProfileImage';
 import VaccinationItem from './VaccinationItem';
@@ -45,7 +46,7 @@ export default function VaccinationListSection({
           className="h-[88px] w-[88px] border-[#018D70] md:h-[100px] md:w-[100px] lg:h-[112px] lg:w-[112px]"
         />
 
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="font-extrabold text-[22px] text-black md:text-[26px] lg:text-[30px]">
             {petName}
           </h3>
@@ -58,6 +59,16 @@ export default function VaccinationListSection({
             {latestScheduleLabel}
           </p>
         </div>
+
+        {isOpen && (
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full active:bg-black/10 md:h-12 md:w-12 lg:h-14 lg:w-14"
+          >
+            <ChevronUp className="h-6 w-6 text-main-green md:h-7 md:w-7 lg:h-8 lg:w-8" />
+          </button>
+        )}
       </div>
 
       {isOpen && hasItems && (
