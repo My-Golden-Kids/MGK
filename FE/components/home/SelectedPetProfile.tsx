@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useMemo, useRef } from 'react';
-import PetProfileImage from '@/components/home/pet/PetProfileImage';
+import { useMemo, useRef } from "react";
+import PetProfileImage from "@/components/home/pet/PetProfileImage";
 
-type Pet = {
+export type Pet = {
   id: number | string;
   name: string;
-  imageUrl: string;
+  imageUrl?: string | null;
 };
 
 type SelectedPetProfileProps = {
@@ -25,34 +25,34 @@ type PositionStyle = {
 
 const POSITION_MAP: Record<number, PositionStyle> = {
   [-2]: {
-    translateX: '-90%',
-    scale: '0.40',
+    translateX: "-90%",
+    scale: "0.40",
     zIndex: 30,
-    opacity: '0.8',
+    opacity: "0.8",
   },
   [-1]: {
-    translateX: '-55%',
-    scale: '0.65',
+    translateX: "-55%",
+    scale: "0.65",
     zIndex: 40,
-    opacity: '0.9',
+    opacity: "0.9",
   },
   0: {
-    translateX: '0%',
-    scale: '1',
+    translateX: "0%",
+    scale: "1",
     zIndex: 50,
-    opacity: '1',
+    opacity: "1",
   },
   1: {
-    translateX: '55%',
-    scale: '0.65',
+    translateX: "55%",
+    scale: "0.65",
     zIndex: 40,
-    opacity: '0.9',
+    opacity: "0.9",
   },
   2: {
-    translateX: '90%',
-    scale: '0.40',
+    translateX: "90%",
+    scale: "0.40",
     zIndex: 30,
-    opacity: '0.8',
+    opacity: "0.8",
   },
 };
 
@@ -159,7 +159,10 @@ export default function SelectedPetProfile({
     return (
       <section className="w-full">
         <div className="flex h-[250px] items-center justify-center md:h-[290px] lg:h-[340px]">
-          <PetProfileImage className="h-[220px] w-[220px] md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px]" />
+          <PetProfileImage
+            onClick={() => onSelectedClick?.("default")}
+            className="h-[220px] w-[220px] cursor-pointer md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px]"
+          />
         </div>
       </section>
     );
@@ -191,7 +194,7 @@ export default function SelectedPetProfile({
               }}
             >
               <PetProfileImage
-                imageUrl={pet.imageUrl}
+                imageUrl={pet.imageUrl ?? undefined}
                 onClick={() => {
                   if (isDragging.current) return;
 

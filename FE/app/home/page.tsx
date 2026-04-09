@@ -1,23 +1,11 @@
-'use client';
+"use client";
 
-import { BottomNavigation } from "@/components/common/BottomNavigation";
-import HomePromptBubble from "@/components/home/HomePromptBubble";
-import SelectedPetProfile from "@/components/home/SelectedPetProfile";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-
-import {
-  getMedicalRecordApiBaseUrl,
-  getStoredMedicalPetId,
-  storeSelectedPetId,
-} from '@/lib/medical-record';
-
-type Pet = {
-  id: number;
-  name: string;
-  imageUrl?: string | null;
-};
+import { useState } from "react";
+import { BottomNavigation } from "@/components/common/BottomNavigation";
+import HomePromptBubble from "@/components/home/HomePromptBubble";
+import SelectedPetProfile, { Pet } from "@/components/home/SelectedPetProfile";
 
 type SpendingData = {
   monthlyAmount: string;
@@ -50,60 +38,6 @@ export default function HomePage() {
   const router = useRouter();
   const [selectedPetId, setSelectedPetId] = useState<number | string>(1);
   const [showBubble, setShowBubble] = useState(true);
-  const [pets, setPets] = useState<Pet[]>([]);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    const fetchPets = async () => {
-      try {
-        const response = await fetch(
-          `${getMedicalRecordApiBaseUrl()}/api/pets`,
-        );
-
-        if (!response.ok) {
-          throw new Error('반려동물 목록 조회에 실패했습니다.');
-        }
-
-        const data = (await response.json()) as Array<{
-          id: number;
-          name: string;
-          imageUrl?: string | null;
-        }>;
-
-        if (isCancelled || data.length === 0) {
-          return;
-        }
-
-        const mappedPets = data.map((pet) => ({
-          id: pet.id,
-          name: pet.name,
-          imageUrl: pet.imageUrl || '/images/pet/dolmeng1.jpeg',
-        }));
-
-        setPets(mappedPets);
-
-        const storedPetId = getStoredMedicalPetId();
-        const matchedPet = mappedPets.find((pet) => pet.id === storedPetId);
-        const nextPetId = matchedPet?.id ?? mappedPets[0].id;
-
-        setSelectedPetId(nextPetId);
-        storeSelectedPetId(nextPetId);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    void fetchPets();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    storeSelectedPetId(selectedPetId);
-  }, [selectedPetId]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#FFFFFF]">
@@ -118,7 +52,7 @@ export default function HomePage() {
         </header>
 
         <section className="mb-5">
-          <div className={showBubble ? '' : 'invisible'}>
+          <div className={showBubble ? "" : "invisible"}>
             <HomePromptBubble
               message={`주인님! 저에 대해\n더 알려주세요!`}
               showAnswerButtons={true}
@@ -135,7 +69,7 @@ export default function HomePage() {
             pets={pets}
             selectedPetId={selectedPetId}
             onChange={setSelectedPetId}
-            onSelectedClick={() => router.push('/home/talk')}
+            onSelectedClick={() => router.push("/home/talk")}
           />
         </section>
 

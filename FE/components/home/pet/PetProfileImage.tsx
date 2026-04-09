@@ -1,15 +1,15 @@
 type PetProfileImageProps = {
-  imageUrl?: string; // optional로 변경
+  imageUrl?: string;
   className?: string;
   onClick?: () => void;
 };
 
 export default function PetProfileImage({
   imageUrl,
-  className = '',
+  className = "",
   onClick,
 }: PetProfileImageProps) {
-  const src = imageUrl || '/images/onboarding/byeolsong.png';
+  const src = imageUrl || "/images/onboarding/byeolsong.png";
 
   return (
     <button
