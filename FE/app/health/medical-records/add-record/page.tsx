@@ -6,9 +6,9 @@ import { Suspense, useEffect, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
+import { clientFetch } from '@/lib/auth';
 import {
   EMPTY_MEDICAL_RECORD_FORM,
-  getMedicalRecordApiBaseUrl,
   getStoredMedicalPetId,
   MEDICAL_RECORD_IMAGE_STORAGE_KEY,
   MEDICAL_RECORD_OCR_STORAGE_KEY,
@@ -105,6 +105,7 @@ function AddMedicalRecordForm() {
           body: uploadFormData,
         });
 
+        console.log(uploadResponse);
         if (!uploadResponse.ok) {
           throw new Error('이미지 업로드에 실패했습니다.');
         }
@@ -113,25 +114,39 @@ function AddMedicalRecordForm() {
         imageUrl = uploadResult.path ?? '';
       }
 
-      const saveResponse = await fetch(
-        `${getMedicalRecordApiBaseUrl()}/api/medical-records`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            petId: getStoredMedicalPetId(),
-            date: form.date,
-            type: form.type,
-            petName: form.petName,
-            hospitalName: form.hospitalName,
-            details: form.details,
-            totalAmount: Number(form.totalAmount),
-            imageUrl,
-          }),
-        },
-      );
+      const saveResponse = await clientFetch('/api/medical-records', {
+        method: 'POST',
+        body: JSON.stringify({
+          petId: getStoredMedicalPetId(),
+          date: form.date,
+          type: form.type,
+          petName: form.petName,
+          hospitalName: form.hospitalName,
+          details: form.details,
+          totalAmount: Number(form.totalAmount),
+          imageUrl,
+        }),
+      });
+
+      // const saveResponse = await fetch(
+      //   `${getMedicalRecordApiBaseUrl()}/api/medical-records`,
+      //   {
+      //     method: 'POST',
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //     },
+      //     body: JSON.stringify({
+      //       petId: getStoredMedicalPetId(),
+      //       date: form.date,
+      //       type: form.type,
+      //       petName: form.petName,
+      //       hospitalName: form.hospitalName,
+      //       details: form.details,
+      //       totalAmount: Number(form.totalAmount),
+      //       imageUrl,
+      //     }),
+      //   },
+      // );
 
       if (!saveResponse.ok) {
         const errorMessage = await saveResponse
