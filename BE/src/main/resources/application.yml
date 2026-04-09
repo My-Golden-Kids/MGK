@@ -28,4 +28,4 @@ logging:
 
 google:
   vision:
-    credentials-path: ${GOOGLE_VISION_KEY_PATH}
+    credentials-path: secrets/vision-key.json
