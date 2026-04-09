@@ -14,18 +14,7 @@ type SpendingData = {
   savingsHint: string;
 };
 
-const pets: Pet[] = [
-  {
-    id: 1,
-    name: "돌",
-    imageUrl: "",
-  },
-  {
-    id: 2,
-    name: "멩",
-    imageUrl: "/images/pet/dolmeng2.jpeg",
-  },
-];
+const pets: Pet[] = [];
 
 const spendingData: SpendingData | null = {
   monthlyAmount: "20,000,000원",
@@ -36,7 +25,7 @@ const spendingData: SpendingData | null = {
 
 export default function HomePage() {
   const router = useRouter();
-  const [selectedPetId, setSelectedPetId] = useState<number | string>(1);
+  const [selectedPetId, setSelectedPetId] = useState<number>(1);
   const [showBubble, setShowBubble] = useState(true);
 
   return (
@@ -130,7 +119,7 @@ export default function HomePage() {
 
               <button
                 type="button"
-                onClick={() => router.push("/settings/pets/1")}
+                onClick={() => router.push("/settings/pets")}
                 className="flex h-[56px] w-full max-w-[280px] cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] px-4 text-[20px] font-extrabold text-white"
               >
                 반려동물 등록하기
