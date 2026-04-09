@@ -26,6 +26,7 @@ type OnboardingStepPageProps = {
 };
 
 type FlowState = {
+  petName?: string;
   petImage?: string;
   photoSkipped: boolean;
   retryPetName: boolean;
@@ -79,6 +80,10 @@ function buildOnboardingHref(stepNumber: number, state: FlowState) {
     params.set('petImage', state.petImage);
   }
 
+  if (state.petName) {
+    params.set('petName', state.petName);
+  }
+
   const query = params.toString();
 
   return query
@@ -95,23 +100,36 @@ export default function OnboardingStepPage({
   const navigationTimeoutRef = useRef<number | null>(null);
   const lastSpokenMessageRef = useRef('');
   const ttsAutoAdvanceHandledRef = useRef(false);
+  const [isClient, setIsClient] = useState(false);
   const [isTtsUnlocked, setIsTtsUnlocked] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [pendingImagePreviewUrl, setPendingImagePreviewUrl] = useState('');
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
-  const { browserSupportsSpeechRecognition } = useSpeechRecognition();
+  const {
+    transcript,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+    listening,
+  } = useSpeechRecognition();
 
   const step = getOnboardingStep(stepNumber);
   const retryPetName = searchParams.get('retryPetName') === '1';
   const photoSkipped = searchParams.get('photoSkipped') === '1';
   const petImage = searchParams.get('petImage') ?? '';
+  const petName = searchParams.get('petName') ?? '';
   const flowState: FlowState = {
+    petName: petName || undefined,
     retryPetName,
     photoSkipped,
     petImage: petImage || undefined,
   };
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const markInternalEntry = (targetStep: number) => {
     sessionStorage.setItem(
@@ -188,6 +206,11 @@ export default function OnboardingStepPage({
   }, []);
 
   useEffect(() => {
+    setIsRecording(false);
+    resetTranscript();
+  }, [resetTranscript, step.id]);
+
+  useEffect(() => {
     ttsAutoAdvanceHandledRef.current = false;
 
     if (
@@ -221,13 +244,43 @@ export default function OnboardingStepPage({
   const messageOverride =
     retryPetName && step.id === 'pet-name-guide'
       ? RETRY_PET_NAME_MESSAGE
-      : photoSkipped && step.id === 'pet-chat-guide'
-        ? SKIP_PHOTO_CHAT_GUIDE_MESSAGE
-        : undefined;
+      : petName && step.id === 'pet-name-confirm'
+        ? `우리 아이의 이름이\n‘${petName}’가 맞나요?`
+        : petName && step.id === 'pet-photo-request'
+          ? `우와, ${petName}! 정말\n예쁜 이름이네요.\n우리 ${petName} 얼굴도 보고 싶은데,\n사진을 한 장 보여\n주시겠어요?`
+          : petName && step.id === 'pet-photo-skip-info'
+            ? `걱정 마세요! ${petName}\n사진은 나중에 또 선택\n하실 수 있어요`
+            : petName && step.id === 'pet-photo-complete'
+              ? `준비가 다 됐어요!\n이제 ${petName}와의 추억을\n함께 만들어가 볼까요?`
+              : petName && step.id === 'pet-chat-guide'
+                ? `${petName} 사진을 누르면\n언제든 저와 대화하실\n수 있어요!`
+                : photoSkipped && step.id === 'pet-chat-guide'
+                  ? SKIP_PHOTO_CHAT_GUIDE_MESSAGE
+                  : undefined;
+  const bubbleMessageFrames =
+    petName && step.id === 'pet-photo-request'
+      ? [
+          `우와, ${petName}! 정말\n예쁜 이름이네요.\n우리 ${petName} 얼굴도 보고 싶은데,`,
+          `예쁜 이름이네요.\n우리 ${petName} 얼굴도 보고 싶은데,\n사진을 한 장 보여`,
+          `우리 ${petName} 얼굴도 보고 싶은데,\n사진을 한 장 보여\n주시겠어요?`,
+        ]
+      : messageOverride
+        ? undefined
+        : step.messageFrames;
   const bubbleMessage = messageOverride ?? step.message;
   const centerImageUrl = CENTER_IMAGE_STEP_IDS.has(step.id)
     ? petImage || undefined
     : undefined;
+  const instructionMessage =
+    step.id === 'pet-name-guide'
+      ? !isClient
+        ? step.instruction
+        : !browserSupportsSpeechRecognition
+          ? '이 기기에서는\n음성 입력을 사용할 수 없어요.'
+          : listening || isRecording
+            ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
+            : '저를 누르고\n말씀해 주세요!'
+      : step.instruction;
 
   useEffect(() => {
     if (
@@ -373,6 +426,7 @@ export default function OnboardingStepPage({
       setPendingImageFile(null);
       setPendingImagePreviewUrl('');
       goToStep(11, {
+        ...flowState,
         petImage: data.path,
         photoSkipped: false,
         retryPetName: false,
@@ -404,6 +458,68 @@ export default function OnboardingStepPage({
     goToStep(Math.max(1, stepNumber - 1), flowState);
   };
 
+  const buildPetName = (value: string) => {
+    const normalizedTranscript = value.replace(/\s+/g, ' ').trim();
+
+    if (!normalizedTranscript) {
+      return '';
+    }
+
+    const segments = normalizedTranscript
+      .split(/[.\n]/)
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+
+    return (
+      segments.length > 0 ? segments[segments.length - 1] : normalizedTranscript
+    ).replaceAll(' ', '');
+  };
+
+  const startPetNameRecording = async () => {
+    if (!browserSupportsSpeechRecognition || isRecording) {
+      return;
+    }
+
+    resetTranscript();
+    setIsRecording(true);
+    window.speechSynthesis?.cancel();
+
+    await SpeechRecognition.startListening({
+      continuous: false,
+      language: 'ko-KR',
+    });
+  };
+
+  const stopPetNameRecording = async () => {
+    if (!isRecording) {
+      return;
+    }
+
+    setIsRecording(false);
+    await SpeechRecognition.stopListening();
+
+    const recognizedPetName = buildPetName(transcript);
+
+    if (!recognizedPetName) {
+      return;
+    }
+
+    goToStep(8, {
+      ...flowState,
+      petName: recognizedPetName,
+      retryPetName: false,
+    });
+  };
+
+  const togglePetNameRecording = async () => {
+    if (isRecording || listening) {
+      await stopPetNameRecording();
+      return;
+    }
+
+    await startPetNameRecording();
+  };
+
   const handleYesClick = () => {
     if (step.id === 'health-guide') {
       clearInternalEntry();
@@ -417,10 +533,7 @@ export default function OnboardingStepPage({
     }
 
     if (step.id === 'pet-name-guide') {
-      goToStep(stepNumber + 1, {
-        ...flowState,
-        retryPetName: false,
-      });
+      void togglePetNameRecording();
       return;
     }
 
@@ -472,9 +585,9 @@ export default function OnboardingStepPage({
       >
         <OnboardingBackground
           bubbleMessage={bubbleMessage}
-          bubbleMessageFrames={messageOverride ? undefined : step.messageFrames}
+          bubbleMessageFrames={bubbleMessageFrames}
           centerImageUrl={centerImageUrl}
-          instructionMessage={step.instruction}
+          instructionMessage={instructionMessage}
         >
           <div className="pointer-events-none relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
             {BACK_BUTTON_STEP_IDS.has(step.id) ? (
