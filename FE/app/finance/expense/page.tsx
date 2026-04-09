@@ -117,7 +117,7 @@ export default function FinanceExpensesPage() {
       };
 
       if (currentGroup) {
-        currentGroup.items.push(mappedItem);
+        currentGroup.items.push({ ...mappedItem, id: item.id });
         continue;
       }
 
