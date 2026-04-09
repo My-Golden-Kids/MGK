@@ -1,4 +1,3 @@
-import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 
@@ -16,60 +15,66 @@ const expenseItems = [
 
 export default function FinancePage() {
   return (
-    <div className="flex min-h-dvh flex-col bg-white text-[#27312D]">
-      <main className="flex-1 px-4 py-4">
-        <section className="overflow-hidden rounded-[26px] border border-[#7ACFC2] bg-[#EAF8F6]">
-          <div className="px-4 pt-4 pb-5">
+    <div className="flex min-h-dvh flex-col bg-white">
+      <main className="flex-1 p-5 md:px-7 lg:px-9">
+        <section className="overflow-hidden rounded-[26px] border border-[var(--color-main-green)] bg-[#E5F9F8]">
+          <div className="p-4 md:p-4.5 lg:p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-3xl text-[#4CAFA3]">돌멍이 통장</p>
-                <p className="-mt-1 text-[#384543] text-lg">
+                <p className="font-bold text-[28px] text-[var(--color-main-green)] md:text-[32px] lg:text-[36px]">
+                  됄멩이 통장
+                </p>
+                <p className="text-[20px] leading-none md:text-[24px] lg:text-[28px]">
                   1999-9022-0000-0000
                 </p>
               </div>
               <Link
                 href="/finance/expense"
-                className="mt-1 inline-flex items-center gap-1 text-[#55B4A6] text-lg"
+                className="mt-2 inline-flex items-center font-bold text-[18px] text-[var(--color-main-green)] md:mt-2.5 md:text-[24px] lg:mt-3 lg:text-[28px]"
               >
                 내역 보기
-                <ChevronRight className="h-5 w-5" />
               </Link>
             </div>
 
-            <div className="mt-9 flex items-end justify-between">
-              <span className="text-2xl text-[#4CAFA3]">잔액</span>
-              <span className="text-4xl text-[#212B28] leading-none">
-                1,250,000 원
+            <div className="mt-8 flex items-end justify-between md:mt-9 lg:mt-10">
+              <span className="font-bold text-[18px] text-[var(--color-main-green)] md:text-[22px] lg:text-[26px]">
+                잔액
+              </span>
+              <span className="text-[28px] leading-none md:text-[32px] lg:text-[36px]">
+                <span className="font-bold">1,250,000</span>
+                <span className="ml-1.5 md:ml-2 lg:ml-2.5">원</span>
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 border-[#7ACFC2] border-t">
+          <div className="grid grid-cols-2 border-[var(--color-main-green)] border-t">
             <button
               type="button"
-              className="h-16 border-[#6CC7B8] border-r bg-[#62C4B1] text-2xl text-white"
+              className="h-fit border-[var(--color-main-green)] border-r bg-[var(--color-mint-green)] py-2 font-bold text-[22px] text-white md:py-2.5 md:text-[26px] lg:py-3 lg:text-[30px]"
             >
               채우기
             </button>
             <button
               type="button"
-              className="h-16 bg-[#62C4B1] text-2xl text-white"
+              className="h-fit bg-[var(--color-mint-green)] py-2 font-bold text-[22px] text-white md:py-2.5 md:text-[26px] lg:py-3 lg:text-[30px]"
             >
               보내기
             </button>
           </div>
         </section>
 
-        <section className="mt-3 grid grid-cols-3 gap-2.5">
+        <section className="mt-2 grid grid-cols-3 gap-2 md:mt-2.5 md:gap-2.5 lg:mt-3 lg:gap-3">
           {summaryCards.map((card) => (
             <article
               key={card.label}
-              className="rounded-[16px] border border-[#7ACFC2] bg-white px-3 py-3 text-center"
+              className="rounded-[18px] border border-[var(--color-main-green)] bg-white py-3 text-center md:py-3.5 lg:py-4"
             >
-              <p className="text-[#4CAFA3] text-base">{card.label}</p>
+              <p className="font-bold text-[18px] text-[var(--color-main-green)] md:text-[22px] lg:text-[26px]">
+                {card.label}
+              </p>
               <p
-                className={`mt-1 text-2xl leading-tight ${
-                  card.accent ? 'text-[#FF6F5B]' : 'text-[#2A312F]'
+                className={`text-[20px] md:text-[24px] lg:text-[28px] ${
+                  card.accent ? 'text-[#DB1F26]' : 'text-black'
                 }`}
               >
                 {card.value}
@@ -78,38 +83,38 @@ export default function FinancePage() {
           ))}
         </section>
 
-        <section className="mt-3 rounded-[24px] border border-[#7ACFC2] bg-white px-4 py-5">
-          <div className="mx-auto h-44 w-44 rounded-full bg-[conic-gradient(#E5BD33_0deg_190deg,#65C9C5_190deg_260deg,#D9D9D9_260deg_360deg)]" />
-          <div className="mt-5 space-y-1">
+        <section className="mt-2 rounded-[26px] border border-[var(--color-main-green)] bg-white px-10 py-3 md:mt-2.5 md:px-14 md:py-4 lg:mt-3 lg:px-18 lg:py-5">
+          <div className="mx-auto h-36 w-36 rounded-full bg-[conic-gradient(#E6B319_0deg_190deg,#3AC5BF_190deg_260deg,#B2B2B2_260deg_360deg)] md:h-40 md:w-40 lg:h-44 lg:w-44" />
+          <div className="mt-5 md:mt-6 lg:mt-7">
             {expenseItems.map((item) => (
               <div
                 key={item.label}
-                className="flex items-center justify-between py-1.5"
+                className="flex items-center justify-between py-1.5 text-[20px] md:text-[24px] lg:text-[28px]"
               >
-                <div className="flex items-center gap-3 text-[#3D4A45] text-lg">
+                <div className="flex items-center gap-3 font-bold">
                   <span
-                    className="h-5 w-5 rounded-full"
+                    className="h-5 w-5 rounded-full md:h-6 md:w-6 lg:h-7 lg:w-7"
                     style={{ backgroundColor: item.color }}
                     aria-hidden="true"
                   />
                   <span>{item.label}</span>
                 </div>
-                <span className="text-[#2C312F] text-xl">{item.amount}</span>
+                <span>{item.amount}</span>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="px-2 py-5 text-center">
-          <p className="text-2xl text-[#58B3A6]">
-            펫 케어 구독하고 지출을 <span className="text-[#FF6F5B]">10%</span>{' '}
-            낮춰요
+        <section className="m-3 text-center md:m-3.5 lg:m-4">
+          <p className="font-bold text-[18px] text-[var(--color-main-green)] md:text-[22px] lg:text-[26px]">
+            펫 케어 구독하고 지출을{' '}
+            <span className="font-extrabold text-[#DB1F26]">10%</span> 낮춰요
           </p>
         </section>
 
         <Link
           href="/finance/report"
-          className="flex h-16 items-center justify-center rounded-[16px] bg-[#57B6A7] text-2xl text-white"
+          className="flex h-fit items-center justify-center rounded-[20px] bg-[var(--color-main-green)] p-3 font-bold text-[18px] text-white md:p-3.5 md:text-[22px] lg:p-4 lg:text-[26px]"
         >
           리포트 보러가기
         </Link>
