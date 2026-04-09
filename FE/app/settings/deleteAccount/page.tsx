@@ -2,13 +2,17 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { signOut, useSession } from 'next-auth/react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
+import { handleDeleteAccount } from '@/features/settings/api/settingApi';
 
 export default function DeleteAccountPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handlePasswordChange = (value: string) => {
     setPassword(value);
@@ -17,20 +21,30 @@ export default function DeleteAccountPage() {
     }
   };
 
-  const handleDeleteAccountSuccess = () => {
-    console.log('회원탈퇴 처리');
-  };
-
-  const handleDeleteAccount = () => {
+  const handleSubmit = async () => {
     const trimmedPassword = password.trim();
 
-    if (!trimmedPassword || trimmedPassword !== '1234') {
-      setErrorMessage('비밀번호가 일치하지 않습니다');
+    if (!trimmedPassword) {
+      setErrorMessage('비밀번호를 입력해주세요');
       return;
     }
 
-    setErrorMessage('');
-    handleDeleteAccountSuccess();
+    const email = session?.user?.email;
+    if (!email) {
+      setErrorMessage('로그인 정보를 확인할 수 없습니다');
+      return;
+    }
+
+    setIsLoading(true);
+    const result = await handleDeleteAccount(email);
+    setIsLoading(false);
+
+    if (!result.ok) {
+      setErrorMessage(result.errorMessage ?? '탈퇴 처리에 실패했습니다');
+      return;
+    }
+
+    await signOut({ callbackUrl: '/login' });
   };
 
   return (
@@ -84,8 +98,9 @@ export default function DeleteAccountPage() {
               </Button>
               <Button
                 type="button"
-                onClick={handleDeleteAccount}
-                className="h-auto min-h-[58px] flex-1 rounded-[16px] bg-[#F02222] py-3.5 font-semibold text-[1.45rem] text-white hover:bg-[#db1b1b] sm:min-h-[68px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[84px] md:rounded-[22px] md:py-5.5 md:text-[2.2rem] lg:min-h-[96px] lg:rounded-[24px] lg:py-6.5 lg:text-[2.55rem]"
+                onClick={handleSubmit}
+                disabled={isLoading}
+                className="h-auto min-h-[58px] flex-1 rounded-[16px] bg-[#F02222] py-3.5 font-semibold text-[1.45rem] text-white hover:bg-[#db1b1b] disabled:opacity-60 sm:min-h-[68px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[84px] md:rounded-[22px] md:py-5.5 md:text-[2.2rem] lg:min-h-[96px] lg:rounded-[24px] lg:py-6.5 lg:text-[2.55rem]"
               >
                 탈퇴
               </Button>

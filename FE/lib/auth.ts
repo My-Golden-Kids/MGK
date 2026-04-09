@@ -1,8 +1,5 @@
 import { getSession, signOut } from 'next-auth/react';
-import {
-  changePasswordSchema,
-  changePasswordWithCurrentSchema,
-} from '@/lib/validator';
+import { changePasswordSchema } from '@/lib/validator';
 
 const BASE_URL =
   process.env.SPRING_API_URL ?? process.env.NEXT_PUBLIC_SPRING_API_URL ?? '';
@@ -152,55 +149,3 @@ export async function resetPasswordByToken({
   return { ok: true };
 }
 
-// ─── 비밀번호 변경 (현재 비밀번호 입력 방식) ──────────────────────────────────
-
-interface ChangePasswordWithCurrentParams {
-  currentPassword: string;
-  newPassword: string;
-  passwordConfirm: string;
-}
-
-interface ChangePasswordWithCurrentResult {
-  ok: boolean;
-  fieldErrors?: Partial<
-    Record<'currentPassword' | 'newPassword' | 'passwordConfirm', string>
-  >;
-  errorMessage?: string;
-}
-
-export async function changePasswordWithCurrent(
-  params: ChangePasswordWithCurrentParams,
-): Promise<ChangePasswordWithCurrentResult> {
-  const parsed = changePasswordWithCurrentSchema.safeParse(params);
-  if (!parsed.success) {
-    const fieldErrors: ChangePasswordWithCurrentResult['fieldErrors'] = {};
-    for (const issue of parsed.error.issues) {
-      const field = issue.path[0] as keyof typeof fieldErrors;
-      if (!fieldErrors[field]) fieldErrors[field] = issue.message;
-    }
-    return { ok: false, fieldErrors };
-  }
-
-  const res = await clientFetch('/api/auth/change-password', {
-    method: 'POST',
-    body: JSON.stringify({
-      currentPassword: params.currentPassword,
-      newPassword: params.newPassword,
-    }),
-  });
-
-  if (!res.ok) {
-    if (res.status === 401) {
-      return {
-        ok: false,
-        fieldErrors: { currentPassword: '현재 비밀번호가 올바르지 않습니다' },
-      };
-    }
-    return {
-      ok: false,
-      errorMessage: '비밀번호 변경에 실패했어요. 다시 시도해주세요.',
-    };
-  }
-
-  return { ok: true };
-}
