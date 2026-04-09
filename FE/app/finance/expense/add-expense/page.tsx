@@ -150,13 +150,13 @@ export default function AddExpensePage() {
         <section className="space-y-8">
           <label className="block">
             <span className="block font-semibold text-[18px]">금액</span>
-            <div className="mt-2 border-[#383838] border-b pb-2">
+            <div className="mt-2 flex items-center border-[#383838] border-b pb-2">
               <input
                 value={amount}
                 onChange={(event) => handleAmountChange(event.target.value)}
                 inputMode="numeric"
                 placeholder="0"
-                className="w-full bg-transparent font-semibold text-[#1A1A1A] text-[22px] outline-none placeholder:text-[#1A1A1A]"
+                className="min-w-0 flex-1 bg-transparent font-semibold text-[#1A1A1A] text-[22px] outline-none placeholder:text-[#1A1A1A]"
               />
               <span className="ml-1 font-semibold text-[#1A1A1A] text-[22px]">
                 원

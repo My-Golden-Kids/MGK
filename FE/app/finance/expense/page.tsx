@@ -1,7 +1,11 @@
 'use client';
 
+import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
+import Modal from '@/components/common/Modal';
 import ExpenseItem, {
   type ExpenseItemProps,
   type ExpenseType,
@@ -11,14 +15,11 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { clientFetch } from '@/lib/auth';
-import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
-import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
 
 type ExpenseGroup = {
   id: string;
   dateLabel: string;
-  items: ExpenseItemProps[];
+  items: (ExpenseItemProps & { id: number })[];
 };
 
 type FinanceExpenseItem = {
@@ -88,6 +89,10 @@ export default function FinanceExpensesPage() {
     useState<FinanceExpenseSummaryResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedExpense, setSelectedExpense] =
+    useState<FinanceExpenseItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const currentMonth = useMemo(
     () => getMonthDate(today, monthOffset),
@@ -119,7 +124,7 @@ export default function FinanceExpensesPage() {
       groupedMap.set(groupKey, {
         id: groupKey,
         dateLabel: formatDateLabel(item.spendDate),
-        items: [mappedItem],
+        items: [{ ...mappedItem, id: item.id }],
       });
     }
 
@@ -155,7 +160,7 @@ export default function FinanceExpensesPage() {
     };
 
     void fetchExpenses();
-  }, [currentMonth]);
+  }, [currentMonth, refreshKey]);
 
   const filteredGroups = useMemo(() => {
     if (!normalizedQuery) {
@@ -187,8 +192,37 @@ export default function FinanceExpensesPage() {
     });
   };
 
+  const handleDeleteExpense = async () => {
+    if (!selectedExpense || isDeleting) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const response = await clientFetch(
+        `/api/account-books/${selectedExpense.id}`,
+        {
+          method: 'DELETE',
+        },
+      );
+
+      if (!response.ok) {
+        setLoadError('지출 삭제에 실패했어요.');
+        return;
+      }
+
+      setSelectedExpense(null);
+      setRefreshKey((current) => current + 1);
+    } catch {
+      setLoadError('지출 삭제에 실패했어요.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
-    <div className="flex min-h-dvh flex-col bg-white text-foreground">
+    <div className="relative flex min-h-dvh flex-col bg-white text-foreground">
       <main className="flex-1 px-6 pb-6">
         <div className="overflow-hidden">
           <BackButton />
@@ -303,10 +337,24 @@ export default function FinanceExpensesPage() {
                 <div className="mt-3">
                   {group.items.map((item, itemIndex) => (
                     <div
-                      key={`${group.id}-${item.title}`}
+                      key={item.id}
                       className="[&>div>div:first-child>div:last-child>span:first-child]:font-medium [&>div>div:first-child>div:last-child>span:first-child]:text-[20px] [&>div>div:first-child>div:last-child>span:first-child]:sm:text-[20px] [&>div>div:first-child>div:last-child>span:first-child]:md:text-[28px] [&>div>div:first-child>div:last-child>span:first-child]:lg:text-[34px] [&>div>div:first-child>div:last-child>span:last-child]:font-normal [&>div>div:first-child>div:last-child>span:last-child]:text-[20px] [&>div>div:first-child>div:last-child>span:last-child]:sm:text-[20px] [&>div>div:first-child>div:last-child>span:last-child]:md:text-[28px] [&>div>div:first-child>div:last-child>span:last-child]:lg:text-[34px] [&>div>div:last-child>span]:font-semibold [&>div>div:last-child>span]:text-[20px] [&>div>div:last-child>span]:sm:text-[20px] [&>div>div:last-child>span]:md:text-[28px] [&>div>div:last-child>span]:lg:text-[34px]"
                     >
-                      <ExpenseItem {...item} />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const originalItem = expenseSummary?.items.find(
+                            (expense) => expense.id === item.id,
+                          );
+
+                          if (originalItem) {
+                            setSelectedExpense(originalItem);
+                          }
+                        }}
+                        className="w-full cursor-pointer text-left"
+                      >
+                        <ExpenseItem {...item} />
+                      </button>
                       {itemIndex < group.items.length - 1 ? (
                         <Separator className="bg-border" />
                       ) : null}
@@ -328,6 +376,31 @@ export default function FinanceExpensesPage() {
       </main>
 
       <BottomNavigation />
+
+      <Modal
+        isOpen={selectedExpense !== null}
+        onClose={() => {
+          if (!isDeleting) {
+            setSelectedExpense(null);
+          }
+        }}
+        onCancel={() => setSelectedExpense(null)}
+        onConfirm={() => {
+          void handleDeleteExpense();
+        }}
+        buttonVariant="double"
+        confirmText={isDeleting ? '삭제 중...' : '삭제'}
+        cancelText="취소"
+      >
+        <div className="px-2 py-5 text-center">
+          <h2 className="font-semibold text-[#1F2524] text-[22px]">
+            삭제하시겠습니까?
+          </h2>
+          <p className="mt-3 text-[#687076] text-[17px] leading-[1.5]">
+            선택한 지출 내역이 삭제됩니다.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 }

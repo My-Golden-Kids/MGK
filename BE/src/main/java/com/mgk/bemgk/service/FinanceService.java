@@ -42,6 +42,17 @@ public class FinanceService {
         return accountBookRepository.save(accountBook);
     }
 
+    public void delete(Long userId, Long accountBookId) {
+        AccountBook accountBook = accountBookRepository.findById(accountBookId)
+                .orElseThrow(() -> new IllegalArgumentException("지출 내역이 존재하지 않습니다."));
+
+        if (!accountBook.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("삭제할 수 없는 지출 내역입니다.");
+        }
+
+        accountBookRepository.delete(accountBook);
+    }
+
     @Transactional(readOnly = true)
     public FinanceExpenseSummaryResponse getMonthlyExpenses(Long userId, int year, int month) {
         YearMonth yearMonth = YearMonth.of(year, month);
