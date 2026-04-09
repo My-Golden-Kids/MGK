@@ -14,4 +14,7 @@ public interface CalendarRepository extends JpaRepository<CalendarEvent, Long> {
 
     Optional<CalendarEvent> findFirstByPet_IdAndEventTypeAndDateGreaterThanEqualOrderByDateAsc(
             Long petId, String eventType, LocalDate date);
+
+    List<CalendarEvent> findByPet_IdAndEventTypeAndDateGreaterThanEqualOrderByDateAsc(
+            Long petId, String eventType, LocalDate date);
 }

@@ -55,6 +55,7 @@ export default function VaccinationPage() {
   useEffect(() => {
     getVaccinationSummary()
       .then((summaries) => {
+        console.log(summaries);
         setPetSummaries(summaries);
         if (summaries.length > 0 && form.petId === null) {
           setForm((prev) => ({ ...prev, petId: summaries[0].petId }));
@@ -103,9 +104,12 @@ export default function VaccinationPage() {
     });
 
     handleClose();
-    // 현재 월 일정 새로고침
-    getSchedules(year, month)
-      .then((entries) => {
+    // 현재 월 일정 + 접종 현황 새로고침
+    Promise.all([
+      getSchedules(year, month),
+      getVaccinationSummary(),
+    ])
+      .then(([entries, summaries]) => {
         const record: Record<string, string[]> = {};
         for (const entry of entries) {
           record[entry.date] = entry.eventTypes.map(
@@ -113,6 +117,7 @@ export default function VaccinationPage() {
           );
         }
         setSchedules(record);
+        setPetSummaries(summaries);
       })
       .catch(console.error);
   };
