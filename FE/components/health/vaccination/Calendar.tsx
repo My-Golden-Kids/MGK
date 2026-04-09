@@ -27,6 +27,8 @@ type Props = {
   onAddSchedule?: () => void;
   /** 날짜 클릭 핸들러 */
   onDateClick?: (date: string) => void;
+  /** 월이 변경될 때 호출 (year, month) */
+  onMonthChange?: (year: number, month: number) => void;
 };
 
 const DEFAULT_SCHEDULE_TYPES: ScheduleTypeDef[] = [
@@ -74,6 +76,7 @@ export default function Calendar({
   scheduleTypes = DEFAULT_SCHEDULE_TYPES,
   onAddSchedule,
   onDateClick,
+  onMonthChange,
 }: Props) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -84,16 +87,18 @@ export default function Calendar({
   const todayD = today.getDate();
 
   const prevMonth = () => {
-    if (month === 1) {
-      setYear((y) => y - 1);
-      setMonth(12);
-    } else setMonth((m) => m - 1);
+    const newYear = month === 1 ? year - 1 : year;
+    const newMonth = month === 1 ? 12 : month - 1;
+    setYear(newYear);
+    setMonth(newMonth);
+    onMonthChange?.(newYear, newMonth);
   };
   const nextMonth = () => {
-    if (month === 12) {
-      setYear((y) => y + 1);
-      setMonth(1);
-    } else setMonth((m) => m + 1);
+    const newYear = month === 12 ? year + 1 : year;
+    const newMonth = month === 12 ? 1 : month + 1;
+    setYear(newYear);
+    setMonth(newMonth);
+    onMonthChange?.(newYear, newMonth);
   };
 
   const firstDow = new Date(year, month - 1, 1).getDay();
