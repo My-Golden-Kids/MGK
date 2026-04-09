@@ -9,6 +9,6 @@ public class MedicalDocumentCountResponse {
 
     private Long petId;
     private String type;
-    private String name;
+    private String details;
     private Long count;
 }

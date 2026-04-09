@@ -6,7 +6,7 @@ public interface MedicalDocumentCountProjection {
 
     String getType();
 
-    String getName();
+    String getDetails();
 
     Long getDocumentCount();
 }

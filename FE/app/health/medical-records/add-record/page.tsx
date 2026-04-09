@@ -1,48 +1,59 @@
 'use client';
 
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
+import {
+  EMPTY_MEDICAL_RECORD_FORM,
+  getMedicalRecordApiBaseUrl,
+  getStoredMedicalPetId,
+  MEDICAL_RECORD_IMAGE_STORAGE_KEY,
+  MEDICAL_RECORD_OCR_STORAGE_KEY,
+  type MedicalRecordForm,
+  mapOcrResultToForm,
+  type OcrMedicalRecord,
+} from '@/lib/medical-record';
 
-type MedicalRecordForm = {
-  date: string;
-  type: string;
-  petName: string;
-  hospitalName: string;
-  details: string;
-  totalAmount: string;
-};
-
-const EMPTY_MEDICAL_RECORD_FORM: MedicalRecordForm = {
-  date: '',
-  type: '',
-  petName: '',
-  hospitalName: '',
-  details: '',
-  totalAmount: '',
-};
-
-const MEDICAL_RECORD_IMAGE_STORAGE_KEY = 'medical-record-image-data-url';
-
-export default function AddMedicalRecordPage() {
+function AddMedicalRecordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [imageDataUrl, setImageDataUrl] = useState('');
   const [form, setForm] = useState<MedicalRecordForm>(
     EMPTY_MEDICAL_RECORD_FORM,
   );
+  const [message, setMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const storedImage = sessionStorage.getItem(
       MEDICAL_RECORD_IMAGE_STORAGE_KEY,
     );
+    const storedOcrResult = sessionStorage.getItem(
+      MEDICAL_RECORD_OCR_STORAGE_KEY,
+    );
 
     if (storedImage) {
       setImageDataUrl(storedImage);
     }
+
+    if (storedOcrResult) {
+      try {
+        const parsedResult = JSON.parse(storedOcrResult) as OcrMedicalRecord;
+        setForm(mapOcrResultToForm(parsedResult));
+      } catch (error) {
+        console.error(error);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get('ocrError') === '1') {
+      setMessage('OCR 인식에 실패해 직접 입력 모드로 열었습니다.');
+    }
+  }, [searchParams]);
 
   const handleFormChange =
     (field: keyof MedicalRecordForm) =>
@@ -52,6 +63,99 @@ export default function AddMedicalRecordPage() {
         [field]: event.target.value,
       });
     };
+
+  const handleSave = async () => {
+    if (isSaving) {
+      return;
+    }
+
+    if (
+      !form.date ||
+      !form.type ||
+      !form.petName ||
+      !form.hospitalName ||
+      !form.details ||
+      !form.totalAmount
+    ) {
+      setMessage('모든 항목을 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setMessage('');
+
+      let imageUrl = '';
+      if (imageDataUrl) {
+        const uploadFormData = new FormData();
+        uploadFormData.append(
+          'file',
+          await fetch(imageDataUrl)
+            .then((response) => response.blob())
+            .then(
+              (blob) =>
+                new File([blob], `medical-record-${Date.now()}.png`, {
+                  type: blob.type || 'image/png',
+                }),
+            ),
+        );
+
+        const uploadResponse = await fetch('/api/medical-record-upload', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('이미지 업로드에 실패했습니다.');
+        }
+
+        const uploadResult = (await uploadResponse.json()) as { path?: string };
+        imageUrl = uploadResult.path ?? '';
+      }
+
+      const saveResponse = await fetch(
+        `${getMedicalRecordApiBaseUrl()}/api/medical-records`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            petId: getStoredMedicalPetId(),
+            date: form.date,
+            type: form.type,
+            petName: form.petName,
+            hospitalName: form.hospitalName,
+            details: form.details,
+            totalAmount: Number(form.totalAmount),
+            imageUrl,
+          }),
+        },
+      );
+
+      if (!saveResponse.ok) {
+        const errorMessage = await saveResponse
+          .json()
+          .then((result: { message?: string }) => result.message)
+          .catch(() => '');
+
+        throw new Error(errorMessage || '진료 이력 저장에 실패했습니다.');
+      }
+
+      sessionStorage.removeItem(MEDICAL_RECORD_OCR_STORAGE_KEY);
+      sessionStorage.removeItem(MEDICAL_RECORD_IMAGE_STORAGE_KEY);
+      router.push('/health/medical-records');
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : '저장에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="flex min-h-dvh flex-col bg-white text-[#27312D]">
@@ -187,9 +291,16 @@ export default function AddMedicalRecordPage() {
             />
           </div>
 
+          {message ? (
+            <p className="text-[#66706D] text-[16px]">{message}</p>
+          ) : null}
+
           <Button
             type="button"
-            onClick={() => router.push('/health/medical-records')}
+            onClick={() => {
+              void handleSave();
+            }}
+            disabled={isSaving}
             className="mt-6 w-full"
           >
             저장
@@ -199,5 +310,33 @@ export default function AddMedicalRecordPage() {
 
       <BottomNavigation />
     </div>
+  );
+}
+
+export default function AddMedicalRecordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh flex-col bg-white text-[#27312D]">
+          <main className="flex-1 p-10">
+            <div className="relative mb-8 flex items-center justify-center">
+              <h1 className="text-center text-[28px] leading-none sm:text-[28px] md:text-[34px] lg:text-[40px]">
+                진료 이력 등록
+              </h1>
+              <div className="-translate-y-1/2 absolute top-1/2 left-0">
+                <BackButton />
+              </div>
+            </div>
+            <div className="flex min-h-[240px] items-center justify-center text-[#66706D] text-[16px]">
+              진료 이력 화면을 준비하고 있습니다.
+            </div>
+          </main>
+
+          <BottomNavigation />
+        </div>
+      }
+    >
+      <AddMedicalRecordForm />
+    </Suspense>
   );
 }

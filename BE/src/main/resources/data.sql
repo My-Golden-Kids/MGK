@@ -10,6 +10,40 @@ VALUES
     ('정그린', 'th2gr22n@gmail.com', '12345678', NULL, NULL, NOW(), NOW()),
     ('전유진', 'yjjeon08@gmail.com', '12345678', NULL, NULL, NOW(), NOW());
 
+-- 홈 화면 선택 반려동물 기본 seed 데이터
+INSERT INTO pets
+(user_id, name, species, image, age, size, walk_count, walk_time, last_walk_at, eat_meal, created_at, updated_at)
+SELECT u.id, '돌', '강아지', '/images/pet/dolmeng1.jpeg', 3, '소형', 0, 0, NULL, 'NO', NOW(), NOW()
+FROM users u
+WHERE u.email = 'th2gr22n@gmail.com'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pets
+    WHERE user_id = u.id AND name = '돌'
+);
+
+INSERT INTO pets
+(user_id, name, species, image, age, size, walk_count, walk_time, last_walk_at, eat_meal, created_at, updated_at)
+SELECT u.id, '멩', '강아지', '/images/pet/dolmeng2.jpeg', 4, '소형', 0, 0, NULL, 'NO', NOW(), NOW()
+FROM users u
+WHERE u.email = 'th2gr22n@gmail.com'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pets
+    WHERE user_id = u.id AND name = '멩'
+);
+
+INSERT INTO pets
+(user_id, name, species, image, age, size, walk_count, walk_time, last_walk_at, eat_meal, created_at, updated_at)
+SELECT u.id, '이', '강아지', '/images/pet/dolmeng3.jpeg', 2, '소형', 0, 0, NULL, 'NO', NOW(), NOW()
+FROM users u
+WHERE u.email = 'th2gr22n@gmail.com'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pets
+    WHERE user_id = u.id AND name = '이'
+);
+
 -- 상품
 INSERT INTO products
 (name, product_type, description, url, benefit_rate, benefit_amount, benefit_limit_amount, benefit_limit_count, benefit_period, target_category, source_type, is_active, created_at, updated_at)

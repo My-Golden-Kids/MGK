@@ -1,6 +1,8 @@
 package com.mgk.bemgk.entity;
 
-import com.mgk.bemgk.common.CreatedAtEntity;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -10,18 +12,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDate;
-import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Getter
 @Entity
 @Table(name = "medical_documents")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class MedicalDocument extends CreatedAtEntity {
-
+@Getter
+@Setter
+@NoArgsConstructor
+public class MedicalDocument {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -30,29 +30,22 @@ public class MedicalDocument extends CreatedAtEntity {
     @JoinColumn(name = "pet_id", nullable = false)
     private Pet pet;
 
-    @Column(nullable = false, length = 200)
-    private String name;
+    @Column(nullable = false, length = 100)
+    private String petName;
 
-    @Column(nullable = false)
     private LocalDate date;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 50)
     private String type;
 
-    @Column(name = "hospital_name", length = 200)
+    @Column(nullable = false, length = 255)
     private String hospitalName;
 
-    @Column(name = "image_url", length = 1000)
-    private String imageUrl;
+    @Column(length = 2000)
+    private String details;
 
-    @Builder
-    public MedicalDocument(Pet pet, String name, LocalDate date, String type,
-                           String hospitalName, String imageUrl) {
-        this.pet = pet;
-        this.name = name;
-        this.date = date;
-        this.type = type;
-        this.hospitalName = hospitalName;
-        this.imageUrl = imageUrl;
-    }
+    private Integer totalAmount;
+
+    private String imageUrl;
+    private LocalDateTime createdAt = LocalDateTime.now();
 }
