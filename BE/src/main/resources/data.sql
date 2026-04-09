@@ -7,8 +7,8 @@ SET FOREIGN_KEY_CHECKS = 1;
 INSERT IGNORE INTO users
 (name, email, password, email_verified_at, deleted_at, created_at, updated_at)
 VALUES
-    ('정그린', 'th2gr22n@gmail.com', '12345678', NULL, NULL, NOW(), NOW()),
-    ('전유진', 'yjjeon08@gmail.com', '12345678', NULL, NULL, NOW(), NOW());
+    ('정그린', 'th2gr22n@gmail.com', '$2a$10$yTtoIV74eLKVOpsvCAxQy.LD4/m2EUD4VWoiYn3zTkqg0eAE281XK', NULL, NULL, NOW(), NOW()),
+    ('전유진', 'yjjeon08@gmail.com', '$2a$10$yTtoIV74eLKVOpsvCAxQy.LD4/m2EUD4VWoiYn3zTkqg0eAE281XK', NULL, NULL, NOW(), NOW());
 
 -- 홈 화면 선택 반려동물 기본 seed 데이터
 INSERT INTO pets
