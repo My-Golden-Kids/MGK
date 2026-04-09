@@ -79,8 +79,9 @@ export default function VaccinationListSection({
 
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="flex w-full items-center justify-center border-[#018D70] border-t bg-[#25C8A8] py-2 text-[18px] text-white leading-none md:py-2.5 md:text-[22px] lg:py-3 lg:text-[26px]"
+        onClick={() => hasItems && setIsOpen((prev) => !prev)}
+        disabled={!hasItems}
+        className="flex w-full items-center justify-center border-[#018D70] border-t bg-[#25C8A8] py-2 text-[18px] text-white leading-none disabled:cursor-default disabled:opacity-40 md:py-2.5 md:text-[22px] lg:py-3 lg:text-[26px]"
       >
         {isOpen ? '접종기록 접기' : '접종기록 전체보기'}
       </button>

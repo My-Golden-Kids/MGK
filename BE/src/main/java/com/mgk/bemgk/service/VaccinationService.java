@@ -87,11 +87,10 @@ public class VaccinationService {
                         + e.getDate().getDayOfMonth() + "일)")
                 .orElse("예정된 일정 없음");
 
-        String nextVaccinationDate = calendarRepository
-                .findFirstByPet_IdAndEventTypeAndDateGreaterThanEqualOrderByDateAsc(
-                        pet.getId(), "VACCINATION", today)
-                .map(e -> e.getDate().toString())
-                .orElse("-");
+        // 미래 VACCINATION 일정 전체 (인메모리 매칭용)
+        List<CalendarEvent> futureVaccinationEvents = calendarRepository
+                .findByPet_IdAndEventTypeAndDateGreaterThanEqualOrderByDateAsc(
+                        pet.getId(), "VACCINATION", today);
 
         List<MedicalDocument> vaccinationDocs = medicalDocumentRepository
                 .findByPet_IdAndTypeOrderByDateDescCreatedAtDesc(pet.getId(), MedicalDocumentType.VACCINATION);
@@ -105,9 +104,15 @@ public class VaccinationService {
 
         List<VaccinationItemResponse> vaccinationItems = grouped.entrySet().stream()
                 .map(entry -> {
+                    String details = entry.getKey();
                     List<MedicalDocument> docs = entry.getValue();
 
-                    List<VaccinationHistoryItem> history = docs.stream()
+                    // details 이름과 contains 관계인 미래 일정만 매칭
+                    List<CalendarEvent> matched = futureVaccinationEvents.stream()
+                            .filter(e -> matchesVaccineName(e.getName(), details))
+                            .toList();
+
+                    List<VaccinationHistoryItem> pastHistory = docs.stream()
                             .filter(d -> d.getDate() != null)
                             .sorted(Comparator.comparing(MedicalDocument::getDate))
                             .map(d -> VaccinationHistoryItem.builder()
@@ -116,18 +121,31 @@ public class VaccinationService {
                                     .build())
                             .toList();
 
+                    List<VaccinationHistoryItem> futureHistory = matched.stream()
+                            .map(e -> VaccinationHistoryItem.builder()
+                                    .date(e.getDate().toString())
+                                    .completed(false)
+                                    .build())
+                            .toList();
+
+                    List<VaccinationHistoryItem> history = new java.util.ArrayList<>();
+                    history.addAll(pastHistory);
+                    history.addAll(futureHistory);
+
                     String lastDate = docs.stream()
                             .filter(d -> d.getDate() != null)
                             .map(d -> d.getDate().toString())
                             .findFirst()
                             .orElse("-");
 
+                    String nextDate = matched.isEmpty() ? "-" : matched.get(0).getDate().toString();
+
                     return VaccinationItemResponse.builder()
-                            .id(entry.getKey())
-                            .title(entry.getKey())
+                            .id(details)
+                            .title(details)
                             .totalCount(docs.size())
                             .lastDate(lastDate)
-                            .nextDate(nextVaccinationDate)
+                            .nextDate(nextDate)
                             .history(history)
                             .build();
                 })
@@ -140,5 +158,12 @@ public class VaccinationService {
                 .latestScheduleLabel(latestScheduleLabel)
                 .vaccinationItems(vaccinationItems)
                 .build();
+    }
+
+    private boolean matchesVaccineName(String eventName, String details) {
+        String normalizedEvent = eventName.toLowerCase().trim();
+        String normalizedDetails = details.toLowerCase().trim();
+        return normalizedEvent.contains(normalizedDetails)
+                || normalizedDetails.contains(normalizedEvent);
     }
 }
