@@ -1,11 +1,13 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { BottomNavigation } from "@/components/common/BottomNavigation";
-import HomePromptBubble from "@/components/home/HomePromptBubble";
-import SelectedPetProfile, { Pet } from "@/components/home/SelectedPetProfile";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { BottomNavigation } from '@/components/common/BottomNavigation';
+import HomePromptBubble from '@/components/home/HomePromptBubble';
+import SelectedPetProfile, {
+  type Pet,
+} from '@/components/home/SelectedPetProfile';
 
 type SpendingData = {
   monthlyAmount: string;
@@ -17,10 +19,10 @@ type SpendingData = {
 const pets: Pet[] = [];
 
 const spendingData: SpendingData | null = {
-  monthlyAmount: "20,000,000원",
-  primaryCategory: "병원",
-  summary: "에서 가장 많이 사용해요",
-  savingsHint: "하나 펫 보험 가입하면, 80만원 할인 가능",
+  monthlyAmount: '20,000,000원',
+  primaryCategory: '병원',
+  summary: '에서 가장 많이 사용해요',
+  savingsHint: '하나 펫 보험 가입하면, 80만원 할인 가능',
 };
 
 export default function HomePage() {
@@ -41,11 +43,11 @@ export default function HomePage() {
         </header>
 
         <section className="mb-5">
-          <div className={showBubble ? "" : "invisible"}>
+          <div className={showBubble ? '' : 'invisible'}>
             <HomePromptBubble
               message={`주인님! 저에 대해\n더 알려주세요!`}
               showAnswerButtons={true}
-              onYesClick={() => router.push("/onboarding/7")}
+              onYesClick={() => router.push('/onboarding/7')}
               onNoClick={() => setShowBubble(false)}
               yesLabel="O"
               noLabel="X"
@@ -58,7 +60,7 @@ export default function HomePage() {
             pets={pets}
             selectedPetId={selectedPetId}
             onChange={setSelectedPetId}
-            onSelectedClick={() => router.push("/home/talk")}
+            onSelectedClick={() => router.push('/home/talk')}
           />
         </section>
 
@@ -66,7 +68,7 @@ export default function HomePage() {
           <div className="flex h-[54px] w-full max-w-[330px] overflow-hidden rounded-full border-2 border-[#25C3A8] bg-white">
             <button
               type="button"
-              onClick={() => router.push("/home/talk")}
+              onClick={() => router.push('/home/talk')}
               className="flex flex-1 cursor-pointer items-center justify-center bg-[#25C3A8] font-extrabold text-[18px] text-white"
             >
               말하기
@@ -83,29 +85,29 @@ export default function HomePage() {
         {spendingData ? (
           <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white px-4 py-5">
             <div className="mb-3 flex items-start justify-between gap-3">
-              <h2 className="text-[20px] font-extrabold leading-tight text-[#0DA892]">
+              <h2 className="font-extrabold text-[#0DA892] text-[20px] leading-tight">
                 이번달 소비
               </h2>
-              <p className="text-right text-[22px] font-extrabold leading-tight text-black">
+              <p className="text-right font-extrabold text-[22px] text-black leading-tight">
                 {spendingData.monthlyAmount}
               </p>
             </div>
 
-            <p className="mb-1 text-[18px] font-bold leading-snug text-black">
+            <p className="mb-1 font-bold text-[18px] text-black leading-snug">
               <span className="text-[#0DA892]">
                 {spendingData.primaryCategory}
               </span>
               {spendingData.summary}
             </p>
 
-            <p className="mb-5 text-[18px] font-bold leading-snug text-black">
+            <p className="mb-5 font-bold text-[18px] text-black leading-snug">
               {spendingData.savingsHint}
             </p>
 
             <button
               type="button"
-              onClick={() => router.push("/reports")}
-              className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] text-[20px] font-extrabold text-white"
+              onClick={() => router.push('/finance/report')}
+              className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] font-extrabold text-[20px] text-white"
             >
               리포트 보러가기
             </button>
@@ -113,14 +115,14 @@ export default function HomePage() {
         ) : (
           <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white px-4 py-5">
             <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
-              <p className="mb-5 text-[20px] font-extrabold leading-tight text-[#0DA892]">
+              <p className="mb-5 font-extrabold text-[#0DA892] text-[20px] leading-tight">
                 아직 등록된 소비 데이터가 없어요!
               </p>
 
               <button
                 type="button"
-                onClick={() => router.push("/settings/pets")}
-                className="flex h-[56px] w-full max-w-[280px] cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] px-4 text-[20px] font-extrabold text-white"
+                onClick={() => router.push('/settings/pets')}
+                className="flex h-[56px] w-full max-w-[280px] cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] px-4 font-extrabold text-[20px] text-white"
               >
                 반려동물 등록하기
               </button>
