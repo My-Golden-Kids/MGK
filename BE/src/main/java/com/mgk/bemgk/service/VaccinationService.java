@@ -19,8 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -57,7 +60,7 @@ public class VaccinationService {
     public CalendarEvent createSchedule(Long userId, CreateScheduleRequest request) {
         Pet pet = petRepository.findById(request.getPetId())
                 .filter(p -> p.getUser().getId().equals(userId))
-                .orElseThrow(() -> new IllegalArgumentException("반려동물을 찾을 수 없습니다."));
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "반려동물을 찾을 수 없습니다."));
 
         CalendarEvent event = CalendarEvent.builder()
                 .pet(pet)
@@ -96,11 +99,13 @@ public class VaccinationService {
                 .findByPet_IdAndTypeOrderByDateDescCreatedAtDesc(pet.getId(), MedicalDocumentType.VACCINATION);
 
         Map<String, List<MedicalDocument>> grouped = vaccinationDocs.stream()
-                .collect(Collectors.groupingBy(
-                        d -> d.getDetails() != null ? d.getDetails() : "기타",
-                        LinkedHashMap::new,
-                        Collectors.toList()
-                ));
+                .collect(Collectors.groupingBy(d -> {
+					String details = d.getDetails();
+					return details == null || details.isBlank() ? "기타" : details.trim();
+					},
+					LinkedHashMap::new,
+					Collectors.toList()
+				));
 
         List<VaccinationItemResponse> vaccinationItems = grouped.entrySet().stream()
                 .map(entry -> {

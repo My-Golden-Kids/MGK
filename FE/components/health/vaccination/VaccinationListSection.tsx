@@ -62,6 +62,7 @@ export default function VaccinationListSection({
 
         {isOpen && (
           <button
+            aria-label="접종기록 접기"
             type="button"
             onClick={() => setIsOpen(false)}
             className="ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full active:bg-black/10 md:h-12 md:w-12 lg:h-14 lg:w-14"
