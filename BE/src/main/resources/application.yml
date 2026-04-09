@@ -25,3 +25,7 @@ server:
 logging:
   level:
     org.hibernate.SQL: debug
+
+google:
+  vision:
+    credentials-path: ${GOOGLE_VISION_KEY_PATH}

@@ -6,8 +6,12 @@ import { useRef, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
-
-const MEDICAL_RECORD_IMAGE_STORAGE_KEY = 'medical-record-image-data-url';
+import {
+  getStoredMedicalPetId,
+  MEDICAL_RECORD_IMAGE_STORAGE_KEY,
+  MEDICAL_RECORD_OCR_STORAGE_KEY,
+  storeSelectedPetId,
+} from '@/lib/medical-record';
 
 export default function AddMedicalRecordIntroPage() {
   const router = useRouter();
@@ -66,6 +70,8 @@ export default function AddMedicalRecordIntroPage() {
 
     setIsProcessing(true);
     sessionStorage.setItem(MEDICAL_RECORD_IMAGE_STORAGE_KEY, previewImageUrl);
+    sessionStorage.removeItem(MEDICAL_RECORD_OCR_STORAGE_KEY);
+    storeSelectedPetId(getStoredMedicalPetId());
     router.push('/health/medical-records/processing');
   };
 

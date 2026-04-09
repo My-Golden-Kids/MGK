@@ -3,8 +3,13 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import PetProfileImage from '@/components/home/pet/PetProfileImage';
-
-const MEDICAL_RECORD_IMAGE_STORAGE_KEY = 'medical-record-image-data-url';
+import {
+  dataUrlToFile,
+  getMedicalRecordApiBaseUrl,
+  MEDICAL_RECORD_IMAGE_STORAGE_KEY,
+  MEDICAL_RECORD_OCR_STORAGE_KEY,
+  type OcrMedicalRecord,
+} from '@/lib/medical-record';
 
 export default function MedicalRecordProcessingPage() {
   const centerImageClassName =
@@ -23,12 +28,50 @@ export default function MedicalRecordProcessingPage() {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      router.replace('/health/medical-records/add-record');
-    }, 600);
+    let isCancelled = false;
+
+    const processOcr = async () => {
+      try {
+        const file = dataUrlToFile(
+          storedImage,
+          `medical-record-${Date.now()}.png`,
+        );
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(
+          `${getMedicalRecordApiBaseUrl()}/api/medical-records/ocr`,
+          {
+            method: 'POST',
+            body: formData,
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error('OCR 요청에 실패했습니다.');
+        }
+
+        const result = (await response.json()) as OcrMedicalRecord;
+        sessionStorage.setItem(
+          MEDICAL_RECORD_OCR_STORAGE_KEY,
+          JSON.stringify(result),
+        );
+
+        if (!isCancelled) {
+          router.replace('/health/medical-records/add-record');
+        }
+      } catch (error) {
+        console.error(error);
+        if (!isCancelled) {
+          router.replace('/health/medical-records/add-record?ocrError=1');
+        }
+      }
+    };
+
+    void processOcr();
 
     return () => {
-      window.clearTimeout(timeoutId);
+      isCancelled = true;
     };
   }, [router]);
 

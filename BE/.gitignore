@@ -39,3 +39,6 @@ out/
 .DS_Store
 *.log
 src/main/resources/security.yml
+
+# Google Cloud Secret Key
+secrets/
