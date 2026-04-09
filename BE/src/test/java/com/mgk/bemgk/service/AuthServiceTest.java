@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 import com.mgk.bemgk.auth.JwtProvider;
 import com.mgk.bemgk.dto.auth.AuthResponse;
 import com.mgk.bemgk.dto.auth.ChangePasswordRequest;
+import com.mgk.bemgk.dto.auth.DeleteAccountRequest;
 import com.mgk.bemgk.dto.auth.LoginRequest;
 import com.mgk.bemgk.dto.auth.OtpRequest;
 import com.mgk.bemgk.dto.auth.OtpResponse;
@@ -150,6 +151,24 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("login: 탈퇴된 계정 시 401")
+    void login_deletedAccount_throws() {
+        LoginRequest request = LoginRequest.builder()
+                .email("test@test.com")
+                .password("Test1234!")
+                .build();
+        User user = mockUser(1L, "test@test.com");
+        ReflectionTestUtils.setField(user, "deletedAt", java.time.LocalDateTime.now());
+
+        given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.UNAUTHORIZED));
+    }
+
+    @Test
     @DisplayName("login: 비밀번호 불일치 시 401")
     void login_wrongPassword_throws() {
         LoginRequest request = LoginRequest.builder()
@@ -241,23 +260,46 @@ class AuthServiceTest {
     @DisplayName("deleteAccount: 성공")
     void deleteAccount_success() {
         User user = mockUser(1L, "test@test.com");
+        DeleteAccountRequest request = new DeleteAccountRequest("Test1234!");
 
-        given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(user));
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(passwordEncoder.matches("Test1234!", "encodedPassword")).willReturn(true);
 
-        authService.deleteAccount("test@test.com");
+        authService.deleteAccount(1L, request);
 
         then(userRepository).should().softDeleteByEmail(anyString(), any());
     }
 
     @Test
-    @DisplayName("deleteAccount: 존재하지 않는 이메일 시 404")
-    void deleteAccount_emailNotFound_throws() {
-        given(userRepository.findByEmail("none@test.com")).willReturn(Optional.empty());
+    @DisplayName("deleteAccount: 존재하지 않는 userId 시 401")
+    void deleteAccount_userNotFound_throws401() {
+        DeleteAccountRequest request = new DeleteAccountRequest("Test1234!");
 
-        assertThatThrownBy(() -> authService.deleteAccount("none@test.com"))
+        given(userRepository.findById(99L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.deleteAccount(99L, request))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
-                        .isEqualTo(HttpStatus.NOT_FOUND));
+                        .isEqualTo(HttpStatus.UNAUTHORIZED));
+    }
+
+    @Test
+    @DisplayName("deleteAccount: 비밀번호 불일치 시 401")
+    void deleteAccount_wrongPassword_throws401() {
+        User user = mockUser(1L, "test@test.com");
+        DeleteAccountRequest request = new DeleteAccountRequest("WrongPass!");
+
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(passwordEncoder.matches("WrongPass!", "encodedPassword")).willReturn(false);
+
+        assertThatThrownBy(() -> authService.deleteAccount(1L, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    assertThat(((ResponseStatusException) ex).getStatusCode())
+                            .isEqualTo(HttpStatus.UNAUTHORIZED);
+                    assertThat(ex.getMessage()).contains("비밀번호가 올바르지 않습니다");
+                });
+        then(userRepository).should(never()).softDeleteByEmail(any(), any());
     }
 
     // ── verifyMagicLink ────────────────────────────────────────

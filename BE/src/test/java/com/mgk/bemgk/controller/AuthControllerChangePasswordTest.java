@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mgk.bemgk.dto.auth.ChangePasswordRequest;
+import com.mgk.bemgk.dto.auth.DeleteAccountRequest;
 import com.mgk.bemgk.service.AuthService;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -140,6 +141,60 @@ class AuthControllerChangePasswordTest {
                 .given(authService).changePassword(any(), any(ChangePasswordRequest.class));
 
         mockMvc.perform(post("/api/auth/change-password")
+                        .with(withUserId(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // ── DELETE ACCOUNT ─────────────────────────────────────────
+
+    @Test
+    @DisplayName("POST /api/auth/delete-account: 인증 없이 호출 시 401")
+    void deleteAccount_noAuth_returns401() throws Exception {
+        DeleteAccountRequest request = new DeleteAccountRequest("Test1234!");
+
+        mockMvc.perform(post("/api/auth/delete-account")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/delete-account: 성공 시 200")
+    void deleteAccount_success_returns200() throws Exception {
+        DeleteAccountRequest request = new DeleteAccountRequest("Test1234!");
+
+        willDoNothing().given(authService).deleteAccount(any(), any());
+
+        mockMvc.perform(post("/api/auth/delete-account")
+                        .with(withUserId(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/delete-account: password 빈값 → 400")
+    void deleteAccount_blankPassword_returns400() throws Exception {
+        DeleteAccountRequest request = new DeleteAccountRequest("");
+
+        mockMvc.perform(post("/api/auth/delete-account")
+                        .with(withUserId(1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/delete-account: 비밀번호 불일치 → 401")
+    void deleteAccount_wrongPassword_returns401() throws Exception {
+        DeleteAccountRequest request = new DeleteAccountRequest("WrongPass!");
+
+        willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다."))
+                .given(authService).deleteAccount(any(), any(DeleteAccountRequest.class));
+
+        mockMvc.perform(post("/api/auth/delete-account")
                         .with(withUserId(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))

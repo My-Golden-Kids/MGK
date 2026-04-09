@@ -1,10 +1,10 @@
-import { clientFetch } from '@/lib/auth';
-import { changePasswordWithCurrentSchema } from '@/lib/validator';
 import type {
   ChangePasswordParams,
   ChangePasswordResult,
   DeleteAccountResult,
 } from '@/features/settings/types/settings';
+import { clientFetch } from '@/lib/auth';
+import { changePasswordWithCurrentSchema } from '@/lib/validator';
 
 export async function handleChangePassword(
   params: ChangePasswordParams,

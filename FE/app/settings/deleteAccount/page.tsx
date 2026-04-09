@@ -41,20 +41,20 @@ export default function DeleteAccountPage() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#F8F8F6]">
+    <div className="flex min-h-dvh flex-col">
       <main className="flex flex-1 flex-col px-5 pt-8 sm:px-6 sm:pt-10 md:px-8 md:pt-12 lg:px-10 lg:pt-14">
         <header className="pb-16 md:pb-20 lg:pb-24">
-          <h1 className="font-bold text-[#111111] text-[2rem] md:text-[2.4rem] lg:text-[2.8rem]">
+          <h1 className="font-bold text-[2rem] md:text-[2.4rem] lg:text-[2.8rem]">
             탈퇴
           </h1>
         </header>
 
-        <section className="mx-auto flex w-full max-w-[340px] flex-1 flex-col pb-8 md:max-w-[400px] md:pb-10 lg:max-w-[460px] lg:pb-12">
+        <section className="mx-auto flex w-full max-w-85 flex-1 flex-col pb-8 md:max-w-100 md:pb-10 lg:max-w-115 lg:pb-12">
           <div className="mb-16 text-center md:mb-20 lg:mb-24">
-            <h2 className="font-extrabold text-[#111111] text-[2.05rem] md:text-[2.45rem] lg:text-[2.8rem]">
+            <h2 className="font-extrabold text-[2.05rem] md:text-[2.45rem] lg:text-[2.8rem]">
               탈퇴 전 확인하세요
             </h2>
-            <p className="mt-5 font-semibold text-[#FF4C41] text-[1.4rem] leading-snug md:mt-6 md:text-[1.7rem] lg:text-[1.95rem]">
+            <p className="mt-5 font-semibold text-[1.4rem] text-error-red leading-snug md:mt-6 md:text-[1.7rem] lg:text-[1.95rem]">
               탈퇴 시 모든 개인정보는
               <br />
               삭제되며 복구할 수 없습니다.
@@ -73,10 +73,9 @@ export default function DeleteAccountPage() {
               type="password"
               value={password}
               onChange={(event) => handlePasswordChange(event.target.value)}
-              placeholder="******"
-              className="w-full border-[#43C2C6] border-b-2 bg-transparent pb-3 font-medium text-[#222222] text-[2rem] tracking-[0.08em] outline-none placeholder:text-[#B4B4B4] md:text-[2.25rem] lg:text-[2.5rem]"
+              className="w-full border-mint-green border-b-2 bg-transparent pb-3 font-medium text-[#222222] text-[2rem] tracking-[0.08em] outline-none placeholder:text-[#B4B4B4] md:text-[2.25rem] lg:text-[2.5rem]"
             />
-            <p className="mt-4 min-h-[2rem] font-semibold text-[#FF3B30] text-[1.35rem] md:text-[1.55rem] lg:text-[1.75rem]">
+            <p className="mt-4 min-h-8 font-semibold text-[#FF3B30] text-[1.35rem] md:text-[1.55rem] lg:text-[1.75rem]">
               {errorMessage}
             </p>
 
@@ -85,7 +84,7 @@ export default function DeleteAccountPage() {
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
-                className="h-auto min-h-[58px] flex-[2] rounded-[16px] border-[#B9B9B9] bg-white py-3.5 font-semibold text-[#222222] text-[1.45rem] hover:bg-[#F6F6F6] sm:min-h-[68px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[84px] md:rounded-[22px] md:py-5.5 md:text-[2.2rem] lg:min-h-[96px] lg:rounded-[24px] lg:py-6.5 lg:text-[2.55rem]"
+                className="h-auto min-h-14.5 flex-2 rounded-[16px] border-[#B9B9B9] bg-white py-3.5 font-semibold text-[#222222] text-[1.45rem] hover:bg-[#F6F6F6] sm:min-h-17 sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-21 md:rounded-[22px] md:py-5.5 md:text-[2.2rem] lg:min-h-24 lg:rounded-[24px] lg:py-6.5 lg:text-[2.55rem]"
               >
                 취소하기
               </Button>
@@ -93,7 +92,7 @@ export default function DeleteAccountPage() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={isLoading}
-                className="h-auto min-h-[58px] flex-1 rounded-[16px] bg-[#F02222] py-3.5 font-semibold text-[1.45rem] text-white hover:bg-[#db1b1b] disabled:opacity-60 sm:min-h-[68px] sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-[84px] md:rounded-[22px] md:py-5.5 md:text-[2.2rem] lg:min-h-[96px] lg:rounded-[24px] lg:py-6.5 lg:text-[2.55rem]"
+                className="h-auto min-h-14.5 flex-1 rounded-[16px] bg-error-red py-3.5 font-semibold text-[1.45rem] text-white hover:bg-[#db1b1b] disabled:opacity-60 sm:min-h-17 sm:rounded-[18px] sm:py-4 sm:text-[1.7rem] md:min-h-21 md:rounded-[22px] md:py-5.5 md:text-[2.2rem] lg:min-h-24 lg:rounded-[24px] lg:py-6.5 lg:text-[2.55rem]"
               >
                 탈퇴
               </Button>
