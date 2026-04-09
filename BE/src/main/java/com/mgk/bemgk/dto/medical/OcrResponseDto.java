@@ -1,5 +1,7 @@
 package com.mgk.bemgk.dto.medical;
 
+import com.mgk.bemgk.entity.MedicalDocumentType;
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -9,7 +11,7 @@ public class OcrResponseDto {
 
     private String date;
     private String time;
-    private String type;
+    private MedicalDocumentType type;
     private String petName;
     private String hospitalName;
     private String details;

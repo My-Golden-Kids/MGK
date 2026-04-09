@@ -3,11 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import PetProfileImage from '@/components/home/pet/PetProfileImage';
-import {
-  dataUrlToFile,
-  getMedicalRecordApiBaseUrl,
-  type OcrMedicalRecord,
-} from '@/lib/medical-record';
+import { clientFetch } from '@/lib/auth';
+import { dataUrlToFile, type OcrMedicalRecord } from '@/lib/medical-record';
 
 type OcrProcessingPageProps = {
   imageStorageKey: string;
@@ -51,13 +48,10 @@ export default function OcrProcessingPage({
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch(
-          `${getMedicalRecordApiBaseUrl()}/api/medical-records/ocr`,
-          {
-            method: 'POST',
-            body: formData,
-          },
-        );
+        const response = await clientFetch('/api/medical-records/ocr', {
+          method: 'POST',
+          body: formData,
+        });
 
         if (!response.ok) {
           throw new Error('OCR 요청에 실패했습니다.');

@@ -1,5 +1,8 @@
 import { getSession, signOut } from 'next-auth/react';
-import { changePasswordSchema, changePasswordWithCurrentSchema } from '@/lib/validator';
+import {
+  changePasswordSchema,
+  changePasswordWithCurrentSchema,
+} from '@/lib/validator';
 
 const BASE_URL =
   process.env.SPRING_API_URL ?? process.env.NEXT_PUBLIC_SPRING_API_URL ?? '';
@@ -14,10 +17,13 @@ export async function clientFetch(path: string, init?: RequestInit) {
     return new Response(null, { status: 401 });
   }
 
+  const isFormData = init?.body instanceof FormData;
+
   return fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
+      // FormData일 때는 Content-Type 생략 → 브라우저가 multipart boundary 자동 설정
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...init?.headers,
       Authorization: `Bearer ${session?.accessToken ?? ''}`,
     },
@@ -112,7 +118,10 @@ export async function resetPasswordByToken({
   newPassword,
   passwordConfirm,
 }: ResetPasswordByTokenParams): Promise<ResetPasswordByTokenResult> {
-  const parsed = changePasswordSchema.safeParse({ newPassword, passwordConfirm });
+  const parsed = changePasswordSchema.safeParse({
+    newPassword,
+    passwordConfirm,
+  });
 
   if (!parsed.success) {
     const fieldErrors: ResetPasswordByTokenResult['fieldErrors'] = {};
@@ -134,7 +143,10 @@ export async function resetPasswordByToken({
   });
 
   if (!res.ok) {
-    return { ok: false, errorMessage: '링크가 만료되었거나 유효하지 않습니다.' };
+    return {
+      ok: false,
+      errorMessage: '링크가 만료되었거나 유효하지 않습니다.',
+    };
   }
 
   return { ok: true };
@@ -150,7 +162,9 @@ interface ChangePasswordWithCurrentParams {
 
 interface ChangePasswordWithCurrentResult {
   ok: boolean;
-  fieldErrors?: Partial<Record<'currentPassword' | 'newPassword' | 'passwordConfirm', string>>;
+  fieldErrors?: Partial<
+    Record<'currentPassword' | 'newPassword' | 'passwordConfirm', string>
+  >;
   errorMessage?: string;
 }
 
@@ -182,7 +196,10 @@ export async function changePasswordWithCurrent(
         fieldErrors: { currentPassword: '현재 비밀번호가 올바르지 않습니다' },
       };
     }
-    return { ok: false, errorMessage: '비밀번호 변경에 실패했어요. 다시 시도해주세요.' };
+    return {
+      ok: false,
+      errorMessage: '비밀번호 변경에 실패했어요. 다시 시도해주세요.',
+    };
   }
 
   return { ok: true };

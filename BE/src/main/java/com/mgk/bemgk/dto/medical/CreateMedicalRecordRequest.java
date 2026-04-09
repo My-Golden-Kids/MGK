@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotNull;
 public record CreateMedicalRecordRequest(
         @NotNull Long petId,
         @NotBlank String date,
-        @NotBlank MedicalDocumentType type,
+        @NotNull MedicalDocumentType type,
         @NotBlank String petName,
         @NotBlank String hospitalName,
         @NotBlank String details,

@@ -25,6 +25,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.mgk.bemgk.dto.medical.OcrResponseDto;
+import com.mgk.bemgk.entity.MedicalDocumentType;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -161,9 +163,9 @@ public class OcrService {
         }
     }
 
-    private String extractType(String rawText) {
+    private MedicalDocumentType extractType(String rawText) {
         String lowerCased = rawText.toLowerCase(Locale.ROOT);
-        return VACCINATION_KEYWORDS.stream().anyMatch(lowerCased::contains) ? "접종" : "진료";
+        return VACCINATION_KEYWORDS.stream().anyMatch(lowerCased::contains) ? MedicalDocumentType.VACCINATION : MedicalDocumentType.CHECKUP;
     }
 
     private Optional<String> extractPetName(List<String> lines) {

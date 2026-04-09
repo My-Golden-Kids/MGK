@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { TypeSelect } from '@/components/common/TypeSelect';
 import MedicalRecordItem from '@/components/health/medical/MedicalRecordItem';
+import { clientFetch } from '@/lib/auth';
 import {
-  getMedicalRecordApiBaseUrl,
   getStoredMedicalPetId,
   type MedicalRecordItemData,
 } from '@/lib/medical-record';
@@ -31,13 +31,17 @@ export default function MedicalRecordsPage() {
         setIsLoading(true);
         setMessage('');
 
+        const typeMap: Record<MedicalRecordTab, string> = {
+          진료: 'CHECKUP',
+          접종: 'VACCINATION',
+        };
         const query = new URLSearchParams({
           petId: String(getStoredMedicalPetId()),
-          type: selectedTab,
+          type: typeMap[selectedTab],
         });
 
-        const response = await fetch(
-          `${getMedicalRecordApiBaseUrl()}/api/medical-records?${query.toString()}`,
+        const response = await clientFetch(
+          `/api/medical-records?${query.toString()}`,
         );
 
         if (!response.ok) {
