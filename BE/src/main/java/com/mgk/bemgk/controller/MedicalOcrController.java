@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.mgk.bemgk.dto.medical.OcrResponseDto;
+import com.mgk.bemgk.entity.MedicalDocumentType;
 import com.mgk.bemgk.service.MedicalService;
 import com.mgk.bemgk.service.OcrService;
 
@@ -43,7 +44,7 @@ public class MedicalOcrController {
     @GetMapping
     public ResponseEntity<List<MedicalRecordResponse>> getMedicalRecords(
             @RequestParam("petId") Long petId,
-            @RequestParam(value = "type", required = false) String type
+            @RequestParam(value = "type", required = false) MedicalDocumentType type
     ) {
         return ResponseEntity.ok(medicalService.getMedicalRecords(petId, type));
     }

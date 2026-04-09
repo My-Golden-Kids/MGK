@@ -1,6 +1,8 @@
 package com.mgk.bemgk.repository;
 
 import com.mgk.bemgk.entity.MedicalDocument;
+import com.mgk.bemgk.entity.MedicalDocumentType;
+
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -10,7 +12,7 @@ public interface MedicalDocumentRepository extends JpaRepository<MedicalDocument
 
     List<MedicalDocument> findByPet_IdOrderByDateDescCreatedAtDesc(Long petId);
 
-    List<MedicalDocument> findByPet_IdAndTypeOrderByDateDescCreatedAtDesc(Long petId, String type);
+    List<MedicalDocument> findByPet_IdAndTypeOrderByDateDescCreatedAtDesc(Long petId, MedicalDocumentType type);
 
     @Query("""
             select
@@ -26,6 +28,6 @@ public interface MedicalDocumentRepository extends JpaRepository<MedicalDocument
             """)
     List<MedicalDocumentCountProjection> findDocumentCountsByPetIdAndType(
             @Param("petId") Long petId,
-            @Param("type") String type
+            @Param("type") MedicalDocumentType type
     );
 }

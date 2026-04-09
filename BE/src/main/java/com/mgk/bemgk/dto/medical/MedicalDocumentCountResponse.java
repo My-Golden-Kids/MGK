@@ -1,5 +1,7 @@
 package com.mgk.bemgk.dto.medical;
 
+import com.mgk.bemgk.entity.MedicalDocumentType;
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -8,7 +10,7 @@ import lombok.Getter;
 public class MedicalDocumentCountResponse {
 
     private Long petId;
-    private String type;
+    private MedicalDocumentType type;
     private String details;
     private Long count;
 }

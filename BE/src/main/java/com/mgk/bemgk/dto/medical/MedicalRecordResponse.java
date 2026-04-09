@@ -1,6 +1,8 @@
 package com.mgk.bemgk.dto.medical;
 
 import com.mgk.bemgk.entity.MedicalDocument;
+import com.mgk.bemgk.entity.MedicalDocumentType;
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -11,7 +13,7 @@ public class MedicalRecordResponse {
     private Long id;
     private Long petId;
     private String date;
-    private String type;
+    private MedicalDocumentType type;
     private String petName;
     private String hospitalName;
     private String details;

@@ -4,6 +4,7 @@ import com.mgk.bemgk.dto.medical.CreateMedicalRecordRequest;
 import com.mgk.bemgk.dto.medical.MedicalDocumentCountResponse;
 import com.mgk.bemgk.dto.medical.MedicalRecordResponse;
 import com.mgk.bemgk.entity.MedicalDocument;
+import com.mgk.bemgk.entity.MedicalDocumentType;
 import com.mgk.bemgk.entity.Pet;
 import com.mgk.bemgk.repository.MedicalDocumentRepository;
 import com.mgk.bemgk.repository.PetRepository;
@@ -39,8 +40,8 @@ public class MedicalService {
         return MedicalRecordResponse.from(medicalDocumentRepository.save(medicalDocument));
     }
 
-    public List<MedicalRecordResponse> getMedicalRecords(Long petId, String type) {
-        List<MedicalDocument> documents = (type == null || type.isBlank())
+    public List<MedicalRecordResponse> getMedicalRecords(Long petId, MedicalDocumentType type) {
+        List<MedicalDocument> documents = type == null
                 ? medicalDocumentRepository.findByPet_IdOrderByDateDescCreatedAtDesc(petId)
                 : medicalDocumentRepository.findByPet_IdAndTypeOrderByDateDescCreatedAtDesc(petId, type);
 
@@ -50,7 +51,7 @@ public class MedicalService {
     }
 
     // 접종 횟수 count -> DTO 변환 로직
-    public List<MedicalDocumentCountResponse> getMedicalDocumentCounts(Long petId, String type) {
+    public List<MedicalDocumentCountResponse> getMedicalDocumentCounts(Long petId, MedicalDocumentType type) {
         return medicalDocumentRepository.findDocumentCountsByPetIdAndType(petId, type)
                 .stream()
                 .map(result -> MedicalDocumentCountResponse.builder()
