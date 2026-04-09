@@ -4,16 +4,16 @@ import { useMemo, useRef } from "react";
 import PetProfileImage from "@/components/home/pet/PetProfileImage";
 
 export type Pet = {
-  id: number | string;
+  id: number;
   name: string;
   imageUrl?: string | null;
 };
 
 type SelectedPetProfileProps = {
   pets?: Pet[] | null;
-  selectedPetId?: number | string | null;
-  onChange: (petId: number | string) => void;
-  onSelectedClick?: (petId: number | string) => void;
+  selectedPetId?: number | null;
+  onChange: (petId: number) => void;
+  onSelectedClick?: (petId: number) => void;
 };
 
 type PositionStyle = {
@@ -160,7 +160,7 @@ export default function SelectedPetProfile({
       <section className="w-full">
         <div className="flex h-[250px] items-center justify-center md:h-[290px] lg:h-[340px]">
           <PetProfileImage
-            onClick={() => onSelectedClick?.("default")}
+            onClick={() => onSelectedClick?.(0)}
             className="h-[220px] w-[220px] cursor-pointer md:h-[260px] md:w-[260px] lg:h-[300px] lg:w-[300px]"
           />
         </div>
