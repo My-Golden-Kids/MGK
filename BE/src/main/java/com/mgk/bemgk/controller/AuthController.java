@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.mgk.bemgk.dto.auth.AuthResponse;
 import com.mgk.bemgk.dto.auth.ChangePasswordRequest;
+import com.mgk.bemgk.dto.auth.DeleteAccountRequest;
 import com.mgk.bemgk.dto.auth.LoginRequest;
 import com.mgk.bemgk.dto.auth.OtpRequest;
 import com.mgk.bemgk.dto.auth.OtpResponse;
@@ -51,8 +52,13 @@ public class AuthController {
 	}
 
 	@PostMapping("/delete-account")
-	public void deleteAccount(@RequestBody String email) {
-		authService.deleteAccount(email);
+	public void deleteAccount(@RequestBody @Valid DeleteAccountRequest request) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+		}
+		Long userId = (Long) authentication.getPrincipal();
+		authService.deleteAccount(userId, request);
 	}
 
 	@PostMapping("/verify")

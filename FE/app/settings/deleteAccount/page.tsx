@@ -1,15 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { useState } from 'react';
-import { signOut, useSession } from 'next-auth/react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
 import { handleDeleteAccount } from '@/features/settings/api/settingApi';
 
 export default function DeleteAccountPage() {
   const router = useRouter();
-  const { data: session } = useSession();
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,14 +28,8 @@ export default function DeleteAccountPage() {
       return;
     }
 
-    const email = session?.user?.email;
-    if (!email) {
-      setErrorMessage('로그인 정보를 확인할 수 없습니다');
-      return;
-    }
-
     setIsLoading(true);
-    const result = await handleDeleteAccount(email);
+    const result = await handleDeleteAccount(trimmedPassword);
     setIsLoading(false);
 
     if (!result.ok) {

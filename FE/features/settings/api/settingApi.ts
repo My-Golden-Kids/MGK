@@ -46,13 +46,16 @@ export async function handleChangePassword(
 }
 
 export async function handleDeleteAccount(
-  email: string,
+  password: string,
 ): Promise<DeleteAccountResult> {
   const res = await clientFetch('/api/auth/delete-account', {
     method: 'POST',
-    body: email,
-    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ password }),
   });
+
+  if (res.status === 401) {
+    return { ok: false, errorMessage: '비밀번호가 올바르지 않습니다.' };
+  }
 
   if (!res.ok) {
     return { ok: false, errorMessage: '탈퇴 처리에 실패했습니다.' };

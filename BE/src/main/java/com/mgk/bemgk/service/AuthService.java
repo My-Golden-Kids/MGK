@@ -3,6 +3,7 @@ package com.mgk.bemgk.service;
 import com.mgk.bemgk.auth.JwtProvider;
 import com.mgk.bemgk.dto.auth.AuthResponse;
 import com.mgk.bemgk.dto.auth.ChangePasswordRequest;
+import com.mgk.bemgk.dto.auth.DeleteAccountRequest;
 import com.mgk.bemgk.dto.auth.LoginRequest;
 import com.mgk.bemgk.dto.auth.OtpRequest;
 import com.mgk.bemgk.dto.auth.OtpResponse;
@@ -78,6 +79,10 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
 
+        if (user.getDeletedAt() != null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
@@ -120,10 +125,15 @@ public class AuthService {
     }
 
     @Transactional
-    public void deleteAccount(String email) {
-        userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 이메일입니다."));
-        userRepository.softDeleteByEmail(email, LocalDateTime.now());
+    public void deleteAccount(Long userId, DeleteAccountRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 유효하지 않습니다."));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다.");
+        }
+
+        userRepository.softDeleteByEmail(user.getEmail(), LocalDateTime.now());
     }
 
     @Transactional
