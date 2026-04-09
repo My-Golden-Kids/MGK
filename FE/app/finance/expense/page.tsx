@@ -258,7 +258,11 @@ export default function FinanceExpensesPage() {
             </Button>
           </div>
 
-          <Link href="/finance/expense/add-expense" aria-label="지출 추가">
+          <Link
+            href="/finance/expense/add-image"
+            aria-label="지출 추가"
+            className="cursor-pointer"
+          >
             <Button
               type="button"
               variant="ghost"

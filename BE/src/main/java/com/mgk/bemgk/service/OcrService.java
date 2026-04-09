@@ -34,6 +34,18 @@ public class OcrService {
     private static final Pattern DATE_PATTERN = Pattern.compile(
             "(20\\d{2}|19\\d{2})[./-]\\s?(\\d{1,2})[./-]\\s?(\\d{1,2})|(20\\d{2}|19\\d{2})년\\s?(\\d{1,2})월\\s?(\\d{1,2})일"
     );
+    private static final Pattern DATETIME_TIME_PATTERN = Pattern.compile(
+            "(?:20\\d{2}|19\\d{2})[./-]\\s?\\d{1,2}[./-]\\s?\\d{1,2}\\s+(\\d{1,2})[:시](\\d{2})(?:[:분](\\d{2}))?"
+    );
+    private static final Pattern STRICT_24H_TIME_PATTERN = Pattern.compile(
+            "(?<!\\d)([01]?\\d|2[0-3]):([0-5]\\d)(?::([0-5]\\d))?(?!\\d)"
+    );
+    private static final Pattern KOREAN_TIME_PATTERN = Pattern.compile(
+            "(?i)(오전|오후)?\\s*([01]?\\d|2[0-3])시\\s*([0-5]?\\d)?분?"
+    );
+    private static final Pattern COMPACT_TIME_PATTERN = Pattern.compile(
+            "(?<!\\d)([01]\\d|2[0-3])([0-5]\\d)(?!\\d)"
+    );
     private static final Pattern AMOUNT_PATTERN = Pattern.compile("([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\\s*원?");
     private static final List<String> HOSPITAL_KEYWORDS = List.of("동물병원", "동물의원", "동물메디컬센터", "동물의료센터", "메디컬센터", "병원");
     private static final List<String> VACCINATION_KEYWORDS = List.of("접종", "백신", "예방", "vaccination", "vaccine");
@@ -69,6 +81,7 @@ public class OcrService {
 
         return OcrResponseDto.builder()
                 .date(extractDate(rawText).map(LocalDate::toString).orElse(""))
+                .time(extractTime(lines).orElse(""))
                 .type(extractType(rawText))
                 .petName(extractPetName(lines).orElse(""))
                 .hospitalName(extractHospitalName(lines).orElse(""))
@@ -168,6 +181,143 @@ public class OcrService {
             }
         }
         return Optional.empty();
+    }
+
+    private Optional<String> extractTime(List<String> lines) {
+        for (String line : lines) {
+            Optional<String> dateTimeMatch = extractDateTimeTime(line);
+            if (dateTimeMatch.isPresent()) {
+                return dateTimeMatch;
+            }
+        }
+
+        for (String line : lines) {
+            if (shouldSkipTimeLine(line)) {
+                continue;
+            }
+
+            Optional<String> strictTimeMatch = extractStrict24HourTime(line);
+            if (strictTimeMatch.isPresent()) {
+                return strictTimeMatch;
+            }
+
+            Optional<String> koreanTimeMatch = extractKoreanTime(line);
+            if (koreanTimeMatch.isPresent()) {
+                return koreanTimeMatch;
+            }
+
+            Optional<String> compactTimeMatch = extractCompactTime(line);
+            if (compactTimeMatch.isPresent()) {
+                return compactTimeMatch;
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private Optional<String> extractDateTimeTime(String line) {
+        Matcher matcher = DATETIME_TIME_PATTERN.matcher(line);
+        while (matcher.find()) {
+            Optional<String> normalizedTime = normalizeTime(
+                    null,
+                    matcher.group(1),
+                    matcher.group(2),
+                    line
+            );
+            if (normalizedTime.isPresent()) {
+                return normalizedTime;
+            }
+        }
+        return Optional.empty();
+    }
+
+    private Optional<String> extractStrict24HourTime(String line) {
+        Matcher matcher = STRICT_24H_TIME_PATTERN.matcher(line);
+        while (matcher.find()) {
+            Optional<String> normalizedTime = normalizeTime(
+                    null,
+                    matcher.group(1),
+                    matcher.group(2),
+                    line
+            );
+            if (normalizedTime.isPresent()) {
+                return normalizedTime;
+            }
+        }
+        return Optional.empty();
+    }
+
+    private Optional<String> extractKoreanTime(String line) {
+        Matcher matcher = KOREAN_TIME_PATTERN.matcher(line);
+        while (matcher.find()) {
+            Optional<String> normalizedTime = normalizeTime(
+                    matcher.group(1),
+                    matcher.group(2),
+                    matcher.group(3),
+                    line
+            );
+            if (normalizedTime.isPresent()) {
+                return normalizedTime;
+            }
+        }
+        return Optional.empty();
+    }
+
+    private boolean shouldSkipTimeLine(String line) {
+        String lowerCasedLine = line.toLowerCase(Locale.ROOT);
+        return isExcludedDetailLine(line)
+                && !line.contains("오전")
+                && !line.contains("오후")
+                && !lowerCasedLine.contains("am")
+                && !lowerCasedLine.contains("pm")
+                && !STRICT_24H_TIME_PATTERN.matcher(line).find()
+                && !KOREAN_TIME_PATTERN.matcher(line).find()
+                && !DATETIME_TIME_PATTERN.matcher(line).find();
+    }
+
+    private Optional<String> extractCompactTime(String line) {
+        Matcher matcher = COMPACT_TIME_PATTERN.matcher(line.replaceAll("\\s+", ""));
+        while (matcher.find()) {
+            Optional<String> normalizedTime = normalizeTime(
+                    null,
+                    matcher.group(1),
+                    matcher.group(2),
+                    line
+            );
+            if (normalizedTime.isPresent()) {
+                return normalizedTime;
+            }
+        }
+        return Optional.empty();
+    }
+
+    private Optional<String> normalizeTime(String meridiem, String hourValue, String minuteValue, String line) {
+        if (hourValue == null) {
+            return Optional.empty();
+        }
+
+        try {
+            int hour = Integer.parseInt(hourValue);
+            int minute = minuteValue == null || minuteValue.isBlank() ? 0 : Integer.parseInt(minuteValue);
+
+            String lowerCasedLine = line.toLowerCase(Locale.ROOT);
+            boolean isPm = "오후".equals(meridiem) || lowerCasedLine.contains("pm");
+            boolean isAm = "오전".equals(meridiem) || lowerCasedLine.contains("am");
+
+            if (hour > 23 || minute > 59) {
+                return Optional.empty();
+            }
+
+            if (isPm && hour < 12) {
+                hour += 12;
+            } else if (isAm && hour == 12) {
+                hour = 0;
+            }
+
+            return Optional.of("%02d:%02d".formatted(hour, minute));
+        } catch (NumberFormatException exception) {
+            return Optional.empty();
+        }
     }
 
     private Optional<String> extractHospitalName(List<String> lines) {

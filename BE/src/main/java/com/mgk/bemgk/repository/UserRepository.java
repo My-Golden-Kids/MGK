@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    Optional<User> findFirstByOrderByIdAsc();
+
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);

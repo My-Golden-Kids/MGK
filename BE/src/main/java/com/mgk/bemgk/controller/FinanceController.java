@@ -4,14 +4,13 @@ import com.mgk.bemgk.dto.finance.AccountBookResponse;
 import com.mgk.bemgk.dto.finance.CreateAccountBookRequest;
 import com.mgk.bemgk.dto.finance.FinanceExpenseSummaryResponse;
 import com.mgk.bemgk.entity.AccountBook;
+import com.mgk.bemgk.service.CurrentUserService;
 import com.mgk.bemgk.service.FinanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,17 +27,14 @@ import org.springframework.web.server.ResponseStatusException;
 public class FinanceController {
 
     private final FinanceService financeService;
+    private final CurrentUserService currentUserService;
 
     @GetMapping
     public FinanceExpenseSummaryResponse getMonthlyExpenses(
             @RequestParam int year,
             @RequestParam int month
     ) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !(authentication.getPrincipal() instanceof Long userId)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
-        }
+        Long userId = currentUserService.getCurrentUserIdOrDefault();
 
         return financeService.getMonthlyExpenses(userId, year, month);
     }
@@ -47,11 +42,7 @@ public class FinanceController {
     @DeleteMapping("/{accountBookId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long accountBookId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !(authentication.getPrincipal() instanceof Long userId)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
-        }
+        Long userId = currentUserService.getCurrentUserIdOrDefault();
 
         financeService.delete(userId, accountBookId);
     }
@@ -59,11 +50,7 @@ public class FinanceController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public AccountBookResponse create(@RequestBody @Valid CreateAccountBookRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !(authentication.getPrincipal() instanceof Long userId)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
-        }
+        Long userId = currentUserService.getCurrentUserIdOrDefault();
 
         AccountBook accountBook = financeService.create(userId, request);
         return AccountBookResponse.from(accountBook);

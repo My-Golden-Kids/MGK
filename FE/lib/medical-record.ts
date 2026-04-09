@@ -9,6 +9,7 @@ export type MedicalRecordForm = {
 
 export type OcrMedicalRecord = {
   date: string;
+  time?: string;
   type: string;
   petName: string;
   hospitalName: string;

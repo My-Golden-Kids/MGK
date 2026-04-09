@@ -8,6 +8,7 @@ import lombok.Getter;
 public class OcrResponseDto {
 
     private String date;
+    private String time;
     private String type;
     private String petName;
     private String hospitalName;

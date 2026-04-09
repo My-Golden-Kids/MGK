@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@/lib/utils';
 import type * as React from 'react';
+import { cn } from '@/lib/utils';
 
 export type SelectOption = string | { label: string; value: string };
 type TypeSelectVariant = 'select' | 'tabs';
@@ -38,9 +38,7 @@ export function TypeSelect({
   ...props
 }: TypeSelectProps) {
   const normalizedOptions = options.map((option) =>
-    typeof option === 'string'
-      ? { label: option, value: option }
-      : option,
+    typeof option === 'string' ? { label: option, value: option } : option,
   );
   const tabColumnCount = Math.max(normalizedOptions.length, 1);
 
@@ -48,11 +46,10 @@ export function TypeSelect({
     return (
       <div className={cn('rounded-full bg-[#D9D9D9] p-1', className)}>
         <div
-          className={cn(
-            'grid gap-1',
-            tabListClassName,
-          )}
-          style={{ gridTemplateColumns: `repeat(${tabColumnCount}, minmax(0, 1fr))` }}
+          className={cn('grid gap-1', tabListClassName)}
+          style={{
+            gridTemplateColumns: `repeat(${tabColumnCount}, minmax(0, 1fr))`,
+          }}
         >
           {normalizedOptions.map((option) => {
             const isActive = option.value === value;
@@ -86,7 +83,7 @@ export function TypeSelect({
     <select
       value={value}
       className={cn(
-        'h-[56px] w-full rounded-[14px] bg-[#F4F6F5] px-4 text-[18px] outline-none',
+        'h-[56px] w-full cursor-pointer rounded-[14px] bg-[#F4F6F5] px-4 text-[18px] outline-none',
         className,
       )}
       onChange={(event) => {

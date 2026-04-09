@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
@@ -9,27 +10,18 @@ import { Button } from '@/components/common/Button';
 import Modal from '@/components/common/Modal';
 import { TypeSelect } from '@/components/common/TypeSelect';
 import { clientFetch } from '@/lib/auth';
+import {
+  EXPENSE_RECEIPT_IMAGE_STORAGE_KEY,
+  EXPENSE_RECEIPT_OCR_STORAGE_KEY,
+  mapOcrResultToExpenseDraft,
+} from '@/lib/expense-receipt';
+import type { OcrMedicalRecord } from '@/lib/medical-record';
 
 const CATEGORY_OPTIONS = [
   { label: '식비', value: 'Food' },
   { label: '의료비', value: 'Hospital' },
   { label: '기타', value: 'Etc' },
 ] as const;
-
-function formatSpendDateInput(value: string) {
-  if (!value) {
-    return '';
-  }
-
-  const date = new Date(value);
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  const hours = `${date.getHours()}`.padStart(2, '0');
-  const minutes = `${date.getMinutes()}`.padStart(2, '0');
-
-  return `${year}/${month}/${day} ${hours}:${minutes}`;
-}
 
 function toLocalDateTimeValue(date: Date) {
   const year = date.getFullYear();
@@ -50,6 +42,7 @@ export default function AddExpensePage() {
     toLocalDateTimeValue(new Date()),
   );
   const [memo, setMemo] = useState('');
+  const [receiptImageUrl, setReceiptImageUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalState, setModalState] = useState<{
     open: boolean;
@@ -67,6 +60,41 @@ export default function AddExpensePage() {
     () => Number(amount.replaceAll(',', '').trim() || '0'),
     [amount],
   );
+
+  useEffect(() => {
+    const storedImageUrl = sessionStorage.getItem(
+      EXPENSE_RECEIPT_IMAGE_STORAGE_KEY,
+    );
+    const storedOcrResult = sessionStorage.getItem(
+      EXPENSE_RECEIPT_OCR_STORAGE_KEY,
+    );
+
+    if (storedImageUrl) {
+      setReceiptImageUrl(storedImageUrl);
+    }
+
+    if (!storedOcrResult) {
+      return;
+    }
+
+    try {
+      const parsedResult = JSON.parse(storedOcrResult) as OcrMedicalRecord;
+      const draft = mapOcrResultToExpenseDraft(parsedResult);
+
+      if (draft.amount) {
+        setAmount(Number(draft.amount).toLocaleString());
+      }
+      if (draft.title) {
+        setTitle(draft.title);
+      }
+      setCategory(draft.category);
+      if (draft.spendDate) {
+        setSpendDate(draft.spendDate);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
 
   const handleAmountChange = (value: string) => {
     const digitsOnly = value.replaceAll(/[^0-9]/g, '');
@@ -126,6 +154,8 @@ export default function AddExpensePage() {
         return;
       }
 
+      sessionStorage.removeItem(EXPENSE_RECEIPT_IMAGE_STORAGE_KEY);
+      sessionStorage.removeItem(EXPENSE_RECEIPT_OCR_STORAGE_KEY);
       openModal('지출이 추가되었어요.', '가계부에 바로 반영됩니다.', true);
     } catch {
       openModal('지출을 저장하지 못했어요.', '네트워크 상태를 확인해주세요.');
@@ -135,19 +165,39 @@ export default function AddExpensePage() {
   };
 
   return (
-    <div className="relative flex min-h-dvh flex-col bg-white text-[#202625]">
-      <main className="flex-1 px-6 pb-6">
-        <div className="overflow-hidden">
-          <BackButton />
-        </div>
-
-        <header className="pt-1 pb-6 text-center">
-          <h1 className="font-bold text-[24px] tracking-[-0.04em]">
+    <div className="relative flex min-h-dvh flex-col bg-white text-[#27312D] overflow-hidden">
+      <main className="flex-1 p-10">
+        <div className="relative mb-8 flex items-center justify-center">
+          <h1 className="text-center text-[28px] leading-none sm:text-[28px] md:text-[34px] lg:text-[40px]">
             지출 추가하기
           </h1>
-        </header>
+          <div className="-translate-y-1/2 absolute top-1/2 left-0">
+            <BackButton />
+          </div>
+        </div>
 
         <section className="space-y-8">
+          <section>
+            <div>
+              <span className="block font-semibold text-[18px]">
+                업로드한 사진
+              </span>
+              <div className="mt-3 flex h-[180px] items-center justify-center overflow-hidden rounded-[14px] bg-[#F4F6F5] text-[#B4BBB8] text-[16px]">
+                {receiptImageUrl ? (
+                  <Image
+                    src={receiptImageUrl}
+                    alt="업로드한 영수증"
+                    width={1200}
+                    height={1200}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  '업로드한 사진이 없습니다.'
+                )}
+              </div>
+            </div>
+          </section>
+
           <label className="block">
             <span className="block font-semibold text-[18px]">금액</span>
             <div className="mt-2 flex items-center border-[#383838] border-b pb-2">
@@ -156,7 +206,7 @@ export default function AddExpensePage() {
                 onChange={(event) => handleAmountChange(event.target.value)}
                 inputMode="numeric"
                 placeholder="0"
-                className="min-w-0 flex-1 bg-transparent font-semibold text-[#1A1A1A] text-[22px] outline-none placeholder:text-[#1A1A1A]"
+                className="min-w-0 flex-1 cursor-pointer bg-transparent font-semibold text-[#1A1A1A] text-[22px] outline-none placeholder:text-[#1A1A1A]"
               />
               <span className="ml-1 font-semibold text-[#1A1A1A] text-[22px]">
                 원
@@ -171,7 +221,7 @@ export default function AddExpensePage() {
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="소비한 장소를 입력해주세요"
-                className="w-full bg-transparent text-[#1A1A1A] text-[18px] outline-none placeholder:text-[#CBCBCB]"
+                className="w-full cursor-pointer bg-transparent text-[#1A1A1A] text-[18px] outline-none placeholder:text-[#CBCBCB]"
               />
             </div>
           </label>
@@ -197,12 +247,9 @@ export default function AddExpensePage() {
                 type="datetime-local"
                 value={spendDate}
                 onChange={(event) => setSpendDate(event.target.value)}
-                className="w-full bg-transparent text-[#4CAFA3] text-[18px] outline-none"
+                className="w-full cursor-pointer bg-transparent text-[#4CAFA3] text-[18px] outline-none"
               />
             </div>
-            <p className="mt-2 font-medium text-[#4CAFA3] text-[18px]">
-              {formatSpendDateInput(spendDate)}
-            </p>
           </label>
 
           <label className="block">
