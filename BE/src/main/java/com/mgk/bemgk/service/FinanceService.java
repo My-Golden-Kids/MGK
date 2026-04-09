@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class FinanceService {
 
+    private static final String INITIAL_ACCOUNT_LINK_TITLE = "첫 계좌연결";
+
     private final AccountBookRepository accountBookRepository;
     private final UserRepository userRepository;
 
@@ -47,21 +49,27 @@ public class FinanceService {
         LocalDateTime monthEnd = yearMonth.atEndOfMonth().atTime(23, 59, 59);
         LocalDate today = LocalDate.now();
 
-        List<FinanceExpenseItemResponse> items = accountBookRepository
+        List<AccountBook> monthlyExpenses = accountBookRepository
                 .findMonthlyExpensesByUserId(userId, monthStart, monthEnd)
+                .stream()
+                .filter(accountBook -> !INITIAL_ACCOUNT_LINK_TITLE.equals(accountBook.getTitle()))
+                .toList();
+
+        List<FinanceExpenseItemResponse> items = monthlyExpenses
                 .stream()
                 .map(FinanceExpenseItemResponse::from)
                 .toList();
 
-        BigDecimal monthlyExpense = accountBookRepository.sumAmountByUserIdAndSpendDateTimeBetween(
-                userId, monthStart, monthEnd);
+        BigDecimal monthlyExpense = monthlyExpenses.stream()
+                .map(AccountBook::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal todayExpense = BigDecimal.ZERO;
         if (today.getYear() == year && today.getMonthValue() == month) {
-            LocalDateTime todayStart = today.atStartOfDay();
-            LocalDateTime todayEnd = today.atTime(23, 59, 59);
-            todayExpense = accountBookRepository.sumAmountByUserIdAndSpendDateTimeBetween(
-                    userId, todayStart, todayEnd);
+            todayExpense = monthlyExpenses.stream()
+                    .filter(accountBook -> accountBook.getSpendDate().toLocalDate().isEqual(today))
+                    .map(AccountBook::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
         }
 
         return FinanceExpenseSummaryResponse.builder()
