@@ -21,6 +21,7 @@ export default function HealthPage() {
             label="산책"
           />
           <HealthButton
+            onClick={() => router.push('/health/vaccinations')}
             variant="mint"
             size="square"
             icon={<Syringe />}

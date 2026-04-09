@@ -136,15 +136,21 @@ export default function VaccinationPage() {
           onMonthChange={handleMonthChange}
         />
         <div className="flex flex-col gap-2.5">
-          {petSummaries.map((summary) => (
-            <VaccinationListSection
-              key={summary.petId}
-              petName={summary.petName}
-              petImageUrl={summary.petImageUrl ?? undefined}
-              latestScheduleLabel={summary.latestScheduleLabel}
-              vaccinationItems={summary.vaccinationItems}
-            />
-          ))}
+          {petSummaries.length === 0 ? (
+            <p className="py-8 text-center text-gray-400">
+              등록된 반려동물이 없어요. 펫을 먼저 추가해 주세요.
+            </p>
+          ) : (
+            petSummaries.map((summary) => (
+              <VaccinationListSection
+                key={summary.petId}
+                petName={summary.petName}
+                petImageUrl={summary.petImageUrl ?? undefined}
+                latestScheduleLabel={summary.latestScheduleLabel}
+                vaccinationItems={summary.vaccinationItems}
+              />
+            ))
+          )}
         </div>
       </div>
 
