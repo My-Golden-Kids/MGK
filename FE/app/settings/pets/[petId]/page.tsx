@@ -1,16 +1,22 @@
-"use client";
+'use client';
 
-import { ImageUp } from "lucide-react";
-import Image from "next/image";
-import { useParams } from "next/navigation";
-import type { ChangeEvent } from "react";
-import { useEffect, useRef, useState } from "react";
-import BackButton from "@/components/common/BackButton";
-import { BottomNavigation } from "@/components/common/BottomNavigation";
-import { Button } from "@/components/common/Button";
+import { ImageUp } from 'lucide-react';
+import Image from 'next/image';
+import { useParams, useRouter } from 'next/navigation';
+import type { ChangeEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import BackButton from '@/components/common/BackButton';
+import { BottomNavigation } from '@/components/common/BottomNavigation';
+import { Button } from '@/components/common/Button';
+import {
+  createPet,
+  fetchPet,
+  updatePet,
+  uploadPetImage,
+} from '@/features/settings/api/petSettingsApi';
 
-type PetType = "dog" | "cat";
-type PetSize = "small" | "medium" | "large";
+type PetType = '강아지' | '고양이';
+type PetSize = '소형' | '중형' | '대형';
 
 type SegmentOption<T extends string> = {
   label: string;
@@ -18,14 +24,14 @@ type SegmentOption<T extends string> = {
 };
 
 const petTypeOptions: SegmentOption<PetType>[] = [
-  { label: "강아지", value: "dog" },
-  { label: "고양이", value: "cat" },
+  { label: '강아지', value: '강아지' },
+  { label: '고양이', value: '고양이' },
 ];
 
 const petSizeOptions: SegmentOption<PetSize>[] = [
-  { label: "소형", value: "small" },
-  { label: "중형", value: "medium" },
-  { label: "대형", value: "large" },
+  { label: '소형', value: '소형' },
+  { label: '중형', value: '중형' },
+  { label: '대형', value: '대형' },
 ];
 
 function SegmentedControl<T extends string>({
@@ -49,8 +55,8 @@ function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             className={`min-w-[5.3rem] cursor-pointer rounded-xl px-4 py-2 font-semibold text-lg transition-colors md:min-w-[6rem] md:px-5 md:text-xl ${
               isSelected
-                ? "bg-white text-[#1E1E1E] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-                : "text-[#8A8A8A]"
+                ? 'bg-white text-[#1E1E1E] shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
+                : 'text-[#8A8A8A]'
             }`}
           >
             {option.label}
@@ -62,60 +68,119 @@ function SegmentedControl<T extends string>({
 }
 
 export default function PetDetailPage() {
+  const router = useRouter();
   const params = useParams<{ petId: string }>();
   const petId = Array.isArray(params.petId) ? params.petId[0] : params.petId;
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
-  const [name, setName] = useState("댕댕이");
-  const [age, setAge] = useState("16");
-  const [type, setType] = useState<PetType>("dog");
-  const [size, setSize] = useState<PetSize>("small");
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [type, setType] = useState<PetType>('강아지');
+  const [size, setSize] = useState<PetSize>('소형');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [savedImageUrl, setSavedImageUrl] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const isNew = petId === '0';
 
   useEffect(() => {
+    if (isNew) return;
+    fetchPet(Number(petId)).then((result) => {
+      if (result.ok && result.pet) {
+        const pet = result.pet;
+        setName(pet.name);
+        setAge(pet.age != null ? String(pet.age) : '');
+        setType(pet.species ?? '강아지');
+        setSize(pet.size ?? '소형');
+        setSavedImageUrl(pet.imageUrl);
+        if (pet.imageUrl) setPreviewImage(pet.imageUrl);
+      }
+    });
+
     return () => {
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
       }
     };
-  }, []);
+  }, [isNew, petId]);
 
   const handleProfileImageClick = () => {
     fileInputRef.current?.click();
   };
 
-  const handleProfileImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleProfileImageChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
     }
 
     const nextPreviewUrl = URL.createObjectURL(file);
-
     objectUrlRef.current = nextPreviewUrl;
     setSelectedImageFile(file);
     setPreviewImage(nextPreviewUrl);
+    setErrorMessage(null);
 
-    // 추후 백엔드 multipart 업로드 API 연결 예정
+    setIsLoading(true);
+    const result = await uploadPetImage(file);
+    setIsLoading(false);
+
+    if (!result.ok) {
+      setErrorMessage(result.errorMessage ?? '이미지 업로드에 실패했어요.');
+      setTimeout(() => setErrorMessage(null), 3000);
+      setSelectedImageFile(null);
+      setPreviewImage(savedImageUrl);
+      return;
+    }
+
+    setSavedImageUrl(result.path ?? null);
   };
 
-  const handleSave = () => {
-    console.log("save pet", {
-      petId,
+  const handleSave = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    let imageUrl = savedImageUrl;
+    if (selectedImageFile) {
+      const uploadResult = await uploadPetImage(selectedImageFile);
+      if (!uploadResult.ok) {
+        setErrorMessage(
+          uploadResult.errorMessage ?? '이미지 업로드에 실패했어요.',
+        );
+        setTimeout(() => setErrorMessage(null), 3000);
+        setIsLoading(false);
+        return;
+      }
+      imageUrl = uploadResult.path ?? null;
+      setSavedImageUrl(imageUrl);
+      setSelectedImageFile(null);
+    }
+
+    const formParams = {
       name,
-      age,
-      type,
+      age: Number(age) || 0,
+      species: type,
       size,
-      selectedImageFile,
-    });
+      imageUrl,
+    };
+    const result = isNew
+      ? await createPet(formParams)
+      : await updatePet({ petId: Number(petId), ...formParams });
+
+    setIsLoading(false);
+    router.back();
+
+    if (!result.ok) {
+      setErrorMessage(result.errorMessage ?? '저장에 실패했어요.');
+      setTimeout(() => setErrorMessage(null), 3000);
+    }
   };
 
   return (
@@ -201,7 +266,7 @@ export default function PetDetailPage() {
                   inputMode="numeric"
                   value={age}
                   onChange={(event) =>
-                    setAge(event.target.value.replace(/[^0-9]/g, ""))
+                    setAge(event.target.value.replace(/[^0-9]/g, ''))
                   }
                   className="w-24 cursor-pointer bg-transparent font-medium text-[#222222] text-[2rem] outline-none placeholder:text-[#B2B2B2] md:w-28 md:text-[2.35rem] lg:text-[2.7rem]"
                   placeholder="0"
@@ -235,14 +300,21 @@ export default function PetDetailPage() {
             </div>
           </div>
 
+          {errorMessage && (
+            <p className="mt-4 text-center font-medium text-red-500 text-sm md:text-base">
+              {errorMessage}
+            </p>
+          )}
+
           <div className="mt-10 flex justify-center pb-8 md:mt-12 md:pb-10 lg:mt-14">
             <div className="w-full max-w-[12rem] md:max-w-[13rem] lg:max-w-[14rem]">
               <Button
                 type="button"
                 onClick={handleSave}
-                className="w-full rounded-2xl py-3 font-bold text-[1.9rem] shadow-none md:rounded-3xl md:py-3.5 md:text-[2rem] lg:text-[2.1rem]"
+                disabled={isLoading}
+                className="w-full rounded-2xl py-3 font-bold text-[1.9rem] shadow-none disabled:opacity-60 md:rounded-3xl md:py-3.5 md:text-[2rem] lg:text-[2.1rem]"
               >
-                저장
+                {isLoading ? '저장 중...' : '저장'}
               </Button>
             </div>
           </div>
