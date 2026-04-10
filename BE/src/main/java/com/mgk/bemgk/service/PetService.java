@@ -1,22 +1,30 @@
 package com.mgk.bemgk.service;
 
+import com.mgk.bemgk.dto.pet.CreatePetRequest;
 import com.mgk.bemgk.dto.pet.PetResponse;
+import com.mgk.bemgk.dto.pet.UpdatePetRequest;
 import com.mgk.bemgk.dto.pet.WalkDtos.LiveWalkResponse;
 import com.mgk.bemgk.dto.pet.WalkDtos.SaveWalkRequest;
 import com.mgk.bemgk.dto.pet.WalkDtos.WalkRecordResponse;
 import com.mgk.bemgk.dto.pet.WalkDtos.WalkResponse;
 import com.mgk.bemgk.entity.Pet;
+import com.mgk.bemgk.entity.PetSize;
 import com.mgk.bemgk.entity.PetWalkRecord;
+import com.mgk.bemgk.entity.User;
 import com.mgk.bemgk.repository.AccountRepository;
 import com.mgk.bemgk.repository.PetRepository;
 import com.mgk.bemgk.repository.PetWalkRecordRepository;
+import com.mgk.bemgk.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -29,17 +37,72 @@ public class PetService {
     private final PetRepository petRepository;
     private final PetWalkRecordRepository petWalkRecordRepository;
     private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
 
+    public PetResponse getPet(Long petId) {
+        Long userId = currentUserService.getCurrentUserId();
+        return PetResponse.from(findOwnedPet(petId, userId));
+    }
+
+    @Transactional
+    public PetResponse updatePet(Long petId, UpdatePetRequest request) {
+        Long userId = currentUserService.getCurrentUserId();
+        Pet pet = findOwnedPet(petId, userId);
+        PetSize petSize = null;
+        if (request.size() != null) {
+            try {
+                petSize = PetSize.valueOf(request.size());
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        pet.update(request.name(), request.age(), request.species(), petSize, request.imageUrl());
+        return PetResponse.from(pet);
+    }
+
     public List<PetResponse> getPets() {
-        return petRepository.findAll().stream()
+        Long userId = currentUserService.getCurrentUserId();
+
+        return petRepository.findByUser_Id(userId).stream()
                 .map(PetResponse::from)
                 .toList();
     }
 
     @Transactional
+    public PetResponse createPet(CreatePetRequest request) {
+        Long userId = currentUserService.getCurrentUserId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        PetSize petSize = null;
+        if (request.size() != null) {
+            try {
+                petSize = PetSize.valueOf(request.size());
+            } catch (IllegalArgumentException ignored) {
+				throw new ResponseStatusException(
+					HttpStatus.BAD_REQUEST,
+					"유효하지 않은 pet size 값입니다: " + request.size()
+				);
+            }
+        }
+        Pet pet = Pet.builder()
+                .user(user)
+                .name(request.name().trim())
+                .image(request.imageUrl())
+                .species(request.species())
+                .age(request.age())
+                .size(petSize)
+                .walkCount(null)
+                .walkTime(null)
+                .lastWalkAt(null)
+                .eatMeal(null)
+                .build();
+
+        return PetResponse.from(petRepository.save(pet));
+    }
+
+    @Transactional
     public WalkResponse saveWalk(Long petId, SaveWalkRequest request) {
-        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        Long userId = currentUserService.getCurrentUserId();
         Pet pet = findOwnedPet(petId, userId);
         LocalDateTime walkedAt = resolveWalkedAt(request);
         String source = resolveSource(request);
@@ -84,7 +147,7 @@ public class PetService {
     }
 
     public LiveWalkResponse getLiveWalk(Long petId) {
-        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        Long userId = currentUserService.getCurrentUserId();
         Pet pet = findOwnedPet(petId, userId);
 
         LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
@@ -110,7 +173,7 @@ public class PetService {
     }
 
     public List<WalkRecordResponse> getWalkRecords(Long petId) {
-        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        Long userId = currentUserService.getCurrentUserId();
         Pet pet = findOwnedPet(petId, userId);
 
         return petWalkRecordRepository.findAllByPet_IdAndCompletedTrueOrderByWalkedAtDesc(pet.getId()).stream()

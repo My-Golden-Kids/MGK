@@ -2,6 +2,7 @@ package com.mgk.bemgk.controller;
 
 import com.mgk.bemgk.dto.finance.AccountBookResponse;
 import com.mgk.bemgk.dto.finance.CreateAccountBookRequest;
+import com.mgk.bemgk.dto.finance.FinanceDashboardResponse;
 import com.mgk.bemgk.dto.finance.FinanceExpenseSummaryResponse;
 import com.mgk.bemgk.entity.AccountBook;
 import com.mgk.bemgk.service.CurrentUserService;
@@ -29,12 +30,19 @@ public class FinanceController {
     private final FinanceService financeService;
     private final CurrentUserService currentUserService;
 
+    @GetMapping("/dashboard")
+    public FinanceDashboardResponse getDashboard() {
+        Long userId = currentUserService.getCurrentUserId();
+
+        return financeService.getDashboard(userId);
+    }
+
     @GetMapping
     public FinanceExpenseSummaryResponse getMonthlyExpenses(
             @RequestParam int year,
             @RequestParam int month
     ) {
-        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        Long userId = currentUserService.getCurrentUserId();
 
         return financeService.getMonthlyExpenses(userId, year, month);
     }
@@ -42,7 +50,7 @@ public class FinanceController {
     @DeleteMapping("/{accountBookId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long accountBookId) {
-        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        Long userId = currentUserService.getCurrentUserId();
 
         financeService.delete(userId, accountBookId);
     }
@@ -50,7 +58,7 @@ public class FinanceController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public AccountBookResponse create(@RequestBody @Valid CreateAccountBookRequest request) {
-        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        Long userId = currentUserService.getCurrentUserId();
 
         AccountBook accountBook = financeService.create(userId, request);
         return AccountBookResponse.from(accountBook);

@@ -11,8 +11,9 @@ public class PetResponse {
     private Long id;
     private String name;
     private String imageUrl;
-    private Integer age;
+    private Double age;
     private String species;
+    private String size;
 
     public static PetResponse from(Pet pet) {
         return PetResponse.builder()
@@ -21,6 +22,7 @@ public class PetResponse {
                 .imageUrl(pet.getImage())
                 .age(pet.getAge())
                 .species(pet.getSpecies())
+                .size(pet.getSize() != null ? pet.getSize().name() : null)
                 .build();
     }
 }

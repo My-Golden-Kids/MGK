@@ -20,6 +20,7 @@ import {
   RETRY_PET_NAME_MESSAGE,
   SKIP_PHOTO_CHAT_GUIDE_MESSAGE,
 } from '@/components/onboarding/onboardingSteps';
+import { clientFetch } from '@/lib/auth';
 
 type OnboardingStepPageProps = {
   stepNumber: number;
@@ -36,7 +37,6 @@ const DISSOLVE_DURATION_MS = 0;
 const TTS_AUTO_ADVANCE_DELAY_MS = 700;
 const ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY = 'onboarding-internal-entry';
 const TTS_UNLOCKED_SESSION_KEY = 'mgk-onboarding-tts-unlocked';
-
 function HandHint() {
   return (
     <div className="pointer-events-none absolute top-[55%] left-[40%] z-40 h-[96px] w-[96px] translate-x-[48px] md:h-[112px] md:w-[112px] md:translate-x-[56px] lg:h-[128px] lg:w-[128px] lg:translate-x-[64px]">
@@ -107,6 +107,7 @@ export default function OnboardingStepPage({
   const [pendingImagePreviewUrl, setPendingImagePreviewUrl] = useState('');
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSavingPet, setIsSavingPet] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const {
     transcript,
@@ -556,6 +557,38 @@ export default function OnboardingStepPage({
     }
   };
 
+  const handleStartClick = async () => {
+    if (isSavingPet) {
+      return;
+    }
+
+    if (!petName.trim()) {
+      navigateWithDissolve('/home', 'push');
+      return;
+    }
+
+    setIsSavingPet(true);
+
+    try {
+      const response = await clientFetch('/api/pets', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: petName.trim(),
+          imageUrl: petImage || null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('pet creation failed');
+      }
+
+      navigateWithDissolve('/home', 'push');
+    } catch (error) {
+      console.error(error);
+      setIsSavingPet(false);
+    }
+  };
+
   return (
     <>
       <style jsx>{`
@@ -614,9 +647,12 @@ export default function OnboardingStepPage({
               <div className="pointer-events-auto absolute right-0 bottom-[9%] left-0 z-20 px-6 md:bottom-[8%] md:px-8 lg:bottom-[7%] lg:px-10">
                 <Button
                   className="mx-auto w-full"
-                  onClick={() => navigateWithDissolve('/home', 'push')}
+                  disabled={isSavingPet}
+                  onClick={() => {
+                    void handleStartClick();
+                  }}
                 >
-                  시작하기
+                  {isSavingPet ? '저장 중...' : '시작하기'}
                 </Button>
               </div>
             ) : null}

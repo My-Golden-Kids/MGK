@@ -35,34 +35,34 @@ public class Pet extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String species;
 
     @Column(length = 100)
     private String image;
 
-    @Column(nullable = false)
-    private Integer age;
+    @Column
+    private Double age;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(length = 20)
     private PetSize size;
 
-    @Column(name = "walk_count", nullable = false)
+    @Column(name = "walk_count")
     private Integer walkCount;
 
-    @Column(name = "walk_time", nullable = false)
+    @Column(name = "walk_time")
     private Integer walkTime;
 
     @Column(name = "last_walk_at")
     private LocalDateTime lastWalkAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "eat_meal", nullable = false, length = 10)
+    @Column(name = "eat_meal", length = 10)
     private MealStatus eatMeal;
 
     @Builder
-    public Pet(User user, String name, String species, String image, Integer age, PetSize size,
+    public Pet(User user, String name, String species, String image, Double age, PetSize size,
                Integer walkCount, Integer walkTime, LocalDateTime lastWalkAt,
                MealStatus eatMeal) {
         this.user = user;
@@ -75,6 +75,14 @@ public class Pet extends BaseEntity {
         this.walkTime = walkTime;
         this.lastWalkAt = lastWalkAt;
         this.eatMeal = eatMeal;
+    }
+
+    public void update(String name, Double age, String species, PetSize size, String image) {
+        if (name != null && !name.isBlank()) this.name = name.trim();
+        if (age != null) this.age = age;
+        if (species != null) this.species = species;
+        if (size != null) this.size = size;
+        if (image != null) this.image = image;
     }
 
     public void addWalkRecord(Integer stepCount, Integer walkTimeSeconds, LocalDateTime walkedAt) {

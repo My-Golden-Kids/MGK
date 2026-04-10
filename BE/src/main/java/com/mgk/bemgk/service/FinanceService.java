@@ -2,7 +2,9 @@ package com.mgk.bemgk.service;
 
 import com.mgk.bemgk.dto.finance.FinanceExpenseItemResponse;
 import com.mgk.bemgk.dto.finance.FinanceExpenseSummaryResponse;
+import com.mgk.bemgk.dto.finance.FinanceDashboardResponse;
 import com.mgk.bemgk.dto.finance.CreateAccountBookRequest;
+import com.mgk.bemgk.entity.Account;
 import com.mgk.bemgk.entity.AccountBook;
 import com.mgk.bemgk.entity.User;
 import java.math.BigDecimal;
@@ -10,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
+import com.mgk.bemgk.repository.AccountRepository;
 import com.mgk.bemgk.repository.AccountBookRepository;
 import com.mgk.bemgk.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +26,21 @@ public class FinanceService {
 
     private static final String INITIAL_ACCOUNT_LINK_TITLE = "첫 계좌연결";
 
+    private final AccountRepository accountRepository;
     private final AccountBookRepository accountBookRepository;
     private final UserRepository userRepository;
+
+    @Transactional(readOnly = true)
+    public FinanceDashboardResponse getDashboard(Long userId) {
+        Account account = accountRepository.findFirstByUser_IdOrderByIdAsc(userId)
+                .orElseThrow(() -> new IllegalArgumentException("계좌 정보가 존재하지 않습니다."));
+
+        return FinanceDashboardResponse.builder()
+                .bankName(account.getBankName())
+                .accountNumber(account.getAccountNumber())
+                .balance(account.getMoneyAmount())
+                .build();
+    }
 
     public AccountBook create(Long userId, CreateAccountBookRequest request) {
         User user = userRepository.findById(userId)

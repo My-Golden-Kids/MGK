@@ -1,19 +1,193 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
+import { clientFetch } from '@/lib/auth';
 
-const summaryCards = [
-  { label: '오늘 지출', value: '58,000' },
-  { label: '10월 총 지출', value: '1,800,000' },
-  { label: '전월 대비', value: '+15%', accent: true },
-];
+type FinanceDashboardResponse = {
+  bankName: string;
+  accountNumber: string;
+  balance: number;
+};
 
-const expenseItems = [
-  { label: '식비', amount: '10,000 원', color: '#E5BD33' },
-  { label: '의료비', amount: '10,000 원', color: '#65C9C5' },
-  { label: '기타', amount: '10,000 원', color: '#DDDDDD' },
-];
+type FinanceExpenseItem = {
+  id: number;
+  title: string;
+  category: 'Food' | 'Hospital' | 'Etc';
+  amount: number;
+  memo: string | null;
+  spendDate: string;
+};
+
+type FinanceExpenseSummaryResponse = {
+  year: number;
+  month: number;
+  monthlyExpense: number;
+  todayExpense: number;
+  items: FinanceExpenseItem[];
+};
+
+type ExpenseChartItem = {
+  label: string;
+  amount: number;
+  color: string;
+};
+
+const CATEGORY_CONFIG: Record<
+  FinanceExpenseItem['category'],
+  ExpenseChartItem
+> = {
+  Food: { label: '식비', amount: 0, color: '#E5BD33' },
+  Hospital: { label: '의료비', amount: 0, color: '#65C9C5' },
+  Etc: { label: '기타', amount: 0, color: '#DDDDDD' },
+};
+
+function formatCurrency(value: number) {
+  return value.toLocaleString();
+}
+
+function buildExpenseChartItems(
+  summary: FinanceExpenseSummaryResponse | null,
+): ExpenseChartItem[] {
+  const totals = {
+    Food: 0,
+    Hospital: 0,
+    Etc: 0,
+  } satisfies Record<FinanceExpenseItem['category'], number>;
+
+  for (const item of summary?.items ?? []) {
+    totals[item.category] += item.amount;
+  }
+
+  return Object.entries(CATEGORY_CONFIG).map(([category, config]) => ({
+    ...config,
+    amount: totals[category as FinanceExpenseItem['category']],
+  }));
+}
+
+function buildChartBackground(items: ExpenseChartItem[]) {
+  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+
+  if (totalAmount <= 0) {
+    return 'conic-gradient(#DDDDDD 0deg 360deg)';
+  }
+
+  let currentDegree = 0;
+  const segments = items.map((item) => {
+    const angle = (item.amount / totalAmount) * 360;
+    const startDegree = currentDegree;
+    const endDegree = currentDegree + angle;
+    currentDegree = endDegree;
+
+    return `${item.color} ${startDegree}deg ${endDegree}deg`;
+  });
+
+  return `conic-gradient(${segments.join(',')})`;
+}
+
+function getMonthDate(baseDate: Date, offset: number) {
+  return new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
+}
 
 export default function FinancePage() {
+  const today = useMemo(() => new Date(), []);
+  const [dashboard, setDashboard] = useState<FinanceDashboardResponse | null>(
+    null,
+  );
+  const [currentSummary, setCurrentSummary] =
+    useState<FinanceExpenseSummaryResponse | null>(null);
+  const [previousSummary, setPreviousSummary] =
+    useState<FinanceExpenseSummaryResponse | null>(null);
+
+  useEffect(() => {
+    const fetchFinancePageData = async () => {
+      const currentMonth = getMonthDate(today, 0);
+      const previousMonth = getMonthDate(today, -1);
+
+      try {
+        const [
+          dashboardResponse,
+          currentSummaryResponse,
+          previousSummaryResponse,
+        ] = await Promise.all([
+          clientFetch('/api/account-books/dashboard'),
+          clientFetch(
+            `/api/account-books?year=${currentMonth.getFullYear()}&month=${
+              currentMonth.getMonth() + 1
+            }`,
+          ),
+          clientFetch(
+            `/api/account-books?year=${previousMonth.getFullYear()}&month=${
+              previousMonth.getMonth() + 1
+            }`,
+          ),
+        ]);
+
+        if (dashboardResponse.ok) {
+          const dashboardData =
+            (await dashboardResponse.json()) as FinanceDashboardResponse;
+          setDashboard(dashboardData);
+        } else {
+          setDashboard(null);
+        }
+
+        if (currentSummaryResponse.ok) {
+          const currentSummaryData =
+            (await currentSummaryResponse.json()) as FinanceExpenseSummaryResponse;
+          setCurrentSummary(currentSummaryData);
+        } else {
+          setCurrentSummary(null);
+        }
+
+        if (previousSummaryResponse.ok) {
+          const previousSummaryData =
+            (await previousSummaryResponse.json()) as FinanceExpenseSummaryResponse;
+          setPreviousSummary(previousSummaryData);
+        } else {
+          setPreviousSummary(null);
+        }
+      } catch {
+        setDashboard(null);
+        setCurrentSummary(null);
+        setPreviousSummary(null);
+      }
+    };
+
+    void fetchFinancePageData();
+  }, [today]);
+
+  const expenseItems = useMemo(
+    () => buildExpenseChartItems(currentSummary),
+    [currentSummary],
+  );
+  const chartBackground = useMemo(
+    () => buildChartBackground(expenseItems),
+    [expenseItems],
+  );
+  const previousMonthlyExpense = previousSummary?.monthlyExpense ?? 0;
+  const currentMonthlyExpense = currentSummary?.monthlyExpense ?? 0;
+  const monthlyDiffValue = currentMonthlyExpense - previousMonthlyExpense;
+  const monthlyDiffRate =
+    previousMonthlyExpense > 0
+      ? ((monthlyDiffValue / previousMonthlyExpense) * 100).toFixed(0)
+      : '0';
+  const summaryCards = [
+    {
+      label: '오늘 지출',
+      value: `${formatCurrency(currentSummary?.todayExpense ?? 0)}원`,
+    },
+    {
+      label: `${today.getMonth() + 1}월 총 지출`,
+      value: `${formatCurrency(currentMonthlyExpense)}원`,
+    },
+    {
+      label: '전월 대비',
+      value: `${monthlyDiffValue >= 0 ? '+' : ''}${monthlyDiffRate}%`,
+      accent: monthlyDiffValue > 0,
+    },
+  ];
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
       <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto p-5 md:px-7 lg:px-9">
@@ -22,10 +196,12 @@ export default function FinancePage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-bold text-[28px] text-[var(--color-main-green)] md:text-[32px] lg:text-[36px]">
-                  됄멩이 통장
+                  {dashboard?.bankName
+                    ? `${dashboard.bankName} 통장`
+                    : '내 통장'}
                 </p>
                 <p className="text-[20px] leading-none md:text-[24px] lg:text-[28px]">
-                  1999-9022-0000-0000
+                  {dashboard?.accountNumber ?? '-'}
                 </p>
               </div>
               <Link
@@ -41,7 +217,9 @@ export default function FinancePage() {
                 잔액
               </span>
               <span className="text-[28px] leading-none md:text-[32px] lg:text-[36px]">
-                <span className="font-bold">1,250,000</span>
+                <span className="font-bold">
+                  {formatCurrency(dashboard?.balance ?? 0)}
+                </span>
                 <span className="ml-1.5 md:ml-2 lg:ml-2.5">원</span>
               </span>
             </div>
@@ -84,7 +262,10 @@ export default function FinancePage() {
         </section>
 
         <section className="mt-2 rounded-[26px] border border-[var(--color-main-green)] bg-white px-10 py-3 md:mt-2.5 md:px-14 md:py-4 lg:mt-3 lg:px-18 lg:py-5">
-          <div className="mx-auto h-36 w-36 rounded-full bg-[conic-gradient(#E6B319_0deg_190deg,#3AC5BF_190deg_260deg,#B2B2B2_260deg_360deg)] md:h-40 md:w-40 lg:h-44 lg:w-44" />
+          <div
+            className="mx-auto h-36 w-36 rounded-full md:h-40 md:w-40 lg:h-44 lg:w-44"
+            style={{ background: chartBackground }}
+          />
           <div className="mt-5 md:mt-6 lg:mt-7">
             {expenseItems.map((item) => (
               <div
@@ -99,7 +280,7 @@ export default function FinancePage() {
                   />
                   <span>{item.label}</span>
                 </div>
-                <span>{item.amount}</span>
+                <span>{formatCurrency(item.amount)} 원</span>
               </div>
             ))}
           </div>
