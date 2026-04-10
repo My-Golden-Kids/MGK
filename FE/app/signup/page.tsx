@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { useEffect, useRef, useState } from 'react';
+import BackButton from '@/components/common/BackButton';
 import Modal from '@/components/common/Modal';
 import CheckboxButton from '@/components/signup/CheckboxButton';
 import InputField from '@/components/signup/InputField';
@@ -95,9 +96,14 @@ export default function Page() {
 
   return (
     <div className="relative mx-auto flex h-dvh w-full flex-1 flex-col overflow-hidden px-6.25 sm:max-w-lg md:max-w-xl">
-      <h1 className="mt-14.75 font-bold text-[28px] text-main-green sm:text-[30px]">
-        회원가입
-      </h1>
+      <div className="grid grid-cols-3 items-baseline">
+        <div className="justify-self-start">
+          <BackButton />
+        </div>
+        <h1 className="mt-14.75 justify-self-center font-bold text-[28px] text-main-green sm:text-[30px]">
+          회원가입
+        </h1>
+      </div>
       <div
         className={cn(
           'mt-7.25 flex flex-1 flex-col gap-5 overflow-y-auto',
@@ -150,7 +156,7 @@ export default function Page() {
         onClick={isTermsPhase ? handleSignup : handleConfirm}
         disabled={(isTermsPhase && !allChecked) || isLoading}
         className={cn(
-          'mb-5 w-full rounded-[10px] bg-main-green py-2.5 text-[28px] text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-300',
+          'mb-10 w-full rounded-[10px] bg-main-green py-2.5 text-[28px] text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-300',
           isTermsPhase && 'font-bold',
         )}
       >
