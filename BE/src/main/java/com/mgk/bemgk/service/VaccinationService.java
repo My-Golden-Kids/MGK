@@ -101,7 +101,7 @@ public class VaccinationService {
         Map<String, List<MedicalDocument>> grouped = vaccinationDocs.stream()
                 .collect(Collectors.groupingBy(d -> {
 					String details = d.getDetails();
-					return details == null || details.isBlank() ? "기타" : details.trim();
+					return details == null || details.isBlank() ? "기타" : normalizeDocDetails(details);
 					},
 					LinkedHashMap::new,
 					Collectors.toList()
@@ -114,7 +114,7 @@ public class VaccinationService {
 
                     // details 이름과 contains 관계인 미래 일정만 매칭
                     List<CalendarEvent> matched = futureVaccinationEvents.stream()
-                            .filter(e -> matchesVaccineName(e.getName(), details))
+                            .filter(e -> matchesVaccineName(e.getName(), e.getMemo(), details))
                             .toList();
 
                     List<VaccinationHistoryItem> pastHistory = docs.stream()
@@ -129,6 +129,7 @@ public class VaccinationService {
                     List<VaccinationHistoryItem> futureHistory = matched.stream()
                             .map(e -> VaccinationHistoryItem.builder()
                                     .date(e.getDate().toString())
+                                    .memo(e.getMemo())
                                     .completed(false)
                                     .build())
                             .toList();
@@ -165,10 +166,37 @@ public class VaccinationService {
                 .build();
     }
 
-    private boolean matchesVaccineName(String eventName, String details) {
-        String normalizedEvent = eventName.toLowerCase().trim();
-        String normalizedDetails = details.toLowerCase().trim();
-        return normalizedEvent.contains(normalizedDetails)
-                || normalizedDetails.contains(normalizedEvent);
+    private boolean matchesVaccineName(String eventName, String eventMemo, String docKey) {
+        String normalizedDoc = normalizeEventName(docKey).toLowerCase();
+        return containsMatch(normalizedDoc, normalizeEventName(eventName).toLowerCase())
+			|| containsMatch(normalizedDoc, normalizeEventName(eventMemo).toLowerCase());
+    }
+
+    private boolean containsMatch(String a, String b) {
+        if (a.isEmpty() || b.isEmpty()) return false;
+        return a.contains(b) || b.contains(a);
+    }
+
+    /** 메디컬 도큐먼트 details 정규화: '/' 기준으로 분리 후 '접종' 키워드가 있는 앞부분 반환 */
+    private String normalizeDocDetails(String details) {
+        String[] parts = details.split("/");
+        for (String part : parts) {
+            if (part.contains("접종")) {
+                return part.trim();
+            }
+        }
+        return parts[0].trim();
+    }
+
+    /** 이벤트 이름 정규화: '접종' 키워드 제거 후 trim */
+    private String normalizeEventName(String name) {
+        if (name == null) {
+			return "";
+		}
+		return name.replaceAll("예방접종|접종", "")
+			.replaceAll("\\d+차", "")
+			.replaceAll("\\(.*?\\)", "")
+			.replaceAll("\\s+", "")
+			.trim();
     }
 }

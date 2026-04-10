@@ -9,4 +9,5 @@ public class VaccinationHistoryItem {
 
     private String date;
     private boolean completed;
+    private String memo;
 }
