@@ -31,8 +31,8 @@ export default function HomePage() {
   const [showBubble, setShowBubble] = useState(true);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#FFFFFF]">
-      <main className="flex-1 px-4 pt-6 pb-4">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#FFFFFF]">
+      <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-4 pt-6 pb-4">
         <header className="mb-4 flex justify-end">
           <Link
             href="/settings"

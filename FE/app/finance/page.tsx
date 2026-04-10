@@ -15,8 +15,8 @@ const expenseItems = [
 
 export default function FinancePage() {
   return (
-    <div className="flex min-h-dvh flex-col bg-white">
-      <main className="flex-1 p-5 md:px-7 lg:px-9">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto p-5 md:px-7 lg:px-9">
         <section className="overflow-hidden rounded-[26px] border border-[var(--color-main-green)] bg-[#E5F9F8]">
           <div className="p-4 md:p-4.5 lg:p-5">
             <div className="flex items-start justify-between gap-4">
