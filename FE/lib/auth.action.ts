@@ -1,31 +1,10 @@
 'use server';
 
-import { cookies } from 'next/headers';
-import { getToken } from 'next-auth/jwt';
 import { auth } from '@/app/api/auth/[...nextauth]/route';
 import { changePasswordWithCurrentSchema } from '@/lib/validator';
 
 const BASE_URL =
   process.env.SPRING_API_URL ?? process.env.NEXT_PUBLIC_SPRING_API_URL ?? '';
-
-export async function logoutFromServer() {
-  const cookieStore = await cookies();
-  const token = await getToken({
-    req: { cookies: cookieStore } as any,
-    secret: process.env.AUTH_SECRET!,
-  });
-
-  if (token?.refreshToken) {
-    await fetch(`${BASE_URL}/api/auth/logout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: token.refreshToken }),
-    }).catch((e) => {
-      console.log('error', e);
-      // BE 호출 실패해도 FE 로그아웃은 진행
-    });
-  }
-}
 
 export async function serverFetch(path: string, init?: RequestInit) {
   const session = await auth();

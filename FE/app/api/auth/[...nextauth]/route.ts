@@ -186,6 +186,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   secret: process.env.AUTH_SECRET,
+  events: {
+    async signOut({ token }) {
+      if (!token?.refreshToken) return;
+      await fetch(
+        `${process.env.SPRING_API_URL}/api/auth/logout`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: token.refreshToken }),
+        },
+      ).catch(() => {});
+    },
+  },
 });
 
 export const { GET, POST } = handlers;

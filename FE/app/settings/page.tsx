@@ -8,7 +8,6 @@ import BackButton from "@/components/common/BackButton";
 import { BottomNavigation } from "@/components/common/BottomNavigation";
 import Modal from "@/components/common/Modal";
 import PetSettingCard from "@/components/settings/PetSettingCard";
-import { logoutFromServer } from "@/lib/auth.action";
 
 type Pet = {
   id: number;
@@ -111,9 +110,8 @@ export default function SettingsPage() {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [pets, setPets] = useState<Pet[]>(initialPets);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     setIsLogoutModalOpen(false);
-    await logoutFromServer();
     signOut({ callbackUrl: "/login" });
   };
 
