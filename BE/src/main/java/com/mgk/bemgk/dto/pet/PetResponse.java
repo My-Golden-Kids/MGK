@@ -13,6 +13,7 @@ public class PetResponse {
     private String imageUrl;
     private Double age;
     private String species;
+    private String size;
 
     public static PetResponse from(Pet pet) {
         return PetResponse.builder()
@@ -21,6 +22,7 @@ public class PetResponse {
                 .imageUrl(pet.getImage())
                 .age(pet.getAge())
                 .species(pet.getSpecies())
+                .size(pet.getSize() != null ? pet.getSize().name() : null)
                 .build();
     }
 }

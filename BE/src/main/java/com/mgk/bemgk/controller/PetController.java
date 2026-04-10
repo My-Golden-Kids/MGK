@@ -2,6 +2,7 @@ package com.mgk.bemgk.controller;
 
 import com.mgk.bemgk.dto.pet.CreatePetRequest;
 import com.mgk.bemgk.dto.pet.PetResponse;
+import com.mgk.bemgk.dto.pet.UpdatePetRequest;
 import com.mgk.bemgk.dto.pet.WalkDtos.LiveWalkResponse;
 import com.mgk.bemgk.dto.pet.WalkDtos.SaveWalkRequest;
 import com.mgk.bemgk.dto.pet.WalkDtos.WalkRecordResponse;
@@ -33,6 +34,19 @@ public class PetController {
     @GetMapping
     public List<PetResponse> getPets() {
         return petService.getPets();
+    }
+
+    @GetMapping("/{petId}")
+    public PetResponse getPet(@PathVariable Long petId) {
+        return petService.getPet(petId);
+    }
+
+    @PatchMapping("/{petId}")
+    public PetResponse updatePet(
+            @PathVariable Long petId,
+            @RequestBody UpdatePetRequest request
+    ) {
+        return petService.updatePet(petId, request);
     }
 
     @PatchMapping("/{petId}/walk")

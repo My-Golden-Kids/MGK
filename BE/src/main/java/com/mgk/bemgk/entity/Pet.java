@@ -77,6 +77,14 @@ public class Pet extends BaseEntity {
         this.eatMeal = eatMeal;
     }
 
+    public void update(String name, Double age, String species, PetSize size, String image) {
+        if (name != null && !name.isBlank()) this.name = name.trim();
+        if (age != null) this.age = age;
+        if (species != null) this.species = species;
+        if (size != null) this.size = size;
+        if (image != null) this.image = image;
+    }
+
     public void addWalkRecord(Integer stepCount, Integer walkTimeSeconds, LocalDateTime walkedAt) {
         int safeStepCount = stepCount == null ? 0 : stepCount;
         int safeWalkTimeSeconds = walkTimeSeconds == null ? 0 : walkTimeSeconds;

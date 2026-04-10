@@ -1,20 +1,15 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
-import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
-import BackButton from "@/components/common/BackButton";
-import { BottomNavigation } from "@/components/common/BottomNavigation";
-import Modal from "@/components/common/Modal";
-import PetSettingCard from "@/components/settings/PetSettingCard";
-
-type Pet = {
-  id: number;
-  name: string;
-  age: number;
-  type: string;
-};
+import { useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
+import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import BackButton from '@/components/common/BackButton';
+import { BottomNavigation } from '@/components/common/BottomNavigation';
+import Modal from '@/components/common/Modal';
+import PetSettingCard from '@/components/settings/PetSettingCard';
+import { fetchPets } from '@/features/settings/api/petSettingsApi';
+import type { PetSummary } from '@/features/settings/types/petSettings';
 
 type MenuRowProps = {
   label: string;
@@ -23,23 +18,21 @@ type MenuRowProps = {
 };
 
 const text = {
-  addPet: "+ 반려동물 추가하기",
-  alarmSetting: "알람 설정",
-  alarmOn: "켜기",
-  alarmOff: "끄기",
-  changePassword: "비밀번호 변경",
-  logout: "로그아웃",
-  withdraw: "회원탈퇴",
-  dog: "강아지",
-  cat: "고양이",
-  dogName: "댕댕이 이름",
-  catName: "고양이 이름",
+  addPet: '+ 반려동물 추가하기',
+  alarmSetting: '알람 설정',
+  alarmOn: '켜기',
+  alarmOff: '끄기',
+  changePassword: '비밀번호 변경',
+  logout: '로그아웃',
+  withdraw: '회원탈퇴',
+  dog: '강아지',
+  cat: '고양이',
 } as const;
 
-const initialPets: Pet[] = [
-  { id: 1, name: `${text.dogName} 1`, age: 3, type: text.dog },
-  { id: 2, name: `${text.catName} 2`, age: 2, type: text.cat },
-];
+const SPECIES_LABEL: Record<string, string> = {
+  dog: text.dog,
+  cat: text.cat,
+};
 
 function AlarmToggle({
   enabled,
@@ -56,14 +49,14 @@ function AlarmToggle({
       aria-label={`${text.alarmSetting} ${enabled ? text.alarmOn : text.alarmOff}`}
       onClick={onToggle}
       className={`relative inline-flex h-10 w-[6rem] cursor-pointer items-center rounded-full px-1.5 transition-colors md:h-12 md:w-[6.9rem] lg:h-13 lg:w-[7.4rem] ${
-        enabled ? "bg-[#16B364]" : "bg-[#EE3124]"
+        enabled ? 'bg-[#16B364]' : 'bg-[#EE3124]'
       }`}
     >
       <span
         className={`flex w-full items-center font-bold text-sm text-white transition-all md:text-base lg:text-lg ${
           enabled
-            ? "justify-start pl-2 sm:pl-2.5 md:pl-3"
-            : "justify-end pr-2.5 sm:pr-3 md:pr-3.5"
+            ? 'justify-start pl-2 sm:pl-2.5 md:pl-3'
+            : 'justify-end pr-2.5 sm:pr-3 md:pr-3.5'
         }`}
       >
         {enabled ? text.alarmOn : text.alarmOff}
@@ -71,8 +64,8 @@ function AlarmToggle({
       <span
         className={`absolute top-1 h-7 w-7 rounded-full bg-white shadow-sm transition-all sm:left-1.5 sm:h-8 sm:w-8 md:top-1.5 md:h-9 md:w-9 lg:h-10 lg:w-10 ${
           enabled
-            ? "left-[2.85rem] sm:left-[3.2rem] md:left-[3.8rem] lg:left-[4rem]"
-            : "left-1"
+            ? 'left-[2.85rem] sm:left-[3.2rem] md:left-[3.8rem] lg:left-[4rem]'
+            : 'left-1'
         }`}
       />
     </button>
@@ -81,7 +74,7 @@ function AlarmToggle({
 
 function MenuRow({ label, onClick, rightSlot }: MenuRowProps) {
   const labelClassName =
-    "font-medium text-[#222222] text-[1.08rem] sm:text-[1.28rem] md:text-[1.6rem] lg:text-[1.85rem]";
+    'font-medium text-[#222222] text-[1.08rem] sm:text-[1.28rem] md:text-[1.6rem] lg:text-[1.85rem]';
 
   if (onClick) {
     return (
@@ -108,18 +101,26 @@ export default function SettingsPage() {
   const router = useRouter();
   const [isAlarmEnabled, setIsAlarmEnabled] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [pets, setPets] = useState<Pet[]>(initialPets);
+  const [pets, setPets] = useState<PetSummary[]>([]);
+
+  useEffect(() => {
+    fetchPets().then((result) => {
+      if (result.ok && result.pets) {
+        setPets(result.pets);
+      }
+    });
+  }, []);
 
   const handleLogout = () => {
     setIsLogoutModalOpen(false);
-    signOut({ callbackUrl: "/login" });
+    signOut({ callbackUrl: '/login' });
   };
 
   const menuItems = useMemo(
     () => [
       {
         label: text.changePassword,
-        onClick: () => router.push("/settings/changePassword"),
+        onClick: () => router.push('/settings/changePassword'),
       },
       {
         label: text.logout,
@@ -127,29 +128,14 @@ export default function SettingsPage() {
       },
       {
         label: text.withdraw,
-        onClick: () => router.push("/settings/deleteAccount"),
+        onClick: () => router.push('/settings/deleteAccount'),
       },
     ],
     [router],
   );
 
   const handleAddPet = () => {
-    setPets((prev) => {
-      const nextId = prev.length + 1;
-      const nextType = nextId % 2 === 0 ? text.cat : text.dog;
-      const nextNameBase = nextType === text.cat ? text.catName : text.dogName;
-      const nextAge = (nextId % 5) + 1;
-
-      return [
-        ...prev,
-        {
-          id: nextId,
-          name: `${nextNameBase} ${nextId}`,
-          age: nextAge,
-          type: nextType,
-        },
-      ];
-    });
+    router.push('/settings/pets/0');
   };
 
   const handleEditPet = (petId: number) => {
@@ -181,7 +167,7 @@ export default function SettingsPage() {
 
       <main className="flex flex-1 flex-col px-5 pt-3 sm:px-6 sm:pt-4 md:px-8 md:pt-5 lg:px-10 lg:pt-6">
         <div className="pb-3 sm:pb-4 md:pb-5 lg:pb-6">
-          <BackButton onClick={() => console.log("back")} />
+          <BackButton onClick={() => console.log('back')} />
         </div>
 
         <section className="space-y-4 md:space-y-5 lg:space-y-6">
@@ -190,8 +176,12 @@ export default function SettingsPage() {
               <PetSettingCard
                 key={pet.id}
                 name={pet.name}
-                age={pet.age}
-                type={pet.type}
+                age={pet.age ?? '-'}
+                type={
+                  pet.species
+                    ? (SPECIES_LABEL[pet.species] ?? pet.species)
+                    : '-'
+                }
                 onEdit={() => handleEditPet(pet.id)}
               />
             ))}
