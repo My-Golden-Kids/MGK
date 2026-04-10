@@ -2,12 +2,17 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import HomePromptBubble from '@/components/home/HomePromptBubble';
 import SelectedPetProfile, {
   type Pet,
 } from '@/components/home/SelectedPetProfile';
+import { fetchPets } from '@/features/settings/api/petSettingsApi';
+import {
+  getStoredMedicalPetId,
+  storeSelectedPetId,
+} from '@/lib/medical-record';
 
 type SpendingData = {
   monthlyAmount: string;
@@ -15,8 +20,6 @@ type SpendingData = {
   summary: string;
   savingsHint: string;
 };
-
-const pets: Pet[] = [];
 
 const spendingData: SpendingData | null = {
   monthlyAmount: '20,000,000원',
@@ -27,8 +30,100 @@ const spendingData: SpendingData | null = {
 
 export default function HomePage() {
   const router = useRouter();
-  const [selectedPetId, setSelectedPetId] = useState<number>(1);
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
+  const [isPetsLoading, setIsPetsLoading] = useState(true);
+  const [petsErrorMessage, setPetsErrorMessage] = useState<string | null>(null);
   const [showBubble, setShowBubble] = useState(true);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadPets = async () => {
+      setIsPetsLoading(true);
+      setPetsErrorMessage(null);
+
+      const result = await fetchPets();
+
+      if (isCancelled) {
+        return;
+      }
+
+      if (!result.ok || !result.pets) {
+        setPets([]);
+        setPetsErrorMessage(
+          result.errorMessage ?? '반려동물 정보를 불러오지 못했어요.',
+        );
+        setIsPetsLoading(false);
+        return;
+      }
+
+      const nextPets = result.pets.map(({ id, name, imageUrl }) => ({
+        id,
+        name,
+        imageUrl,
+      }));
+
+      setPets(nextPets);
+      setIsPetsLoading(false);
+    };
+
+    void loadPets();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pets.length) {
+      setSelectedPetId(null);
+      return;
+    }
+
+    setSelectedPetId((currentSelectedPetId) => {
+      if (
+        currentSelectedPetId != null &&
+        pets.some((pet) => pet.id === currentSelectedPetId)
+      ) {
+        return currentSelectedPetId;
+      }
+
+      const storedPetId = getStoredMedicalPetId();
+      const storedPet = pets.find((pet) => pet.id === storedPetId);
+
+      if (storedPet) {
+        return storedPet.id;
+      }
+
+      return pets[0].id;
+    });
+  }, [pets]);
+
+  useEffect(() => {
+    if (selectedPetId == null) {
+      return;
+    }
+
+    storeSelectedPetId(selectedPetId);
+  }, [selectedPetId]);
+
+  const selectedPet = useMemo(() => {
+    if (!pets.length || selectedPetId == null) {
+      return null;
+    }
+
+    return pets.find((pet) => pet.id === selectedPetId) ?? pets[0] ?? null;
+  }, [pets, selectedPetId]);
+
+  const handleTalkClick = () => {
+    if (!selectedPet) {
+      router.push('/onboarding/7');
+      return;
+    }
+
+    router.push('/home/talk');
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#FFFFFF]">
@@ -60,15 +155,35 @@ export default function HomePage() {
             pets={pets}
             selectedPetId={selectedPetId}
             onChange={setSelectedPetId}
-            onSelectedClick={() => router.push('/home/talk')}
+            onSelectedClick={handleTalkClick}
           />
+          {selectedPet ? (
+            <p className="mt-4 text-center font-extrabold text-[28px] text-black leading-none">
+              {selectedPet.name}
+            </p>
+          ) : null}
+          {isPetsLoading ? (
+            <p className="mt-4 text-center font-medium text-[#66706D] text-[16px]">
+              반려동물 정보를 불러오는 중이에요.
+            </p>
+          ) : null}
+          {!isPetsLoading && petsErrorMessage ? (
+            <p className="mt-4 text-center font-medium text-[16px] text-red-500">
+              {petsErrorMessage}
+            </p>
+          ) : null}
+          {!isPetsLoading && !petsErrorMessage && pets.length === 0 ? (
+            <p className="mt-4 text-center font-medium text-[#66706D] text-[16px]">
+              등록된 반려동물이 없어요. 먼저 반려동물을 추가해 주세요.
+            </p>
+          ) : null}
         </section>
 
         <section className="mb-8 flex justify-center">
           <div className="flex h-[54px] w-full max-w-[330px] overflow-hidden rounded-full border-2 border-[#25C3A8] bg-white">
             <button
               type="button"
-              onClick={() => router.push('/home/talk')}
+              onClick={handleTalkClick}
               className="flex flex-1 cursor-pointer items-center justify-center bg-[#25C3A8] font-extrabold text-[18px] text-white"
             >
               말하기
