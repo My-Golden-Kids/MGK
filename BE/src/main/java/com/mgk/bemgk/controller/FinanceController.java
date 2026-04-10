@@ -32,7 +32,7 @@ public class FinanceController {
 
     @GetMapping("/dashboard")
     public FinanceDashboardResponse getDashboard() {
-        Long userId = currentUserService.getCurrentUserId();
+        Long userId = currentUserService.getCurrentUserIdOrDefault();
 
         return financeService.getDashboard(userId);
     }
@@ -42,7 +42,7 @@ public class FinanceController {
             @RequestParam int year,
             @RequestParam int month
     ) {
-        Long userId = currentUserService.getCurrentUserId();
+        Long userId = currentUserService.getCurrentUserIdOrDefault();
 
         return financeService.getMonthlyExpenses(userId, year, month);
     }
@@ -50,7 +50,7 @@ public class FinanceController {
     @DeleteMapping("/{accountBookId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long accountBookId) {
-        Long userId = currentUserService.getCurrentUserId();
+        Long userId = currentUserService.getCurrentUserIdOrDefault();
 
         financeService.delete(userId, accountBookId);
     }
@@ -58,7 +58,7 @@ public class FinanceController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public AccountBookResponse create(@RequestBody @Valid CreateAccountBookRequest request) {
-        Long userId = currentUserService.getCurrentUserId();
+        Long userId = currentUserService.getCurrentUserIdOrDefault();
 
         AccountBook accountBook = financeService.create(userId, request);
         return AccountBookResponse.from(accountBook);
