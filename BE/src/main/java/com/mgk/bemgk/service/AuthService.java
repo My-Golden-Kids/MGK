@@ -13,10 +13,12 @@ import com.mgk.bemgk.dto.auth.SignupRequest;
 import com.mgk.bemgk.entity.Account;
 import com.mgk.bemgk.entity.AccountBook;
 import com.mgk.bemgk.entity.AccountBookCategory;
+import com.mgk.bemgk.entity.RefreshToken;
 import com.mgk.bemgk.entity.User;
 import com.mgk.bemgk.entity.Verification;
 import com.mgk.bemgk.repository.AccountBookRepository;
 import com.mgk.bemgk.repository.AccountRepository;
+import com.mgk.bemgk.repository.RefreshTokenRepository;
 import com.mgk.bemgk.repository.UserRepository;
 import com.mgk.bemgk.repository.VerificationRepository;
 import java.math.BigDecimal;
@@ -38,6 +40,7 @@ public class AuthService {
 	private final UserRepository userRepository;
 	private final AccountRepository accountRepository;
 	private final VerificationRepository verificationRepository;
+	private final RefreshTokenRepository refreshTokenRepository;
 	private final JwtProvider jwtProvider;
     private final BCryptPasswordEncoder passwordEncoder;
 	private final AccountBookRepository accountBookRepository;
@@ -74,7 +77,7 @@ public class AuthService {
         return buildAuthResponse(user);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
@@ -109,19 +112,40 @@ public class AuthService {
                 .build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public RefreshResponse refreshToken(RefreshRequest request) {
         if (!jwtProvider.validateToken(request.getRefreshToken())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다.");
         }
 
-        Long userId = jwtProvider.getUserId(request.getRefreshToken());
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "존재하지 않는 유저입니다."));
+        RefreshToken stored = refreshTokenRepository.findByToken(request.getRefreshToken())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "존재하지 않는 리프레시 토큰입니다."));
+
+        if (stored.isExpired()) {
+            refreshTokenRepository.delete(stored);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "만료된 리프레시 토큰입니다.");
+        }
+
+        User user = stored.getUser();
+        refreshTokenRepository.delete(stored);
+
+        String newRefreshToken = jwtProvider.generateRefreshToken(user.getId());
+        refreshTokenRepository.save(RefreshToken.builder()
+                .user(user)
+                .token(newRefreshToken)
+                .expiresAt(jwtProvider.getExpiration(newRefreshToken))
+                .build());
 
         return RefreshResponse.builder()
                 .accessToken(jwtProvider.generateAccessToken(user.getId(), user.getEmail()))
+                .refreshToken(newRefreshToken)
                 .build();
+    }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        refreshTokenRepository.findByToken(refreshToken)
+                .ifPresent(refreshTokenRepository::delete);
     }
 
     @Transactional
@@ -133,6 +157,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다.");
         }
 
+        refreshTokenRepository.deleteAllByUser(user);
         userRepository.softDeleteByEmail(user.getEmail(), LocalDateTime.now());
     }
 
@@ -177,9 +202,18 @@ public class AuthService {
     }
 
     private AuthResponse buildAuthResponse(User user) {
+        String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
+        String refreshToken = jwtProvider.generateRefreshToken(user.getId());
+
+        refreshTokenRepository.save(RefreshToken.builder()
+                .user(user)
+                .token(refreshToken)
+                .expiresAt(jwtProvider.getExpiration(refreshToken))
+                .build());
+
         return AuthResponse.builder()
-                .accessToken(jwtProvider.generateAccessToken(user.getId(), user.getEmail()))
-                .refreshToken(jwtProvider.generateRefreshToken(user.getId()))
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .userId(user.getId())
                 .email(user.getEmail())
                 .name(user.getName())

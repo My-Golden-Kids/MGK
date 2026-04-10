@@ -19,10 +19,12 @@ import com.mgk.bemgk.dto.auth.RefreshRequest;
 import com.mgk.bemgk.dto.auth.RefreshResponse;
 import com.mgk.bemgk.dto.auth.SignupRequest;
 import com.mgk.bemgk.entity.AccountBook;
+import com.mgk.bemgk.entity.RefreshToken;
 import com.mgk.bemgk.entity.User;
 import com.mgk.bemgk.entity.Verification;
 import com.mgk.bemgk.repository.AccountBookRepository;
 import com.mgk.bemgk.repository.AccountRepository;
+import com.mgk.bemgk.repository.RefreshTokenRepository;
 import com.mgk.bemgk.repository.UserRepository;
 import com.mgk.bemgk.repository.VerificationRepository;
 import java.util.Optional;
@@ -47,10 +49,12 @@ class AuthServiceTest {
     private UserRepository userRepository;
     @Mock
     private AccountRepository accountRepository;
-	@Mock
-	private AccountBookRepository accountBookRepository;
+    @Mock
+    private AccountBookRepository accountBookRepository;
     @Mock
     private VerificationRepository verificationRepository;
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
     @Mock
     private JwtProvider jwtProvider;
     @Mock
@@ -83,7 +87,7 @@ class AuthServiceTest {
         given(userRepository.save(any(User.class))).willReturn(saved);
         given(jwtProvider.generateAccessToken(1L, "new@test.com")).willReturn("access");
         given(jwtProvider.generateRefreshToken(1L)).willReturn("refresh");
-		given(accountBookRepository.save(any())).willReturn(mock(AccountBook.class));
+        given(accountBookRepository.save(any())).willReturn(mock(AccountBook.class));
 
         AuthResponse response = authService.signup(request);
 
@@ -92,6 +96,7 @@ class AuthServiceTest {
         assertThat(response.getEmail()).isEqualTo("new@test.com");
         then(accountRepository).should().save(any());
         then(accountBookRepository).should().save(any());
+        then(refreshTokenRepository).should().save(any(RefreshToken.class));
     }
 
     @Test
@@ -132,6 +137,7 @@ class AuthServiceTest {
 
         assertThat(response.getAccessToken()).isEqualTo("access");
         assertThat(response.getEmail()).isEqualTo("test@test.com");
+        then(refreshTokenRepository).should().save(any(RefreshToken.class));
     }
 
     @Test
@@ -222,26 +228,33 @@ class AuthServiceTest {
     // ── refreshToken ───────────────────────────────────────────
 
     @Test
-    @DisplayName("refreshToken: 성공")
+    @DisplayName("refreshToken: 성공 - DB 검증 및 토큰 rotation")
     void refreshToken_success() {
+        User user = mockUser(1L, "test@test.com");
+        RefreshToken stored = mock(RefreshToken.class);
+        given(stored.isExpired()).willReturn(false);
+        given(stored.getUser()).willReturn(user);
+
         RefreshRequest request = RefreshRequest.builder()
                 .refreshToken("valid-refresh-token")
                 .build();
-        User user = mockUser(1L, "test@test.com");
 
         given(jwtProvider.validateToken("valid-refresh-token")).willReturn(true);
-        given(jwtProvider.getUserId("valid-refresh-token")).willReturn(1L);
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(refreshTokenRepository.findByToken("valid-refresh-token")).willReturn(Optional.of(stored));
+        given(jwtProvider.generateRefreshToken(1L)).willReturn("new-refresh");
         given(jwtProvider.generateAccessToken(1L, "test@test.com")).willReturn("new-access");
 
         RefreshResponse response = authService.refreshToken(request);
 
         assertThat(response.getAccessToken()).isEqualTo("new-access");
+        assertThat(response.getRefreshToken()).isEqualTo("new-refresh");
+        then(refreshTokenRepository).should().delete(stored);
+        then(refreshTokenRepository).should().save(any(RefreshToken.class));
     }
 
     @Test
-    @DisplayName("refreshToken: 유효하지 않은 토큰 시 401")
-    void refreshToken_invalidToken_throws() {
+    @DisplayName("refreshToken: JWT 서명 유효하지 않은 토큰 시 401")
+    void refreshToken_invalidJwt_throws() {
         RefreshRequest request = RefreshRequest.builder()
                 .refreshToken("invalid-token")
                 .build();
@@ -252,12 +265,72 @@ class AuthServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.UNAUTHORIZED));
+        then(refreshTokenRepository).should(never()).findByToken(any());
+    }
+
+    @Test
+    @DisplayName("refreshToken: DB에 존재하지 않는 토큰 시 401")
+    void refreshToken_notFoundInDb_throws() {
+        RefreshRequest request = RefreshRequest.builder()
+                .refreshToken("valid-but-missing-token")
+                .build();
+
+        given(jwtProvider.validateToken("valid-but-missing-token")).willReturn(true);
+        given(refreshTokenRepository.findByToken("valid-but-missing-token")).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.refreshToken(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.UNAUTHORIZED));
+    }
+
+    @Test
+    @DisplayName("refreshToken: DB에서 만료된 토큰 시 401 및 토큰 삭제")
+    void refreshToken_expiredInDb_throws() {
+        RefreshToken stored = mock(RefreshToken.class);
+        given(stored.isExpired()).willReturn(true);
+
+        RefreshRequest request = RefreshRequest.builder()
+                .refreshToken("expired-token")
+                .build();
+
+        given(jwtProvider.validateToken("expired-token")).willReturn(true);
+        given(refreshTokenRepository.findByToken("expired-token")).willReturn(Optional.of(stored));
+
+        assertThatThrownBy(() -> authService.refreshToken(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.UNAUTHORIZED));
+        then(refreshTokenRepository).should().delete(stored);
+    }
+
+    // ── logout ─────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("logout: 유효한 토큰이면 삭제")
+    void logout_validToken_deletesToken() {
+        RefreshToken stored = mock(RefreshToken.class);
+        given(refreshTokenRepository.findByToken("some-token")).willReturn(Optional.of(stored));
+
+        authService.logout("some-token");
+
+        then(refreshTokenRepository).should().delete(stored);
+    }
+
+    @Test
+    @DisplayName("logout: 존재하지 않는 토큰이면 아무것도 하지 않음")
+    void logout_missingToken_doesNothing() {
+        given(refreshTokenRepository.findByToken("ghost-token")).willReturn(Optional.empty());
+
+        authService.logout("ghost-token");
+
+        then(refreshTokenRepository).should(never()).delete(any());
     }
 
     // ── deleteAccount ──────────────────────────────────────────
 
     @Test
-    @DisplayName("deleteAccount: 성공")
+    @DisplayName("deleteAccount: 성공 - refresh token 전체 revoke 후 탈퇴")
     void deleteAccount_success() {
         User user = mockUser(1L, "test@test.com");
         DeleteAccountRequest request = new DeleteAccountRequest("Test1234!");
@@ -267,6 +340,7 @@ class AuthServiceTest {
 
         authService.deleteAccount(1L, request);
 
+        then(refreshTokenRepository).should().deleteAllByUser(user);
         then(userRepository).should().softDeleteByEmail(anyString(), any());
     }
 
@@ -323,6 +397,7 @@ class AuthServiceTest {
 
         assertThat(response.getEmail()).isEqualTo("test@test.com");
         then(verificationRepository).should().deleteByToken("valid-token");
+        then(refreshTokenRepository).should().save(any(RefreshToken.class));
     }
 
     @Test

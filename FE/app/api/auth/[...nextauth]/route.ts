@@ -160,12 +160,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!res.ok) throw new Error('refresh failed');
 
-        const { accessToken } = await res.json();
+        const { accessToken, refreshToken } = await res.json();
         token.accessToken = accessToken;
+        token.refreshToken = refreshToken;
         token.accessTokenExpiry = Date.now() + 3600000 - 60_000;
       } catch {
         // refresh 실패 → 세션 무효화 (다음 auth() 호출 시 null 반환)
-        return { ...token, error: 'RefreshTokenError' };
+        return { ...token, error: 'RefreshTokenError' as const };
       }
 
       return token;
@@ -179,7 +180,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       };
       if (token.error === 'RefreshTokenError') {
         // 클라이언트에서 useSession()으로 에러 감지 후 로그아웃 처리 가능
-        (session as any).error = 'RefreshTokenError';
+        session.error = 'RefreshTokenError';
       }
       return session;
     },

@@ -8,5 +8,6 @@ import lombok.Getter;
 public class RefreshResponse {
 
     private String accessToken;
+    private String refreshToken;
 }
 

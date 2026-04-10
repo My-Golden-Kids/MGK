@@ -4,6 +4,7 @@ import type { JWT as DefaultJWT } from 'next-auth/jwt';
 declare module 'next-auth' {
   interface Session {
     accessToken: string;
+    error?: 'RefreshTokenError';
     user: DefaultSession['user'];
   }
 
@@ -19,5 +20,7 @@ declare module 'next-auth/jwt' {
     accessToken: string;
     refreshToken: string;
     userId: string;
+    accessTokenExpiry: number;
+    error?: 'RefreshTokenError';
   }
 }

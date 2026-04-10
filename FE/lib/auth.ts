@@ -9,7 +9,7 @@ const BASE_URL =
 export async function clientFetch(path: string, init?: RequestInit) {
   const session = await getSession();
 
-  if ((session as any)?.error === 'RefreshTokenError') {
+  if (session?.error === 'RefreshTokenError') {
     await signOut({ callbackUrl: '/login' });
     return new Response(null, { status: 401 });
   }

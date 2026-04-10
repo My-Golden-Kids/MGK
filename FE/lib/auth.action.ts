@@ -1,10 +1,31 @@
 'use server';
 
+import { cookies } from 'next/headers';
+import { getToken } from 'next-auth/jwt';
 import { auth } from '@/app/api/auth/[...nextauth]/route';
 import { changePasswordWithCurrentSchema } from '@/lib/validator';
 
 const BASE_URL =
   process.env.SPRING_API_URL ?? process.env.NEXT_PUBLIC_SPRING_API_URL ?? '';
+
+export async function logoutFromServer() {
+  const cookieStore = await cookies();
+  const token = await getToken({
+    req: { cookies: cookieStore } as any,
+    secret: process.env.AUTH_SECRET!,
+  });
+
+  if (token?.refreshToken) {
+    await fetch(`${BASE_URL}/api/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: token.refreshToken }),
+    }).catch((e) => {
+      console.log('error', e);
+      // BE 호출 실패해도 FE 로그아웃은 진행
+    });
+  }
+}
 
 export async function serverFetch(path: string, init?: RequestInit) {
   const session = await auth();
@@ -29,7 +50,9 @@ interface ChangePasswordWithCurrentParams {
 
 interface ChangePasswordWithCurrentResult {
   ok: boolean;
-  fieldErrors?: Partial<Record<'currentPassword' | 'newPassword' | 'passwordConfirm', string>>;
+  fieldErrors?: Partial<
+    Record<'currentPassword' | 'newPassword' | 'passwordConfirm', string>
+  >;
   errorMessage?: string;
 }
 
@@ -59,11 +82,17 @@ export async function changePasswordWithCurrent({
   });
 
   if (res.status === 401) {
-    return { ok: false, fieldErrors: { currentPassword: '현재 비밀번호가 일치하지 않습니다.' } };
+    return {
+      ok: false,
+      fieldErrors: { currentPassword: '현재 비밀번호가 일치하지 않습니다.' },
+    };
   }
 
   if (!res.ok) {
-    return { ok: false, errorMessage: '비밀번호 변경에 실패했습니다. 다시 시도해주세요.' };
+    return {
+      ok: false,
+      errorMessage: '비밀번호 변경에 실패했습니다. 다시 시도해주세요.',
+    };
   }
 
   return { ok: true };
