@@ -2,6 +2,7 @@ package com.mgk.bemgk.controller;
 
 import com.mgk.bemgk.dto.finance.AccountBookResponse;
 import com.mgk.bemgk.dto.finance.CreateAccountBookRequest;
+import com.mgk.bemgk.dto.finance.FinanceDashboardResponse;
 import com.mgk.bemgk.dto.finance.FinanceExpenseSummaryResponse;
 import com.mgk.bemgk.entity.AccountBook;
 import com.mgk.bemgk.service.CurrentUserService;
@@ -28,6 +29,13 @@ public class FinanceController {
 
     private final FinanceService financeService;
     private final CurrentUserService currentUserService;
+
+    @GetMapping("/dashboard")
+    public FinanceDashboardResponse getDashboard() {
+        Long userId = currentUserService.getCurrentUserIdOrDefault();
+
+        return financeService.getDashboard(userId);
+    }
 
     @GetMapping
     public FinanceExpenseSummaryResponse getMonthlyExpenses(
