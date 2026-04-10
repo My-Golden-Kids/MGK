@@ -42,7 +42,7 @@ public class Pet extends BaseEntity {
     private String image;
 
     @Column(nullable = false)
-    private Integer age;
+    private double age;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -62,7 +62,7 @@ public class Pet extends BaseEntity {
     private MealStatus eatMeal;
 
     @Builder
-    public Pet(User user, String name, String species, String image, Integer age, PetSize size,
+    public Pet(User user, String name, String species, String image, double age, PetSize size,
                Integer walkCount, Integer walkTime, LocalDateTime lastWalkAt,
                MealStatus eatMeal) {
         this.user = user;

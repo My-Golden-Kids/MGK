@@ -11,7 +11,7 @@ public class PetResponse {
     private Long id;
     private String name;
     private String imageUrl;
-    private Integer age;
+    private double age;
     private String species;
 
     public static PetResponse from(Pet pet) {
