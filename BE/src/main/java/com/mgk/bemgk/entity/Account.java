@@ -55,4 +55,11 @@ public class Account extends BaseEntity {
         this.rewardAmount = rewardAmount;
         this.totalAmount = totalAmount;
     }
+
+    public void addRewardAmount(BigDecimal amount) {
+        BigDecimal safeAmount = amount == null ? BigDecimal.ZERO : amount;
+
+        this.rewardAmount = (this.rewardAmount == null ? BigDecimal.ZERO : this.rewardAmount).add(safeAmount);
+        this.totalAmount = (this.totalAmount == null ? BigDecimal.ZERO : this.totalAmount).add(safeAmount);
+    }
 }

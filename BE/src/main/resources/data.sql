@@ -51,3 +51,30 @@ VALUES
     ('하나 펫사랑보험', 'INSURANCE', '반려동물 의료비 보장을 제공하는 보험 상품', 'https://www.hanabank.com', NULL, 100000, NULL, 20, 'YEAR', '병원', 'ACCOUNT_BOOK', true, NOW(), NOW()),
     ('하나 펫카드', 'CARD', '병원 및 쇼핑 혜택을 제공하는 카드 상품', 'https://www.hanacard.co.kr', 10.00, NULL, 40000, NULL, 'MONTH', '병원,쇼핑', 'ACCOUNT_BOOK', true, NOW(), NOW()),
     ('하나 펫적금', 'SAVINGS', '반려동물을 위한 적금 상품', 'https://www.hanabank.com', 2.80, NULL, NULL, NULL, NULL, NULL, 'ACCOUNT', true, NOW(), NOW());
+
+-- 산책 기록 테이블 통합: 완료 기록은 pet_walk_records 하나만 사용
+UPDATE pet_walk_records
+SET started_at = COALESCE(started_at, created_at, walked_at, NOW())
+WHERE started_at IS NULL;
+
+UPDATE pet_walk_records
+SET completed = TRUE
+WHERE completed IS NULL;
+
+UPDATE pet_walk_records
+SET ended_at = COALESCE(ended_at, updated_at, walked_at, NOW())
+WHERE completed = TRUE AND ended_at IS NULL;
+
+UPDATE pet_walk_records
+SET status = 'COMPLETED'
+WHERE status IS NULL OR status = '';
+
+UPDATE pet_walk_records
+SET created_at = started_at
+WHERE started_at IS NOT NULL;
+
+UPDATE pet_walk_records
+SET updated_at = ended_at
+WHERE completed = TRUE AND ended_at IS NOT NULL;
+
+DROP TABLE IF EXISTS pet_walk_syncs;

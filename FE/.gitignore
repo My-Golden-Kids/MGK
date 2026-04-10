@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+public/images/health/records/*
 
 # debug
 npm-debug.log*

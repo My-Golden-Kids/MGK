@@ -76,4 +76,13 @@ public class Pet extends BaseEntity {
         this.lastWalkAt = lastWalkAt;
         this.eatMeal = eatMeal;
     }
+
+    public void addWalkRecord(Integer stepCount, Integer walkTimeSeconds, LocalDateTime walkedAt) {
+        int safeStepCount = stepCount == null ? 0 : stepCount;
+        int safeWalkTimeSeconds = walkTimeSeconds == null ? 0 : walkTimeSeconds;
+
+        this.walkCount = (this.walkCount == null ? 0 : this.walkCount) + safeStepCount;
+        this.walkTime = (this.walkTime == null ? 0 : this.walkTime) + safeWalkTimeSeconds;
+        this.lastWalkAt = walkedAt == null ? LocalDateTime.now() : walkedAt;
+    }
 }
