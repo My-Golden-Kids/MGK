@@ -165,8 +165,8 @@ export default function AddExpensePage() {
   };
 
   return (
-    <div className="relative flex min-h-dvh flex-col bg-white text-[#27312D] overflow-hidden">
-      <main className="flex-1 p-10">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white text-[#27312D]">
+      <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-10 pt-10 pb-8">
         <div className="relative mb-8 flex items-center justify-center">
           <h1 className="text-center text-[28px] leading-none sm:text-[28px] md:text-[34px] lg:text-[40px]">
             지출 추가하기
