@@ -1,30 +1,33 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import SpeechRecognition, {
   useSpeechRecognition,
-} from 'react-speech-recognition';
+} from "react-speech-recognition";
 
-import TalkBubble from '@/components/home/talk/TalkBubble';
-import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
-import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
+import TalkBubble from "@/components/home/talk/TalkBubble";
+import TalkChoiceButtons from "@/components/home/talk/TalkChoiceButtons";
+import OnboardingBackground from "@/components/onboarding/OnboardingBackground";
+import { fetchPet } from "@/features/settings/api/petSettingsApi";
+import { getStoredMedicalPetId } from "@/lib/medical-record";
 
-const DEFAULT_MESSAGE = '무엇이 궁금하신가요?';
-const CONFIRM_MESSAGE = '통장 화면으로 이동할까요?';
-const API_BASE_URL = 'http://localhost:8080';
+const DEFAULT_MESSAGE = "무엇이 궁금하신가요?";
+const CONFIRM_MESSAGE = "통장 화면으로 이동할까요?";
+const API_BASE_URL = "http://localhost:8080";
 const MAX_REQUEST_TRANSCRIPT_LENGTH = 60;
-const PREPARING_MESSAGE = '답변을 준비하고 있어요.';
-const REQUEST_ERROR_MESSAGE = '답변을 불러오지 못했어요.';
+const PREPARING_MESSAGE = "답변을 준비하고 있어요.";
+const REQUEST_ERROR_MESSAGE = "답변을 불러오지 못했어요.";
+const DEFAULT_PET_NAME = "별송이";
 
 function buildRequestTranscript(transcript: string) {
   const normalizedTranscript = transcript
-    .replace(/\s+/g, ' ')
-    .replace(/[.?!]+/g, '.')
+    .replace(/\s+/g, " ")
+    .replace(/[.?!]+/g, ".")
     .trim();
 
   if (!normalizedTranscript) {
-    return '';
+    return "";
   }
 
   const segments = normalizedTranscript
@@ -40,14 +43,18 @@ function buildRequestTranscript(transcript: string) {
 
 export default function HomeTalkPage() {
   const router = useRouter();
-  const lastSpokenBubbleMessageRef = useRef('');
+  const lastSpokenBubbleMessageRef = useRef("");
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [shouldSubmit, setShouldSubmit] = useState(false);
   const [showMoveConfirm, setShowMoveConfirm] = useState(false);
-  const [assistantMessage, setAssistantMessage] = useState('');
-  const [requestedTranscript, setRequestedTranscript] = useState('');
+  const [assistantMessage, setAssistantMessage] = useState("");
+  const [requestedTranscript, setRequestedTranscript] = useState("");
+  const [selectedPetName, setSelectedPetName] = useState(DEFAULT_PET_NAME);
+  const [selectedPetImageUrl, setSelectedPetImageUrl] = useState<
+    string | undefined
+  >(undefined);
   const {
     transcript,
     resetTranscript,
@@ -60,6 +67,32 @@ export default function HomeTalkPage() {
   }, []);
 
   useEffect(() => {
+    let isCancelled = false;
+
+    const loadSelectedPet = async () => {
+      const petId = getStoredMedicalPetId();
+      const result = await fetchPet(petId);
+
+      if (isCancelled) {
+        return;
+      }
+
+      setSelectedPetName(
+        result.ok ? (result.pet?.name ?? DEFAULT_PET_NAME) : DEFAULT_PET_NAME,
+      );
+      setSelectedPetImageUrl(
+        result.ok ? (result.pet?.imageUrl ?? undefined) : undefined,
+      );
+    };
+
+    void loadSelectedPet();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     return () => {
       SpeechRecognition.stopListening();
       window.speechSynthesis?.cancel();
@@ -67,15 +100,15 @@ export default function HomeTalkPage() {
   }, []);
 
   useEffect(() => {
-    const normalizedTranscript = transcript.replaceAll(' ', '');
+    const normalizedTranscript = transcript.replaceAll(" ", "");
 
     if (showMoveConfirm || !normalizedTranscript) {
       return;
     }
 
     const shouldMoveFinance =
-      normalizedTranscript.includes('통장') ||
-      normalizedTranscript.includes('잔고');
+      normalizedTranscript.includes("통장") ||
+      normalizedTranscript.includes("잔고");
 
     if (!shouldMoveFinance) {
       return;
@@ -106,9 +139,9 @@ export default function HomeTalkPage() {
         setAssistantMessage(PREPARING_MESSAGE);
 
         const response = await fetch(`${API_BASE_URL}/api/talk`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             transcript: requestTranscript,
@@ -150,15 +183,15 @@ export default function HomeTalkPage() {
 
     resetTranscript();
     setShowMoveConfirm(false);
-    setAssistantMessage('');
+    setAssistantMessage("");
     setShouldSubmit(false);
-    setRequestedTranscript('');
+    setRequestedTranscript("");
     setIsRecording(true);
     window.speechSynthesis?.cancel();
 
     await SpeechRecognition.startListening({
       continuous: false,
-      language: 'ko-KR',
+      language: "ko-KR",
     });
   };
 
@@ -191,17 +224,21 @@ export default function HomeTalkPage() {
       ? showMoveConfirm
         ? CONFIRM_MESSAGE
         : isRequesting
-          ? '답변을 준비하고 있어요.'
+          ? "답변을 준비하고 있어요."
           : assistantMessage || DEFAULT_MESSAGE
-      : '이 기기에서는 음성 인식을 사용할 수 없어요.';
+      : "이 기기에서는 음성 인식을 사용할 수 없어요.";
   const speechBubbleMessage = transcript.trim();
   const instructionMessage = showMoveConfirm
     ? undefined
     : !speechBubbleMessage
       ? listening || isRecording
-        ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
-        : '별송이를 한 번 눌러\n말씀해보세요.'
+        ? "듣고 있어요.\n한 번 더 누르면 멈춰요."
+        : `${selectedPetName}를 한 번 눌러\n말씀해보세요.`
       : undefined;
+  const recordingButtonLabel =
+    isRecording || listening
+      ? `${selectedPetName}를 눌러 음성 입력 종료`
+      : `${selectedPetName}를 눌러 음성 입력 시작`;
 
   useEffect(() => {
     if (
@@ -220,15 +257,15 @@ export default function HomeTalkPage() {
     }
 
     const utterance = new SpeechSynthesisUtterance(
-      bubbleMessage.replaceAll('\n', ' '),
+      bubbleMessage.replaceAll("\n", " "),
     );
-    utterance.lang = 'ko-KR';
+    utterance.lang = "ko-KR";
     utterance.rate = 0.95;
     utterance.pitch = 1;
 
     const availableVoices = speechSynthesis.getVoices();
     const koreanVoice = availableVoices.find((voice) =>
-      voice.lang.toLowerCase().startsWith('ko'),
+      voice.lang.toLowerCase().startsWith("ko"),
     );
 
     if (koreanVoice) {
@@ -243,6 +280,7 @@ export default function HomeTalkPage() {
   return (
     <OnboardingBackground
       bubbleMessage={bubbleMessage}
+      centerImageUrl={selectedPetImageUrl}
       instructionMessage={instructionMessage}
     >
       <div className="pointer-events-none relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
@@ -253,11 +291,7 @@ export default function HomeTalkPage() {
           }}
           onContextMenu={(event) => event.preventDefault()}
           className="-translate-x-1/2 -translate-y-1/2 pointer-events-auto absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] rounded-full bg-transparent md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px]"
-          aria-label={
-            isRecording || listening
-              ? '별송이를 눌러 음성 입력 종료'
-              : '별송이를 눌러 음성 입력 시작'
-          }
+          aria-label={recordingButtonLabel}
         />
 
         {!showMoveConfirm && speechBubbleMessage ? (
@@ -275,10 +309,10 @@ export default function HomeTalkPage() {
         {showMoveConfirm ? (
           <div className="pointer-events-auto absolute right-0 bottom-[18%] left-0 z-20">
             <TalkChoiceButtons
-              onYesClick={() => router.push('/finance')}
+              onYesClick={() => router.push("/finance")}
               onNoClick={() => {
                 setShowMoveConfirm(false);
-                setAssistantMessage('');
+                setAssistantMessage("");
                 resetTranscript();
               }}
             />
