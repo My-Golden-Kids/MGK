@@ -12,6 +12,34 @@ import org.springframework.data.repository.query.Param;
 public interface AccountBookRepository extends JpaRepository<AccountBook, Long> {
 
     @Query("""
+            select coalesce(sum(a.amount), 0)
+            from AccountBook a
+            where a.user.id = :userId
+              and a.pet is not null
+            """)
+    BigDecimal sumPetExpenseByUserId(@Param("userId") Long userId);
+
+    @Query("""
+            select min(a.spendDate)
+            from AccountBook a
+            where a.user.id = :userId
+              and a.pet is not null
+        """)
+    LocalDate findFirstPetSpendDateByUserId(@Param("userId") Long userId);
+
+    @Query("""
+            select coalesce(sum(a.amount), 0)
+            from AccountBook a
+            where a.user.id = :userId
+              and a.pet is not null
+              and a.spendDate >= :startDate
+        """)
+    BigDecimal sumPetExpenseLastYear(
+        @Param("userId") Long userId,
+        @Param("startDate") LocalDate startDate
+    );
+
+    @Query("""
             select a
             from AccountBook a
             where a.user.id = :userId
