@@ -36,7 +36,7 @@ public class PetService {
     private final CurrentUserService currentUserService;
 
     public List<PetResponse> getPets() {
-        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        Long userId = currentUserService.getCurrentUserId();
 
         return petRepository.findByUser_Id(userId).stream()
                 .map(PetResponse::from)
@@ -45,7 +45,7 @@ public class PetService {
 
     @Transactional
     public PetResponse createPet(CreatePetRequest request) {
-        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        Long userId = currentUserService.getCurrentUserId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         Pet pet = Pet.builder()
@@ -66,7 +66,7 @@ public class PetService {
 
     @Transactional
     public WalkResponse saveWalk(Long petId, SaveWalkRequest request) {
-        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        Long userId = currentUserService.getCurrentUserId();
         Pet pet = findOwnedPet(petId, userId);
         LocalDateTime walkedAt = resolveWalkedAt(request);
         String source = resolveSource(request);
@@ -111,7 +111,7 @@ public class PetService {
     }
 
     public LiveWalkResponse getLiveWalk(Long petId) {
-        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        Long userId = currentUserService.getCurrentUserId();
         Pet pet = findOwnedPet(petId, userId);
 
         LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
@@ -137,7 +137,7 @@ public class PetService {
     }
 
     public List<WalkRecordResponse> getWalkRecords(Long petId) {
-        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        Long userId = currentUserService.getCurrentUserId();
         Pet pet = findOwnedPet(petId, userId);
 
         return petWalkRecordRepository.findAllByPet_IdAndCompletedTrueOrderByWalkedAtDesc(pet.getId()).stream()
