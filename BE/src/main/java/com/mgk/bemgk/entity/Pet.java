@@ -35,34 +35,34 @@ public class Pet extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String species;
 
     @Column(length = 100)
     private String image;
 
-    @Column(nullable = false)
-    private double age;
+    @Column
+    private Double age;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(length = 20)
     private PetSize size;
 
-    @Column(name = "walk_count", nullable = false)
+    @Column(name = "walk_count")
     private Integer walkCount;
 
-    @Column(name = "walk_time", nullable = false)
+    @Column(name = "walk_time")
     private Integer walkTime;
 
     @Column(name = "last_walk_at")
     private LocalDateTime lastWalkAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "eat_meal", nullable = false, length = 10)
+    @Column(name = "eat_meal", length = 10)
     private MealStatus eatMeal;
 
     @Builder
-    public Pet(User user, String name, String species, String image, double age, PetSize size,
+    public Pet(User user, String name, String species, String image, Double age, PetSize size,
                Integer walkCount, Integer walkTime, LocalDateTime lastWalkAt,
                MealStatus eatMeal) {
         this.user = user;

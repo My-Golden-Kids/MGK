@@ -3,6 +3,14 @@ TRUNCATE TABLE users;
 TRUNCATE TABLE products;
 SET FOREIGN_KEY_CHECKS = 1;
 
+    -- pet nullable 평탄화 프로세스
+ALTER TABLE pets MODIFY COLUMN species VARCHAR(100) NULL;
+ALTER TABLE pets MODIFY COLUMN age DOUBLE NULL;
+ALTER TABLE pets MODIFY COLUMN size ENUM('대형','소형','중형') NULL;
+ALTER TABLE pets MODIFY COLUMN walk_count INT NULL;
+ALTER TABLE pets MODIFY COLUMN walk_time INT NULL;
+ALTER TABLE pets MODIFY COLUMN eat_meal ENUM('NO','YES') NULL;
+
 -- 이메일 resend 확인용 기본 사용자 seed 데이터
 INSERT IGNORE INTO users
 (name, email, password, email_verified_at, deleted_at, created_at, updated_at)

@@ -1,5 +1,6 @@
 package com.mgk.bemgk.service;
 
+import com.mgk.bemgk.dto.pet.CreatePetRequest;
 import com.mgk.bemgk.dto.pet.PetResponse;
 import com.mgk.bemgk.dto.pet.WalkDtos.LiveWalkResponse;
 import com.mgk.bemgk.dto.pet.WalkDtos.SaveWalkRequest;
@@ -7,9 +8,11 @@ import com.mgk.bemgk.dto.pet.WalkDtos.WalkRecordResponse;
 import com.mgk.bemgk.dto.pet.WalkDtos.WalkResponse;
 import com.mgk.bemgk.entity.Pet;
 import com.mgk.bemgk.entity.PetWalkRecord;
+import com.mgk.bemgk.entity.User;
 import com.mgk.bemgk.repository.AccountRepository;
 import com.mgk.bemgk.repository.PetRepository;
 import com.mgk.bemgk.repository.PetWalkRecordRepository;
+import com.mgk.bemgk.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -29,12 +32,36 @@ public class PetService {
     private final PetRepository petRepository;
     private final PetWalkRecordRepository petWalkRecordRepository;
     private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
 
     public List<PetResponse> getPets() {
-        return petRepository.findAll().stream()
+        Long userId = currentUserService.getCurrentUserIdOrDefault();
+
+        return petRepository.findByUser_Id(userId).stream()
                 .map(PetResponse::from)
                 .toList();
+    }
+
+    @Transactional
+    public PetResponse createPet(CreatePetRequest request) {
+        Long userId = currentUserService.getCurrentUserIdOrDefault();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        Pet pet = Pet.builder()
+                .user(user)
+                .name(request.name().trim())
+                .image(request.imageUrl())
+                .species(null)
+                .age(null)
+                .size(null)
+                .walkCount(null)
+                .walkTime(null)
+                .lastWalkAt(null)
+                .eatMeal(null)
+                .build();
+
+        return PetResponse.from(petRepository.save(pet));
     }
 
     @Transactional
