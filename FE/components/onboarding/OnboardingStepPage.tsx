@@ -20,6 +20,7 @@ import {
   RETRY_PET_NAME_MESSAGE,
   SKIP_PHOTO_CHAT_GUIDE_MESSAGE,
 } from '@/components/onboarding/onboardingSteps';
+import { clientFetch } from '@/lib/auth';
 
 type OnboardingStepPageProps = {
   stepNumber: number;
@@ -36,9 +37,6 @@ const DISSOLVE_DURATION_MS = 0;
 const TTS_AUTO_ADVANCE_DELAY_MS = 700;
 const ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY = 'onboarding-internal-entry';
 const TTS_UNLOCKED_SESSION_KEY = 'mgk-onboarding-tts-unlocked';
-const SPRING_API_BASE_URL =
-  process.env.NEXT_PUBLIC_SPRING_API_URL ?? 'http://localhost:8080';
-
 function HandHint() {
   return (
     <div className="pointer-events-none absolute top-[55%] left-[40%] z-40 h-[96px] w-[96px] translate-x-[48px] md:h-[112px] md:w-[112px] md:translate-x-[56px] lg:h-[128px] lg:w-[128px] lg:translate-x-[64px]">
@@ -572,11 +570,8 @@ export default function OnboardingStepPage({
     setIsSavingPet(true);
 
     try {
-      const response = await fetch(`${SPRING_API_BASE_URL}/api/pets`, {
+      const response = await clientFetch('/api/pets', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           name: petName.trim(),
           imageUrl: petImage || null,

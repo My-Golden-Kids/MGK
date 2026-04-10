@@ -6,12 +6,24 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @Service
 @RequiredArgsConstructor
 public class CurrentUserService {
 
     private final UserRepository userRepository;
+
+    public Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.getPrincipal() instanceof Long userId) {
+            return userId;
+        }
+
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+    }
 
     public Long getCurrentUserIdOrDefault() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
