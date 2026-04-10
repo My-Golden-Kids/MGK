@@ -23,6 +23,7 @@
 - 실제로 백엔드와 왕복하는 영역
   - 회원가입/로그인/토큰 갱신/비밀번호 재설정
   - 홈 재진입 온보딩의 반려동물 생성
+  - 설정 화면의 반려동물 목록 조회/상세 조회/생성/수정
   - 의료 영수증 OCR
   - 의료 기록 저장/조회
   - 예방접종 캘린더/요약 조회 및 일정 추가
@@ -34,7 +35,7 @@
   - 홈 화면의 반려동물 카드와 소비 요약
   - 금융 메인 대시보드와 리포트 화면
   - 금융 리포트 백엔드 계산층은 생겼지만 공개 API/FE 연결은 아직 없다.
-  - 설정의 반려동물 목록/수정
+  - 설정의 알람 토글
   - 일부 네비게이션/버튼 라우팅
 
 ## 2. 저장소 구조
@@ -87,6 +88,7 @@
   - FE의 `app/api/auth/*` route가 Resend와 Spring Auth API를 중개
 - 이미지 업로드
   - 반려동물 사진과 의료 이미지 파일 저장은 FE의 Next route가 `public/images/...` 아래에 로컬 저장
+  - `FE/.gitignore`가 `public/images/pet/*`, `public/images/health/records/*`를 제외하므로 런타임 업로드 이미지는 저장소에 커밋되지 않는 로컬 산출물이다.
 - OCR
   - 실제 OCR 인식은 FE가 Spring `/api/medical-records/ocr`로 파일을 보내 Google Vision에서 수행
 
@@ -185,6 +187,7 @@
 - 온보딩은 이제 “로그인 전 소개”와 “로그인 후 반려동물 생성”이 섞인 구조다.
 - 반려동물 생성 자체는 실제 DB 저장과 연결됐다.
 - 다만 생성 시 저장되는 값은 이름과 이미지뿐이라 `species`, `age`, `size`, 식사 상태, 산책 누적값은 모두 `null`로 시작한다.
+- 같은 `POST /api/pets` 엔드포인트를 설정 화면에서는 `age`, `species`, `size`까지 채운 풀 입력 생성에도 재사용한다.
 - 저장 성공 후 `/home`으로 돌아가지만, 홈 화면 자체는 아직 `GET /api/pets`를 쓰지 않아서 새 반려동물이 바로 화면에 보이지는 않는다.
 
 ### 4.6 홈
@@ -327,18 +330,26 @@
 
 - `/settings`
   - 반려동물 목록, 알림 토글, 비밀번호 변경, 로그아웃, 탈퇴
+  - 진입 시 `fetchPets()`가 `GET /api/pets`를 호출해 현재 사용자 반려동물 목록을 받아온다.
+  - 각 카드의 수정 버튼은 `/settings/pets/{petId}`로 이동한다.
+  - `+ 반려동물 추가하기`는 `/settings/pets/0`으로 이동시키며, 여기서 `0`은 신규 생성 모드 sentinel 값이다.
 - `/settings/changePassword`
   - 실제 API 연결
 - `/settings/deleteAccount`
   - 실제 API 연결
 - `/settings/pets/[petId]`
-  - 편집 UI는 있으나 저장은 `console.log`만 한다.
+  - `petId === 0`이면 신규 생성, 아니면 기존 반려동물 수정 모드다.
+  - 수정 모드에서는 `fetchPet()`이 `GET /api/pets/{petId}`를 호출해 폼을 prefill한다.
+  - 이미지 선택 시 즉시 FE `/api/pet-upload`로 업로드하고 미리보기를 갱신한다.
+  - 저장 시 `createPet()` 또는 `updatePet()`이 각각 `POST /api/pets`, `PATCH /api/pets/{petId}`를 호출한다.
+  - 프론트 폼 값은 `name`, `age`, `species`, `size`, `imageUrl`이다.
 
 현재 상태:
 
-- 반려동물 목록은 하드코딩
+- 반려동물 목록과 상세/생성/수정은 이제 실제 API와 연결됐다.
 - 알림 토글은 로컬 state만 변경
-- 편집 페이지는 백엔드 미연결
+- 반려동물 삭제 기능은 아직 없다.
+- 에러 표시는 최소 수준이고, 저장 함수도 성공 여부 판정 전에 `router.back()`을 호출하는 구조라 UX가 거칠다.
 
 ### 4.12 프론트의 로컬 저장 전략
 
@@ -468,6 +479,8 @@
 
 - `POST /api/pets`
 - `GET /api/pets`
+- `GET /api/pets/{petId}`
+- `PATCH /api/pets/{petId}`
 - `PATCH /api/pets/{petId}/walk`
 - `GET /api/pets/{petId}/walk/live`
 - `GET /api/pets/{petId}/walk-records`
@@ -480,16 +493,31 @@
 - `PetWalkRecord`
   - 소스, 현재 걸음수, 산책시간, 거리, 보상, 완료 여부, 상태, 시작/종료 시각
 
-반려동물 생성/조회 방식:
+반려동물 생성/조회/수정 방식:
 
 - `CreatePetRequest`
-  - 현재는 `name`, `imageUrl`만 받는다.
+  - `name`, `imageUrl`, `age`, `species`, `size`
+  - 온보딩은 이 중 `name`, `imageUrl`만 보내고, 설정 화면은 나머지 필드까지 채워 보낸다.
+- `UpdatePetRequest`
+  - `name`, `age`, `species`, `size`, `imageUrl`
+  - 전부 optional이라 PATCH 성격으로 동작한다.
 - `PetService.createPet()`
   - 현재 인증 사용자(`getCurrentUserId`)를 조회한다.
+  - `size` 문자열을 `PetSize.valueOf()`로 enum 변환한다.
+  - 잘못된 `size` 값은 `400 Bad Request`로 처리한다.
   - `Pet`를 생성해 저장한다.
-  - 이때 `species`, `age`, `size`, `walkCount`, `walkTime`, `lastWalkAt`, `eatMeal`은 `null`로 둔다.
+  - 설정 화면을 거치면 `species`, `age`, `size`도 함께 저장되고, 온보딩 생성일 때만 이 값들이 `null`로 남는다.
+- `PetService.getPet()`
+  - `findOwnedPet()`로 소유권을 확인한 뒤 단건 조회한다.
+- `PetService.updatePet()`
+  - `findOwnedPet()`로 소유권을 확인한다.
+  - 엔티티 메서드 `pet.update(...)`를 호출하고 트랜잭션 dirty checking으로 반영한다.
+  - `size` 파싱 실패 시 예외를 던지지 않고 값을 무시한다.
+- `Pet.update()`
+  - `name`은 null/blank가 아닐 때만 trim 후 반영한다.
+  - `age`, `species`, `size`, `image`는 null이 아닐 때만 갱신한다.
 - `PetResponse`
-  - `id`, `name`, `imageUrl`, `age`, `species`를 반환한다.
+  - `id`, `name`, `imageUrl`, `age`, `species`, `size`를 반환한다.
 - `PetService.getPets()`
   - 더 이상 전체 목록이 아니라 `petRepository.findByUser_Id(userId)`로 현재 사용자 반려동물만 반환한다.
 - `findOwnedPet()`
@@ -620,6 +648,8 @@ OCR 처리:
 
 - 회원가입/로그인/매직링크/비밀번호 변경/탈퇴
 - 홈 재진입 온보딩(7~11단계)에서 반려동물 이름/이미지 저장
+- 설정 화면의 반려동물 목록 조회
+- 설정 화면의 반려동물 상세 조회/생성/수정
 - 의료 기록 OCR -> 이미지 업로드 -> 의료 기록 저장 -> 목록 조회
 - 의료 영수증 OCR -> 지출 초안 생성 -> 지출 저장 -> 월별 목록 조회/삭제
 - 예방접종 월 캘린더 조회
@@ -636,7 +666,7 @@ OCR 처리:
 - 금융 대시보드
 - 금융 리포트 화면과 백엔드 계산층 사이 연결 부재
 - 백엔드 계산층은 존재하지만 FE/API는 아직 미연결
-- 설정 반려동물 목록/수정
+- 설정 알람 토글
 - 상품 추천 결과 노출
 
 ## 8. 환경 변수와 외부 연동
@@ -721,13 +751,13 @@ OCR 처리:
 - `/home`
 - `/finance`
 - `/finance/report`
-- `/settings`
-- `/settings/pets/[petId]`
 
 보정해서 보면:
 
 - `/home`은 반려동물 등록 온보딩 진입만 실연결이고, 정작 반려동물 목록/소비 요약은 아직 고정값이다.
 - `/finance/report`도 백엔드 내부 계산 로직은 생겼지만 화면 수치와 그래프는 여전히 하드코딩이다.
+- `/settings`는 더 이상 순수 목업이 아니다. 반려동물 목록은 실제 API를 읽지만, 알람 토글은 여전히 로컬 state다.
+- `/settings/pets/[petId]`도 실제 생성/수정 API에 연결됐지만, 검증/에러 처리와 저장 UX는 아직 거칠다.
 
 ### 9.7 대화 페이지의 하드코딩 URL
 
@@ -738,6 +768,7 @@ OCR 처리:
 
 - `/settings`는 프록시 보호 대상이 아니다.
 - 비로그인 사용자도 화면 자체는 열릴 수 있다.
+- 최근 `/settings`와 `/settings/pets/[petId]`가 실제 반려동물 조회/수정 API를 호출하게 되면서, 이 보호 누락의 영향이 이전보다 커졌다.
 
 ### 9.9 상품 추천 로직이 죽어 있음
 
@@ -750,6 +781,13 @@ OCR 처리:
 - 그런데 `FinanceReportService.getProjectedYears()`는 `pet.getAge()`를 바로 `BigDecimal`로 감싼다.
 - 따라서 온보딩으로 만든 반려동물이 금융 리포트 계산 대상에 들어오면 null 처리 없이 예외가 날 가능성이 있다.
 - `FinanceReportResponse`의 `remainingLife` 필드도 선언만 되어 있고 실제 응답에서는 세팅되지 않는다.
+
+### 9.11 반려동물 설정 저장 UX와 검증이 아직 거칠다
+
+- `FE/app/settings/pets/[petId]/page.tsx`는 이미지 선택 직후 한 번 업로드하고, 저장 시 `selectedImageFile`이 남아 있으면 같은 파일을 다시 업로드할 수 있다.
+- 같은 저장 함수가 `result.ok`를 확인하기 전에 `router.back()`을 호출하므로, 저장 실패여도 사용자는 이전 화면으로 먼저 이동한다.
+- 프론트는 나이 입력이 비어 있으면 `Number(age) || 0`으로 `0`을 보내므로 “모름/null”과 “0살”을 구분하지 못한다.
+- 수정 API는 `UpdatePetRequest`에 별도 validation이 없고, 잘못된 `size` 값도 조용히 무시한다. 반면 생성 API는 같은 문제를 `400`으로 처리한다.
 
 ## 10. 테스트와 실행 확인
 
@@ -766,7 +804,7 @@ OCR 처리:
 
 ## 11. 결론
 
-현재 MGK는 “반려동물 관리 + 금융 연결”이라는 큰 방향은 분명하고, 특히 의료 OCR, 예방접종, 산책 기록, 인증 플로우는 실제 코드가 꽤 이어져 있다. 최근 변경으로 반려동물 생성도 홈 재진입 온보딩과 `/api/pets`를 통해 실제 저장되기 시작했다. 반면 홈/설정/금융 리포트는 여전히 제품용 정합성보다 데모용 UI 비중이 높고, 금융 리포트는 백엔드 계산층만 먼저 생긴 상태다.
+현재 MGK는 “반려동물 관리 + 금융 연결”이라는 큰 방향은 분명하고, 특히 의료 OCR, 예방접종, 산책 기록, 인증 플로우는 실제 코드가 꽤 이어져 있다. 최근 변경으로 반려동물 생성뿐 아니라 설정 화면의 반려동물 목록/상세/생성/수정도 실제 `/api/pets` 계열 API에 연결됐다. 반면 홈/금융 리포트는 여전히 제품용 정합성보다 데모용 UI 비중이 높고, 금융 리포트는 백엔드 계산층만 먼저 생긴 상태다.
 
 기술적으로 가장 먼저 손봐야 할 것은 기능 추가가 아니라 권한 모델이다.
 
@@ -777,7 +815,8 @@ OCR 처리:
 3. 의료 기록/반려동물 조회의 소유권 검증 추가
 4. 저장소 내 평문 비밀값 분리
 5. 반려동물 생성 데이터와 가계부의 `pet` 연결 규칙을 정리해 금융 리포트 계산 전제를 먼저 맞춤
-6. 홈/설정/금융 메인 목업을 실제 API와 연결하고, 금융 리포트 controller를 노출
-7. 죽어 있는 상품 추천 API를 노출하고 프론트 리포트와 연결
+6. 설정 반려동물 저장 UX와 validation 일관성부터 정리
+7. 홈/금융 메인 목업을 실제 API와 연결하고, 금융 리포트 controller를 노출
+8. 죽어 있는 상품 추천 API를 노출하고 프론트 리포트와 연결
 
 이 기준으로 보면, 이 프로젝트는 “핵심 도메인 로직은 일부 준비되어 있으나 제품 완성도와 운영 안정성은 아직 정리 중인 상태”라고 보는 것이 가장 정확하다.
