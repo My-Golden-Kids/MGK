@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import SpeechRecognition, {
   useSpeechRecognition,
-} from 'react-speech-recognition';
+} from "react-speech-recognition";
 
-import BackButton from '@/components/common/BackButton';
-import { Button } from '@/components/common/Button';
-import Modal from '@/components/common/Modal';
-import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
-import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
+import BackButton from "@/components/common/BackButton";
+import { Button } from "@/components/common/Button";
+import Modal from "@/components/common/Modal";
+import TalkChoiceButtons from "@/components/home/talk/TalkChoiceButtons";
+import OnboardingBackground from "@/components/onboarding/OnboardingBackground";
 import {
   BACK_BUTTON_STEP_IDS,
   CENTER_IMAGE_STEP_IDS,
@@ -19,7 +19,8 @@ import {
   LAST_ONBOARDING_STEP,
   RETRY_PET_NAME_MESSAGE,
   SKIP_PHOTO_CHAT_GUIDE_MESSAGE,
-} from '@/components/onboarding/onboardingSteps';
+} from "@/components/onboarding/onboardingSteps";
+import { clientFetch } from "@/lib/auth";
 
 type OnboardingStepPageProps = {
   stepNumber: number;
@@ -32,10 +33,32 @@ type FlowState = {
   retryPetName: boolean;
 };
 
+type PetUploadResponse = {
+  success?: boolean;
+  path?: string;
+  error?: string;
+  dbUpdated?: boolean;
+};
+
 const DISSOLVE_DURATION_MS = 0;
 const TTS_AUTO_ADVANCE_DELAY_MS = 700;
-const ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY = 'onboarding-internal-entry';
-const TTS_UNLOCKED_SESSION_KEY = 'mgk-onboarding-tts-unlocked';
+const ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY = "onboarding-internal-entry";
+const TTS_UNLOCKED_SESSION_KEY = "mgk-onboarding-tts-unlocked";
+
+async function readFetchBody(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  try {
+    if (contentType.includes("application/json")) {
+      return (await response.json()) as PetUploadResponse;
+    }
+
+    const text = await response.text();
+    return text || null;
+  } catch {
+    return null;
+  }
+}
 
 function HandHint() {
   return (
@@ -47,7 +70,7 @@ function HandHint() {
         height={128}
         className="absolute inset-0 h-full w-full object-contain"
         style={{
-          animation: 'hand-hint 1s steps(1, end) infinite',
+          animation: "hand-hint 1s steps(1, end) infinite",
         }}
       />
       <Image
@@ -57,8 +80,8 @@ function HandHint() {
         height={128}
         className="absolute inset-0 h-full w-full object-contain"
         style={{
-          animation: 'hand-hint 1s steps(1, end) infinite',
-          animationDelay: '0.5s',
+          animation: "hand-hint 1s steps(1, end) infinite",
+          animationDelay: "0.5s",
         }}
       />
     </div>
@@ -69,19 +92,19 @@ function buildOnboardingHref(stepNumber: number, state: FlowState) {
   const params = new URLSearchParams();
 
   if (state.retryPetName) {
-    params.set('retryPetName', '1');
+    params.set("retryPetName", "1");
   }
 
   if (state.photoSkipped) {
-    params.set('photoSkipped', '1');
+    params.set("photoSkipped", "1");
   }
 
   if (state.petImage) {
-    params.set('petImage', state.petImage);
+    params.set("petImage", state.petImage);
   }
 
   if (state.petName) {
-    params.set('petName', state.petName);
+    params.set("petName", state.petName);
   }
 
   const query = params.toString();
@@ -98,13 +121,13 @@ export default function OnboardingStepPage({
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigationTimeoutRef = useRef<number | null>(null);
-  const lastSpokenMessageRef = useRef('');
+  const lastSpokenMessageRef = useRef("");
   const ttsAutoAdvanceHandledRef = useRef(false);
   const [isClient, setIsClient] = useState(false);
   const [isTtsUnlocked, setIsTtsUnlocked] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [pendingImagePreviewUrl, setPendingImagePreviewUrl] = useState('');
+  const [pendingImagePreviewUrl, setPendingImagePreviewUrl] = useState("");
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -116,10 +139,10 @@ export default function OnboardingStepPage({
   } = useSpeechRecognition();
 
   const step = getOnboardingStep(stepNumber);
-  const retryPetName = searchParams.get('retryPetName') === '1';
-  const photoSkipped = searchParams.get('photoSkipped') === '1';
-  const petImage = searchParams.get('petImage') ?? '';
-  const petName = searchParams.get('petName') ?? '';
+  const retryPetName = searchParams.get("retryPetName") === "1";
+  const photoSkipped = searchParams.get("photoSkipped") === "1";
+  const petImage = searchParams.get("petImage") ?? "";
+  const petName = searchParams.get("petName") ?? "";
   const flowState: FlowState = {
     petName: petName || undefined,
     retryPetName,
@@ -164,25 +187,25 @@ export default function OnboardingStepPage({
   };
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
 
-    if (window.sessionStorage.getItem(TTS_UNLOCKED_SESSION_KEY) === '1') {
+    if (window.sessionStorage.getItem(TTS_UNLOCKED_SESSION_KEY) === "1") {
       setIsTtsUnlocked(true);
       return;
     }
 
     const unlockTts = () => {
-      window.sessionStorage.setItem(TTS_UNLOCKED_SESSION_KEY, '1');
+      window.sessionStorage.setItem(TTS_UNLOCKED_SESSION_KEY, "1");
       setIsTtsUnlocked(true);
-      window.removeEventListener('pointerdown', unlockTts);
+      window.removeEventListener("pointerdown", unlockTts);
     };
 
-    window.addEventListener('pointerdown', unlockTts);
+    window.addEventListener("pointerdown", unlockTts);
 
     return () => {
-      window.removeEventListener('pointerdown', unlockTts);
+      window.removeEventListener("pointerdown", unlockTts);
     };
   }, []);
 
@@ -221,7 +244,7 @@ export default function OnboardingStepPage({
     }
 
     if (
-      typeof window !== 'undefined' &&
+      typeof window !== "undefined" &&
       isTtsUnlocked &&
       window.speechSynthesis
     ) {
@@ -242,23 +265,23 @@ export default function OnboardingStepPage({
   }, [flowState, isTtsUnlocked, step.autoAdvanceDelay, stepNumber]);
 
   const messageOverride =
-    retryPetName && step.id === 'pet-name-guide'
+    retryPetName && step.id === "pet-name-guide"
       ? RETRY_PET_NAME_MESSAGE
-      : petName && step.id === 'pet-name-confirm'
+      : petName && step.id === "pet-name-confirm"
         ? `우리 아이의 이름이\n‘${petName}’가 맞나요?`
-        : petName && step.id === 'pet-photo-request'
+        : petName && step.id === "pet-photo-request"
           ? `우와, ${petName}! 정말\n예쁜 이름이네요.\n우리 ${petName} 얼굴도 보고 싶은데,\n사진을 한 장 보여\n주시겠어요?`
-          : petName && step.id === 'pet-photo-skip-info'
+          : petName && step.id === "pet-photo-skip-info"
             ? `걱정 마세요! ${petName}\n사진은 나중에 또 선택\n하실 수 있어요`
-            : petName && step.id === 'pet-photo-complete'
+            : petName && step.id === "pet-photo-complete"
               ? `준비가 다 됐어요!\n이제 ${petName}와의 추억을\n함께 만들어가 볼까요?`
-              : petName && step.id === 'pet-chat-guide'
+              : petName && step.id === "pet-chat-guide"
                 ? `${petName} 사진을 누르면\n언제든 저와 대화하실\n수 있어요!`
-                : photoSkipped && step.id === 'pet-chat-guide'
+                : photoSkipped && step.id === "pet-chat-guide"
                   ? SKIP_PHOTO_CHAT_GUIDE_MESSAGE
                   : undefined;
   const bubbleMessageFrames =
-    petName && step.id === 'pet-photo-request'
+    petName && step.id === "pet-photo-request"
       ? [
           `우와, ${petName}! 정말\n예쁜 이름이네요.\n우리 ${petName} 얼굴도 보고 싶은데,`,
           `예쁜 이름이네요.\n우리 ${petName} 얼굴도 보고 싶은데,\n사진을 한 장 보여`,
@@ -272,19 +295,19 @@ export default function OnboardingStepPage({
     ? petImage || undefined
     : undefined;
   const instructionMessage =
-    step.id === 'pet-name-guide'
+    step.id === "pet-name-guide"
       ? !isClient
         ? step.instruction
         : !browserSupportsSpeechRecognition
-          ? '이 기기에서는\n음성 입력을 사용할 수 없어요.'
+          ? "이 기기에서는\n음성 입력을 사용할 수 없어요."
           : listening || isRecording
-            ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
-            : '저를 누르고\n말씀해 주세요!'
+            ? "듣고 있어요.\n한 번 더 누르면 멈춰요."
+            : "저를 누르고\n말씀해 주세요!"
       : step.instruction;
 
   useEffect(() => {
     if (
-      typeof window === 'undefined' ||
+      typeof window === "undefined" ||
       !isTtsUnlocked ||
       !bubbleMessage ||
       lastSpokenMessageRef.current === bubbleMessage
@@ -303,9 +326,9 @@ export default function OnboardingStepPage({
     }
 
     const utterance = new SpeechSynthesisUtterance(
-      bubbleMessage.replaceAll('\n', ' '),
+      bubbleMessage.replaceAll("\n", " "),
     );
-    utterance.lang = 'ko-KR';
+    utterance.lang = "ko-KR";
     utterance.rate = 0.95;
     utterance.pitch = 1;
     utterance.onstart = () => {
@@ -325,13 +348,13 @@ export default function OnboardingStepPage({
     };
     utterance.onerror = () => {
       if (lastSpokenMessageRef.current === bubbleMessage) {
-        lastSpokenMessageRef.current = '';
+        lastSpokenMessageRef.current = "";
       }
     };
 
     const availableVoices = speechSynthesis.getVoices();
     const koreanVoice = availableVoices.find((voice) =>
-      voice.lang.toLowerCase().startsWith('ko'),
+      voice.lang.toLowerCase().startsWith("ko"),
     );
 
     if (koreanVoice) {
@@ -351,7 +374,7 @@ export default function OnboardingStepPage({
 
   const navigateWithDissolve = (
     href: string,
-    mode: 'replace' | 'push' = 'replace',
+    mode: "replace" | "push" = "replace",
   ) => {
     if (isLeaving) {
       return;
@@ -359,7 +382,7 @@ export default function OnboardingStepPage({
 
     setIsLeaving(true);
     navigationTimeoutRef.current = window.setTimeout(() => {
-      if (mode === 'push') {
+      if (mode === "push") {
         router.push(href);
         return;
       }
@@ -393,7 +416,7 @@ export default function OnboardingStepPage({
     setPendingImageFile(file);
     setPendingImagePreviewUrl(window.URL.createObjectURL(file));
     setIsUploadModalOpen(true);
-    event.target.value = '';
+    event.target.value = "";
   };
 
   const handleUploadConfirm = async () => {
@@ -405,29 +428,47 @@ export default function OnboardingStepPage({
 
     try {
       const formData = new FormData();
-      formData.append('file', pendingImageFile);
+      formData.append("image", pendingImageFile);
+      formData.append("name", petName);
 
-      const response = await fetch('/api/pet-upload', {
-        method: 'POST',
+      console.log(formData.get("image"), formData.get("name"));
+
+      const response = await clientFetch("/api/pets/onboarding-image", {
+        method: "PATCH",
         body: formData,
+        cache: "no-store",
       });
 
+      console.log("upload response", response);
+
+      const payload = await readFetchBody(response);
+
       if (!response.ok) {
-        throw new Error('upload failed');
+        console.error("[onboarding][pet-upload] request failed", {
+          status: response.status,
+          payload,
+        });
+        throw new Error(
+          typeof payload === "object" && payload?.error
+            ? payload.error
+            : "upload failed",
+        );
       }
 
-      const data = (await response.json()) as { path?: string };
-
-      if (!data.path) {
-        throw new Error('missing upload path');
+      if (!payload || typeof payload !== "object" || !payload.path) {
+        console.error("[onboarding][pet-upload] invalid response", {
+          status: response.status,
+          payload,
+        });
+        throw new Error("missing upload path");
       }
 
       setIsUploadModalOpen(false);
       setPendingImageFile(null);
-      setPendingImagePreviewUrl('');
+      setPendingImagePreviewUrl("");
       goToStep(11, {
         ...flowState,
-        petImage: data.path,
+        petImage: payload.path,
         photoSkipped: false,
         retryPetName: false,
       });
@@ -441,7 +482,7 @@ export default function OnboardingStepPage({
   const handlePhotoSkip = () => {
     setIsUploadModalOpen(false);
     setPendingImageFile(null);
-    setPendingImagePreviewUrl('');
+    setPendingImagePreviewUrl("");
     goToStep(10, {
       ...flowState,
       photoSkipped: true,
@@ -459,10 +500,10 @@ export default function OnboardingStepPage({
   };
 
   const buildPetName = (value: string) => {
-    const normalizedTranscript = value.replace(/\s+/g, ' ').trim();
+    const normalizedTranscript = value.replace(/\s+/g, " ").trim();
 
     if (!normalizedTranscript) {
-      return '';
+      return "";
     }
 
     const segments = normalizedTranscript
@@ -472,7 +513,7 @@ export default function OnboardingStepPage({
 
     return (
       segments.length > 0 ? segments[segments.length - 1] : normalizedTranscript
-    ).replaceAll(' ', '');
+    ).replaceAll(" ", "");
   };
 
   const startPetNameRecording = async () => {
@@ -486,7 +527,7 @@ export default function OnboardingStepPage({
 
     await SpeechRecognition.startListening({
       continuous: false,
-      language: 'ko-KR',
+      language: "ko-KR",
     });
   };
 
@@ -521,18 +562,18 @@ export default function OnboardingStepPage({
   };
 
   const handleYesClick = () => {
-    if (step.id === 'health-guide') {
+    if (step.id === "health-guide") {
       clearInternalEntry();
-      navigateWithDissolve('/login', 'push');
+      navigateWithDissolve("/login", "push");
       return;
     }
 
-    if (step.id === 'pet-photo-request') {
+    if (step.id === "pet-photo-request") {
       handlePhotoUploadRequest();
       return;
     }
 
-    if (step.id === 'pet-name-guide') {
+    if (step.id === "pet-name-guide") {
       void togglePetNameRecording();
       return;
     }
@@ -543,7 +584,7 @@ export default function OnboardingStepPage({
   };
 
   const handleNoClick = () => {
-    if (step.id === 'pet-name-confirm') {
+    if (step.id === "pet-name-confirm") {
       goToStep(7, {
         ...flowState,
         retryPetName: true,
@@ -551,7 +592,7 @@ export default function OnboardingStepPage({
       return;
     }
 
-    if (step.id === 'pet-photo-request') {
+    if (step.id === "pet-photo-request") {
       handlePhotoSkip();
     }
   };
@@ -579,7 +620,7 @@ export default function OnboardingStepPage({
       />
       <div
         className={`relative min-h-dvh overflow-hidden bg-[#A7E9E1] transition-opacity ease-out ${
-          isLeaving ? 'opacity-0' : 'animate-screen-dissolve-in opacity-100'
+          isLeaving ? "opacity-0" : "animate-screen-dissolve-in opacity-100"
         }`}
         style={{ transitionDuration: `${DISSOLVE_DURATION_MS}ms` }}
       >
@@ -614,13 +655,13 @@ export default function OnboardingStepPage({
               <div className="pointer-events-auto absolute right-0 bottom-[9%] left-0 z-20 px-6 md:bottom-[8%] md:px-8 lg:bottom-[7%] lg:px-10">
                 <Button
                   className="mx-auto w-full"
-                  onClick={() => navigateWithDissolve('/home', 'push')}
+                  onClick={() => navigateWithDissolve("/home", "push")}
                 >
                   시작하기
                 </Button>
               </div>
             ) : null}
-            {step.id === 'pet-name-guide' || step.id === 'pet-chat-guide' ? (
+            {step.id === "pet-name-guide" || step.id === "pet-chat-guide" ? (
               <HandHint />
             ) : null}
           </div>
@@ -633,7 +674,7 @@ export default function OnboardingStepPage({
         onConfirm={handleUploadConfirm}
         buttonVariant="double"
         cancelText="취소"
-        confirmText={isUploading ? '업로드 중...' : '확인'}
+        confirmText={isUploading ? "업로드 중..." : "확인"}
       >
         {pendingImagePreviewUrl ? (
           <div className="overflow-hidden rounded-[12px] border">

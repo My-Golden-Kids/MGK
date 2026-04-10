@@ -1,6 +1,6 @@
 'use server';
 
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/lib/auth.server';
 import { changePasswordWithCurrentSchema } from '@/lib/validator';
 
 const BASE_URL =
