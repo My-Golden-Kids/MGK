@@ -24,7 +24,7 @@ public interface AccountBookRepository extends JpaRepository<AccountBook, Long> 
             from AccountBook a
             where a.user.id = :userId
               and a.pet is not null
-        """)
+            """)
     LocalDate findFirstPetSpendDateByUserId(@Param("userId") Long userId);
 
     @Query("""
@@ -33,10 +33,25 @@ public interface AccountBookRepository extends JpaRepository<AccountBook, Long> 
             where a.user.id = :userId
               and a.pet is not null
               and a.spendDate >= :startDate
-        """)
+            """)
     BigDecimal sumPetExpenseLastYear(
         @Param("userId") Long userId,
         @Param("startDate") LocalDate startDate
+    );
+
+    @Query("""
+            select year(a.spendDate), month(a.spendDate), coalesce(sum(a.amount), 0)
+            from AccountBook a
+            where a.user.id = :userId
+              and a.pet is not null
+              and a.spendDate between :startDate and :endDate
+            group by year(a.spendDate), month(a.spendDate)
+            order by year(a.spendDate), month(a.spendDate)
+            """)
+    List<Object[]> sumMonthlyPetExpenseByUserId(
+        @Param("userId") Long userId,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
     );
 
     @Query("""
