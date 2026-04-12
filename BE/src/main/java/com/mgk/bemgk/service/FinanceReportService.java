@@ -69,7 +69,7 @@ public class FinanceReportService {
 		LocalDate endDate = currentMonth.atEndOfMonth();
 
 		List<Object[]> rawMonthlyExpenses =
-			accountBookRepository.findMonthlyExpensesByUserId(userId, startDate, endDate);
+			accountBookRepository.sumMonthlyPetExpenseByUserId(userId, startDate, endDate);
 
 		for (Object[] row : rawMonthlyExpenses) {
 			Integer year = (Integer) row[0];
