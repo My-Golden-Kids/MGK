@@ -7,12 +7,12 @@ import SelectedPetProfile, {
 } from '@/components/home/SelectedPetProfile';
 import type { Product } from '@/features/product/types/product';
 import { fetchPets } from '@/features/settings/api/petSettingsApi';
+import { getStoredAlarmEnabled } from '@/lib/alarm-setting';
 import { clientFetch } from '@/lib/auth';
 import {
   getStoredMedicalPetId,
   storeSelectedPetId,
 } from '@/lib/medical-record';
-import { getStoredAlarmEnabled } from '@/lib/alarm-setting';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -324,12 +324,11 @@ export default function HomePage() {
   }, [pets, selectedPetId]);
 
   const handleTalkClick = () => {
-    if (!selectedPet) {
-      router.push('/onboarding/7');
-      return;
-    }
-
     router.push('/home/talk');
+  };
+
+  const handleDirectInputClick = () => {
+    router.push('/home/talk?mode=text');
   };
 
   return (
@@ -380,7 +379,7 @@ export default function HomePage() {
             </p>
           ) : null}
           {!isPetsLoading && !petsErrorMessage && pets.length === 0 ? (
-            <p className="mt-4 text-center font-medium text-[#66706D] text-[16px]">
+            <p className="mt-2 text-center font-medium text-[#66706D] text-[16px]">
               등록된 반려동물이 없어요. 먼저 반려동물을 추가해 주세요.
             </p>
           ) : null}
@@ -397,6 +396,7 @@ export default function HomePage() {
             </button>
             <button
               type="button"
+              onClick={handleDirectInputClick}
               className="flex flex-1 cursor-pointer items-center justify-center bg-white font-extrabold text-[#25C3A8] text-[18px]"
             >
               직접입력

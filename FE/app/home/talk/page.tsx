@@ -1,11 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
 
+import { Button } from "@/components/common/Button";
 import TalkBubble from "@/components/home/talk/TalkBubble";
 import TalkChoiceButtons from "@/components/home/talk/TalkChoiceButtons";
 import OnboardingBackground from "@/components/onboarding/OnboardingBackground";
@@ -13,7 +14,6 @@ import { fetchPet } from "@/features/settings/api/petSettingsApi";
 import { getStoredMedicalPetId } from "@/lib/medical-record";
 
 const DEFAULT_MESSAGE = "무엇이 궁금하신가요?";
-const CONFIRM_MESSAGE = "통장 화면으로 이동할까요?";
 const API_BASE_URL = "http://localhost:8080";
 const MAX_REQUEST_TRANSCRIPT_LENGTH = 60;
 const PREPARING_MESSAGE = "답변을 준비하고 있어요.";
@@ -41,20 +41,127 @@ function buildRequestTranscript(transcript: string) {
   return condensedTranscript.slice(0, MAX_REQUEST_TRANSCRIPT_LENGTH);
 }
 
-export default function HomeTalkPage() {
+function resolveCommandRoute(transcript: string) {
+  const normalizedTranscript = transcript.replaceAll(" ", "");
+
+  if (
+    normalizedTranscript.includes("지출추가") ||
+    normalizedTranscript.includes("지출등록")
+  ) {
+    return "/finance/expense/add-image";
+  }
+
+  if (normalizedTranscript.includes("리포트")) {
+    return "/finance/report";
+  }
+
+  if (
+    normalizedTranscript.includes("통장") ||
+    normalizedTranscript.includes("잔고") ||
+    normalizedTranscript.includes("재정") ||
+    normalizedTranscript.includes("금융") ||
+    normalizedTranscript.includes("가계부") ||
+    normalizedTranscript.includes("소비") ||
+    normalizedTranscript.includes("지출")
+  ) {
+    return "/finance";
+  }
+
+  if (normalizedTranscript.includes("산책")) {
+    return "/health/walk";
+  }
+
+  if (
+    normalizedTranscript.includes("접종") ||
+    normalizedTranscript.includes("예방접종") ||
+    normalizedTranscript.includes("백신")
+  ) {
+    return "/health/vaccinations";
+  }
+
+  if (
+    normalizedTranscript.includes("병원기록") ||
+    normalizedTranscript.includes("진료기록") ||
+    normalizedTranscript.includes("의료기록")
+  ) {
+    return "/health/medical-records";
+  }
+
+  if (
+    normalizedTranscript.includes("건강") ||
+    normalizedTranscript.includes("헬스")
+  ) {
+    return "/health";
+  }
+
+  if (
+    normalizedTranscript.includes("상품") ||
+    normalizedTranscript.includes("보험") ||
+    normalizedTranscript.includes("적금") ||
+    normalizedTranscript.includes("구독")
+  ) {
+    return "/product";
+  }
+
+  if (
+    normalizedTranscript.includes("설정") ||
+    normalizedTranscript.includes("마이페이지")
+  ) {
+    return "/settings";
+  }
+
+  if (normalizedTranscript.includes("홈")) {
+    return "/home";
+  }
+
+  return null;
+}
+
+function buildConfirmMessage(route: string | null) {
+  switch (route) {
+    case "/finance":
+      return "재정 화면으로 이동할까요?";
+    case "/finance/report":
+      return "리포트 화면으로 이동할까요?";
+    case "/finance/expense/add-image":
+      return "지출 등록 화면으로 이동할까요?";
+    case "/health":
+      return "건강 화면으로 이동할까요?";
+    case "/health/walk":
+      return "산책 화면으로 이동할까요?";
+    case "/health/vaccinations":
+      return "접종 화면으로 이동할까요?";
+    case "/health/medical-records":
+      return "병원기록 화면으로 이동할까요?";
+    case "/product":
+      return "상품 화면으로 이동할까요?";
+    case "/settings":
+      return "설정 화면으로 이동할까요?";
+    case "/home":
+      return "홈 화면으로 이동할까요?";
+    default:
+      return "이동할까요?";
+  }
+}
+
+function HomeTalkPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const lastSpokenBubbleMessageRef = useRef("");
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [shouldSubmit, setShouldSubmit] = useState(false);
   const [showMoveConfirm, setShowMoveConfirm] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
   const [assistantMessage, setAssistantMessage] = useState("");
   const [requestedTranscript, setRequestedTranscript] = useState("");
+  const [textInput, setTextInput] = useState("");
   const [selectedPetName, setSelectedPetName] = useState(DEFAULT_PET_NAME);
   const [selectedPetImageUrl, setSelectedPetImageUrl] = useState<
     string | undefined
   >(undefined);
+  const isTextMode = searchParams.get("mode") === "text";
   const {
     transcript,
     resetTranscript,
@@ -100,9 +207,16 @@ export default function HomeTalkPage() {
   }, []);
 
   useEffect(() => {
+    if (isTextMode) {
+      setIsRecording(false);
+      void SpeechRecognition.stopListening();
+    }
+  }, [isTextMode]);
+
+  useEffect(() => {
     const normalizedTranscript = transcript.replaceAll(" ", "");
 
-    if (showMoveConfirm || !normalizedTranscript) {
+    if (isTextMode || showMoveConfirm || !normalizedTranscript) {
       return;
     }
 
@@ -114,8 +228,9 @@ export default function HomeTalkPage() {
       return;
     }
 
+    setPendingRoute("/finance");
     setShowMoveConfirm(true);
-  }, [showMoveConfirm, transcript]);
+  }, [isTextMode, showMoveConfirm, transcript]);
 
   useEffect(() => {
     const requestTranscript = buildRequestTranscript(transcript);
@@ -205,8 +320,59 @@ export default function HomeTalkPage() {
     setShouldSubmit(true);
   };
 
+  const submitTextInput = async () => {
+    const requestTranscript = buildRequestTranscript(textInput);
+
+    if (
+      !requestTranscript ||
+      isRequesting ||
+      requestedTranscript === requestTranscript
+    ) {
+      return;
+    }
+
+    const commandRoute = resolveCommandRoute(requestTranscript);
+
+    if (commandRoute) {
+      setPendingRoute(commandRoute);
+      setShowMoveConfirm(true);
+      setAssistantMessage("");
+      return;
+    }
+
+    try {
+      setIsRequesting(true);
+      setRequestedTranscript(requestTranscript);
+      setAssistantMessage(PREPARING_MESSAGE);
+
+      const response = await fetch(`${API_BASE_URL}/api/talk`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          transcript: requestTranscript,
+        }),
+      });
+
+      if (!response.ok) {
+        setAssistantMessage(REQUEST_ERROR_MESSAGE);
+        return;
+      }
+
+      const data = (await response.json()) as { message?: string };
+      if (data.message) {
+        setAssistantMessage(data.message);
+      }
+    } catch {
+      setAssistantMessage(REQUEST_ERROR_MESSAGE);
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
   const toggleRecording = async () => {
-    if (isRequesting) {
+    if (isRequesting || isTextMode) {
       return;
     }
 
@@ -218,20 +384,29 @@ export default function HomeTalkPage() {
     await startRecording();
   };
 
+  const confirmMessage = buildConfirmMessage(pendingRoute);
   const bubbleMessage = !isClient
     ? DEFAULT_MESSAGE
-    : browserSupportsSpeechRecognition
+    : isTextMode
       ? showMoveConfirm
-        ? CONFIRM_MESSAGE
+        ? confirmMessage
+        : isRequesting
+          ? PREPARING_MESSAGE
+          : assistantMessage || DEFAULT_MESSAGE
+      : browserSupportsSpeechRecognition
+      ? showMoveConfirm
+        ? confirmMessage
         : isRequesting
           ? "답변을 준비하고 있어요."
           : assistantMessage || DEFAULT_MESSAGE
       : "이 기기에서는 음성 인식을 사용할 수 없어요.";
-  const speechBubbleMessage = transcript.trim();
+  const speechBubbleMessage = isTextMode ? textInput : transcript.trim();
   const instructionMessage = showMoveConfirm
     ? undefined
     : !speechBubbleMessage
-      ? listening || isRecording
+      ? isTextMode
+        ? "하단 말풍선에 내용을 입력해보세요."
+        : listening || isRecording
         ? "듣고 있어요.\n한 번 더 누르면 멈춰요."
         : `${selectedPetName}를 한 번 눌러\n말씀해보세요.`
       : undefined;
@@ -290,11 +465,44 @@ export default function HomeTalkPage() {
             void toggleRecording();
           }}
           onContextMenu={(event) => event.preventDefault()}
-          className="-translate-x-1/2 -translate-y-1/2 pointer-events-auto absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] rounded-full bg-transparent md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px]"
+          className={`-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] rounded-full bg-transparent md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px] ${
+            isTextMode ? "pointer-events-none" : "pointer-events-auto"
+          }`}
           aria-label={recordingButtonLabel}
+          disabled={isTextMode}
         />
 
-        {!showMoveConfirm && speechBubbleMessage ? (
+        {!showMoveConfirm && isTextMode ? (
+          <form
+            className="pointer-events-auto absolute right-6 bottom-[5.5rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:max-w-[24rem] lg:max-w-[26rem]"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              await submitTextInput();
+            }}
+          >
+            <div className="relative overflow-hidden rounded-[2rem] bg-[#75A39D] shadow-[0_10px_30px_rgba(0,0,0,0.08)] md:rounded-[2.25rem] lg:rounded-[2.5rem]">
+              <textarea
+                value={textInput}
+                onChange={(event) => {
+                  setTextInput(event.target.value);
+                  setShowMoveConfirm(false);
+                }}
+                placeholder=""
+                rows={3}
+                className="scrollbar-hide w-full resize-none overflow-y-auto bg-transparent px-6 py-5 font-semibold text-2xl text-white leading-[1.35] outline-none placeholder:text-white/55 md:px-7 md:py-6 md:text-3xl lg:px-8 lg:py-7 lg:text-4xl"
+              />
+              <div className="absolute right-4 bottom-4 md:right-5 md:bottom-5 lg:right-6 lg:bottom-6">
+                <Button
+                  type="submit"
+                  disabled={!textInput.trim() || isRequesting}
+                  className="mx-0 h-auto rounded-[14px] bg-[#00A389] px-6 py-2.5 text-xl font-medium text-white shadow-none hover:bg-[#008f78] disabled:bg-[#9BBAB2] md:rounded-2xl md:px-8 md:py-3.5 md:text-2xl lg:rounded-3xl lg:px-10 lg:py-4 lg:text-3xl"
+                >
+                  전송
+                </Button>
+              </div>
+            </div>
+          </form>
+        ) : !showMoveConfirm && speechBubbleMessage ? (
           <div className="pointer-events-none absolute right-6 bottom-[5.5rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:max-w-[24rem] lg:max-w-[26rem]">
             <TalkBubble
               message={speechBubbleMessage}
@@ -307,18 +515,38 @@ export default function HomeTalkPage() {
         ) : null}
 
         {showMoveConfirm ? (
-          <div className="pointer-events-auto absolute right-0 bottom-[18%] left-0 z-20">
+          <div className="pointer-events-auto absolute right-0 bottom-[10%] left-0 z-20 md:bottom-[8%] lg:bottom-[5%]">
             <TalkChoiceButtons
-              onYesClick={() => router.push("/finance")}
+              onYesClick={() => {
+                if (pendingRoute) {
+                  router.push(pendingRoute);
+                  return;
+                }
+
+                router.push("/finance");
+              }}
               onNoClick={() => {
                 setShowMoveConfirm(false);
+                setPendingRoute(null);
                 setAssistantMessage("");
-                resetTranscript();
+                if (isTextMode) {
+                  setRequestedTranscript("");
+                } else {
+                  resetTranscript();
+                }
               }}
             />
           </div>
         ) : null}
       </div>
     </OnboardingBackground>
+  );
+}
+
+export default function HomeTalkPage() {
+  return (
+    <Suspense fallback={null}>
+      <HomeTalkPageContent />
+    </Suspense>
   );
 }
