@@ -1,47 +1,55 @@
+import { clientFetch } from '@/lib/auth';
 import type {
   FinanceRetirementReport,
   MonthlyExpenseChartResponse,
 } from '../types/financeReport';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SPRING_API_URL;
+const EMPTY_REPORT: FinanceRetirementReport = {
+  totalPetCost: 0,
+  retirementPercent: 0,
+  averageExpense: 0,
+  totalAsset: 0,
+};
 
-if (!BASE_URL) {
-  throw new Error('NEXT_PUBLIC_SPRING_API_URL 환경변수가 설정되지 않았습니다.');
+function createEmptyMonthlyChart(): MonthlyExpenseChartResponse {
+  const now = new Date();
+
+  return {
+    monthlyExpenses: Array.from({ length: 12 }, (_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - 11 + index, 1);
+
+      return {
+        month: `${date.getMonth() + 1}월`,
+        amount: 0,
+      };
+    }),
+  };
 }
 
-export async function getFinanceRetirementReport(
-  userId: number,
-): Promise<FinanceRetirementReport> {
-  const res = await fetch(`${BASE_URL}/api/finance/report?userId=${userId}`, {
-    cache: 'no-store',
-  });
+export async function getFinanceRetirementReport(): Promise<FinanceRetirementReport> {
+  try {
+    const res = await clientFetch('/api/finance/report');
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(
-      `금융 리포트 조회 실패: ${res.status} ${res.statusText} - ${errorText}`,
-    );
+    if (!res.ok) {
+      return EMPTY_REPORT;
+    }
+
+    return (await res.json()) as FinanceRetirementReport;
+  } catch {
+    return EMPTY_REPORT;
   }
-
-  return res.json();
 }
 
-export async function getMonthlyExpenseChart(
-  userId: number,
-): Promise<MonthlyExpenseChartResponse> {
-  const res = await fetch(
-    `${BASE_URL}/api/finance/report/monthly-expenses?userId=${userId}`,
-    {
-      cache: 'no-store',
-    },
-  );
+export async function getMonthlyExpenseChart(): Promise<MonthlyExpenseChartResponse> {
+  try {
+    const res = await clientFetch('/api/finance/report/monthly-expenses');
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(
-      `월별 지출 차트 조회 실패: ${res.status} ${res.statusText} - ${errorText}`,
-    );
+    if (!res.ok) {
+      return createEmptyMonthlyChart();
+    }
+
+    return (await res.json()) as MonthlyExpenseChartResponse;
+  } catch {
+    return createEmptyMonthlyChart();
   }
-
-  return res.json();
 }
