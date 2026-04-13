@@ -2,8 +2,8 @@
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: 버튼이 아닌 걸 클릭하게 만들면 키보드 이벤트도 추가해야 한다는 건데 추가해도 반응하지 않습니다. */
 'use client';
 
-import { type ReactNode, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { type ReactNode, useEffect } from 'react';
 import { default as ModalButton } from './ModalButton';
 
 export interface ModalProps {
@@ -73,7 +73,7 @@ export default function Modal({
       }}
     >
       <div
-        className={`w-full min-w-75 animate-card-in rounded-[15px] bg-white p-3.75 shadow-[0_2px_13px_-5px_rgba(0,0,0,0.25)]`}
+        className={`w-full min-w-75 animate-card-in rounded-[15px] bg-white p-5 shadow-[0_2px_13px_-5px_rgba(0,0,0,0.25)]`}
         onClick={(e) => e.stopPropagation()}
       >
         {children && (

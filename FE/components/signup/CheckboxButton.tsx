@@ -39,7 +39,10 @@ export default function CheckboxButton({
       type={type}
       title={title}
       aria-pressed={isChecked}
-      className={cn('flex items-center justify-start', className)}
+      className={cn(
+        'flex cursor-pointer items-center justify-start transition-opacity hover:opacity-80',
+        className,
+      )}
       {...props}
     >
       <div
