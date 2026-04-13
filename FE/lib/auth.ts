@@ -6,8 +6,20 @@ const BASE_URL =
 
 // ─── 클라이언트 컴포넌트용 fetch ──────────────────────────────────────────────
 
+let pendingSession: Promise<Awaited<ReturnType<typeof getSession>>> | null =
+  null;
+
+function getSessionOnce() {
+  if (!pendingSession) {
+    pendingSession = getSession().finally(() => {
+      pendingSession = null;
+    });
+  }
+  return pendingSession;
+}
+
 export async function clientFetch(path: string, init?: RequestInit) {
-  const session = await getSession();
+  const session = await getSessionOnce();
 
   if (session?.error === 'RefreshTokenError') {
     await signOut({ callbackUrl: '/login' });
