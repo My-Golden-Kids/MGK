@@ -105,7 +105,6 @@ function AddMedicalRecordForm() {
           body: uploadFormData,
         });
 
-        console.log(uploadResponse);
         if (!uploadResponse.ok) {
           throw new Error('이미지 업로드에 실패했습니다.');
         }

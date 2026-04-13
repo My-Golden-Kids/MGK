@@ -8,17 +8,26 @@ export async function POST(request: Request) {
     const { email, type } = await request.json();
 
     if (!email) {
-      return NextResponse.json({ error: '이메일을 입력해주세요.' }, { status: 400 });
+      return NextResponse.json(
+        { error: '이메일을 입력해주세요.' },
+        { status: 400 },
+      );
     }
 
-    const springRes = await fetch(`${process.env.SPRING_API_URL}/api/auth/send-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
+    const springRes = await fetch(
+      `${process.env.SPRING_API_URL}/api/auth/send-otp`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      },
+    );
 
     if (!springRes.ok) {
-      return NextResponse.json({ error: '인증 요청에 실패했습니다.' }, { status: springRes.status });
+      return NextResponse.json(
+        { error: '인증 요청에 실패했습니다.' },
+        { status: springRes.status },
+      );
     }
 
     const { token } = await springRes.json();
@@ -51,10 +60,12 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('[Resend OK] id:', data?.id, '→', email);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('[send-otp] 서버 오류:', err);
-    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 },
+    );
   }
 }
