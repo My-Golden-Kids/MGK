@@ -10,11 +10,8 @@ import SelectedPetProfile, {
   type Pet,
 } from "@/components/home/SelectedPetProfile";
 import {
-  dismissCalendarEvent,
-  dismissWalkAlert,
-  EVENT_TYPE_LABEL,
   fetchScheduleBubbles,
-  WALK_BUBBLE_MESSAGE,
+  type ScheduleBubble,
 } from "@/features/home/homeApi";
 import type { Product } from "@/features/product/types/product";
 import { fetchPets } from "@/features/settings/api/petSettingsApi";
@@ -187,7 +184,7 @@ export default function HomePage() {
   >(null);
   const [showBubble, setShowBubble] = useState(true);
   const [isAlarmEnabled, setIsAlarmEnabled] = useState(true);
-  const [scheduleBubbles, setScheduleBubbles] = useState<string[]>([]);
+  const [scheduleBubbles, setScheduleBubbles] = useState<ScheduleBubble[]>([]);
   const [scheduleBubbleIndex, setScheduleBubbleIndex] = useState(0);
 
   const shouldShowPromptBubble =
@@ -276,7 +273,7 @@ export default function HomePage() {
   }, [selectedPetId]);
 
   useEffect(() => {
-    if (selectedPetId == null || !isAlarmEnabled) {
+    if (!isAlarmEnabled || isPetsLoading || pets.length === 0) {
       return;
     }
 
@@ -286,7 +283,6 @@ export default function HomePage() {
       const now = new Date();
       const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const bubbles = await fetchScheduleBubbles(
-        selectedPetId,
         todayStr,
         now.getHours(),
       );
@@ -301,7 +297,7 @@ export default function HomePage() {
     return () => {
       isCancelled = true;
     };
-  }, [selectedPetId, isAlarmEnabled]);
+  }, [isAlarmEnabled, isPetsLoading, pets.length]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -400,25 +396,10 @@ export default function HomePage() {
           </div>
           {shouldShowScheduleBubble && (
             <HomeScheduleBubble
-              messages={scheduleBubbles}
+              messages={scheduleBubbles.map((b) => b.message)}
               currentIndex={scheduleBubbleIndex}
               onDismiss={() => {
-                const dismissedMessage = scheduleBubbles[scheduleBubbleIndex];
-                const now = new Date();
-                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-
-                if (dismissedMessage === WALK_BUBBLE_MESSAGE) {
-                  dismissWalkAlert(todayStr, now.getHours());
-                } else {
-                  const eventType = Object.entries(EVENT_TYPE_LABEL).find(
-                    ([, label]) =>
-                      dismissedMessage === `오늘 ${label} 일정이 있어요!`,
-                  )?.[0];
-                  if (eventType) {
-                    dismissCalendarEvent(todayStr, eventType);
-                  }
-                }
-
+                scheduleBubbles[scheduleBubbleIndex]?.onDismiss();
                 setScheduleBubbleIndex((i) => i + 1);
               }}
             />

@@ -6,7 +6,7 @@ import { clientFetch } from '@/lib/auth';
 
 export const WALK_BUBBLE_MESSAGE = '산책할 시간이에요!';
 
-export const EVENT_TYPE_LABEL: Record<string, string> = {
+const EVENT_TYPE_LABEL: Record<string, string> = {
   VACCINATION: '예방접종',
   CHECKUP: '건강검진',
 };
@@ -18,6 +18,11 @@ const CALENDAR_ALERT_KEY = 'calendar-alert';
 // Types
 // ──────────────────────────────────────────
 
+export type ScheduleBubble = {
+  message: string;
+  onDismiss: () => void;
+};
+
 type WalkAlertState = {
   date: string;
   hour: number;
@@ -26,7 +31,19 @@ type WalkAlertState = {
 
 type CalendarAlertState = {
   date: string;
-  dismissedEventTypes: string[];
+  dismissed: Array<{ petId: number; eventType: string }>;
+};
+
+type TodayCalendarEvent = {
+  petId: number;
+  petName: string;
+  name: string;
+  eventType: string;
+};
+
+type AlarmResponse = {
+  mostFrequentWalkHour: number | null;
+  todayEvents: TodayCalendarEvent[];
 };
 
 // ──────────────────────────────────────────
@@ -55,7 +72,7 @@ function isWalkAlertDismissed(dateStr: string, hour: number): boolean {
   );
 }
 
-export function dismissWalkAlert(dateStr: string, hour: number): void {
+function dismissWalkAlert(dateStr: string, hour: number): void {
   writeAlert<WalkAlertState>(WALK_ALERT_KEY, {
     date: dateStr,
     hour,
@@ -63,40 +80,32 @@ export function dismissWalkAlert(dateStr: string, hour: number): void {
   });
 }
 
-function isCalendarEventDismissed(dateStr: string, eventType: string): boolean {
+function isCalendarEventDismissed(
+  dateStr: string,
+  petId: number,
+  eventType: string,
+): boolean {
   const state = readAlert<CalendarAlertState>(CALENDAR_ALERT_KEY);
   if (state?.date !== dateStr) return false;
-  return state.dismissedEventTypes.includes(eventType);
+  return state.dismissed.some(
+    (d) => d.petId === petId && d.eventType === eventType,
+  );
 }
 
-export function dismissCalendarEvent(dateStr: string, eventType: string): void {
+function dismissCalendarEvent(
+  dateStr: string,
+  petId: number,
+  eventType: string,
+): void {
   const state = readAlert<CalendarAlertState>(CALENDAR_ALERT_KEY);
-  const existing = state?.date === dateStr ? state.dismissedEventTypes : [];
+  const existing = state?.date === dateStr ? state.dismissed : [];
+  if (existing.some((d) => d.petId === petId && d.eventType === eventType)) {
+    return;
+  }
   writeAlert<CalendarAlertState>(CALENDAR_ALERT_KEY, {
     date: dateStr,
-    dismissedEventTypes: [...new Set([...existing, eventType])],
+    dismissed: [...existing, { petId, eventType }],
   });
-}
-
-// ──────────────────────────────────────────
-// Walk hour calculation
-// ──────────────────────────────────────────
-
-function getMostFrequentWalkHour(
-  records: Array<{ walkedAt: string | null }>,
-): number | null {
-  const counts: Record<number, number> = {};
-  for (const r of records) {
-    if (!r.walkedAt) continue;
-    const h = new Date(r.walkedAt).getHours();
-    counts[h] = (counts[h] ?? 0) + 1;
-  }
-  const entries = Object.entries(counts);
-  if (!entries.length) return null;
-  entries.sort(([hA, cA], [hB, cB]) =>
-    cB !== cA ? cB - cA : Number(hA) - Number(hB),
-  );
-  return Number(entries[0][0]);
 }
 
 // ──────────────────────────────────────────
@@ -104,45 +113,38 @@ function getMostFrequentWalkHour(
 // ──────────────────────────────────────────
 
 export async function fetchScheduleBubbles(
-  petId: number,
   todayStr: string,
   currentHour: number,
-): Promise<string[]> {
-  const bubbles: string[] = [];
+): Promise<ScheduleBubble[]> {
+  const bubbles: ScheduleBubble[] = [];
 
-  // ① 산책 알림 (최우선)
   try {
-    const res = await clientFetch(`/api/pets/${petId}/walk-records`);
-    if (res.ok) {
-      const records = (await res.json()) as Array<{ walkedAt: string | null }>;
-      const mostFrequentHour = getMostFrequentWalkHour(records);
-      if (
-        mostFrequentHour !== null &&
-        currentHour === mostFrequentHour &&
-        !isWalkAlertDismissed(todayStr, currentHour)
-      ) {
-        bubbles.push(WALK_BUBBLE_MESSAGE);
-      }
+    const res = await clientFetch('/api/alarm');
+    if (!res.ok) return bubbles;
+
+    const alarm = (await res.json()) as AlarmResponse;
+
+    // ① 산책 알림 (최우선)
+    if (
+      alarm.mostFrequentWalkHour !== null &&
+      currentHour === alarm.mostFrequentWalkHour &&
+      !isWalkAlertDismissed(todayStr, currentHour)
+    ) {
+      bubbles.push({
+        message: WALK_BUBBLE_MESSAGE,
+        onDismiss: () => dismissWalkAlert(todayStr, currentHour),
+      });
     }
-  } catch {}
 
-  // ② 오늘 CalendarEvent 알림
-  try {
-    const [year, month] = todayStr.split('-').map(Number);
-    const res = await clientFetch(
-      `/api/vaccinations/schedules?year=${year}&month=${month}`,
-    );
-    if (res.ok) {
-      const schedules = (await res.json()) as Array<{
-        date: string;
-        eventTypes: string[];
-      }>;
-      for (const s of schedules.filter((s) => s.date === todayStr)) {
-        for (const et of s.eventTypes) {
-          if (!isCalendarEventDismissed(todayStr, et)) {
-            bubbles.push(`오늘 ${EVENT_TYPE_LABEL[et] ?? et} 일정이 있어요!`);
-          }
-        }
+    // ② 오늘 CalendarEvent 알림 (펫별·이벤트별 독립 dismiss)
+    for (const event of alarm.todayEvents) {
+      if (!isCalendarEventDismissed(todayStr, event.petId, event.eventType)) {
+        const label = EVENT_TYPE_LABEL[event.eventType] ?? event.eventType;
+        bubbles.push({
+          message: `${event.petName}의 ${label} 일정이 오늘이에요!`,
+          onDismiss: () =>
+            dismissCalendarEvent(todayStr, event.petId, event.eventType),
+        });
       }
     }
   } catch {}
