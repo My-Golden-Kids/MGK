@@ -29,3 +29,8 @@ logging:
 google:
   vision:
     credentials-path: secrets/vision-key.json
+
+cloud:
+  aws:
+    s3:
+      endpoint: ${AWS_S3_ENDPOINT:}
