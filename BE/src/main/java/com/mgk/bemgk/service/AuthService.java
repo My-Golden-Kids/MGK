@@ -10,6 +10,7 @@ import com.mgk.bemgk.dto.auth.OtpResponse;
 import com.mgk.bemgk.dto.auth.RefreshRequest;
 import com.mgk.bemgk.dto.auth.RefreshResponse;
 import com.mgk.bemgk.dto.auth.SignupRequest;
+import com.mgk.bemgk.dto.auth.SignupResponse;
 import com.mgk.bemgk.entity.Account;
 import com.mgk.bemgk.entity.AccountBook;
 import com.mgk.bemgk.entity.AccountBookCategory;
@@ -46,7 +47,7 @@ public class AuthService {
 	private final AccountBookRepository accountBookRepository;
 
 	@Transactional
-    public AuthResponse signup(SignupRequest request) {
+    public SignupResponse signup(SignupRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다.");
         }
@@ -74,7 +75,11 @@ public class AuthService {
 				.category(AccountBookCategory.Etc)
 			.build());
 
-        return buildAuthResponse(user);
+        return SignupResponse.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .name(user.getName())
+                .build();
     }
 
     @Transactional
@@ -90,6 +95,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
+        refreshTokenRepository.deleteAllByUser(user);
         return buildAuthResponse(user);
     }
 

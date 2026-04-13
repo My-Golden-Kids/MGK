@@ -1,10 +1,35 @@
 'use server';
 
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth, signOut } from '@/app/api/auth/[...nextauth]/route';
 import { changePasswordWithCurrentSchema } from '@/lib/validator';
+import { getToken } from 'next-auth/jwt';
+import { headers } from 'next/headers';
 
 const BASE_URL =
   process.env.SPRING_API_URL ?? process.env.NEXT_PUBLIC_SPRING_API_URL ?? '';
+
+// ─── 로그아웃 ─────────────────────────────────────────────────────────────────
+// events.signOut은 client-side signOut()에서 token이 전달되지 않는 beta 버그가 있어
+// 서버 액션에서 직접 JWT를 읽어 Spring 로그아웃 API를 호출한 뒤 세션을 파기합니다.
+
+export async function logout() {
+  const token = await getToken({
+    req: { headers: await headers() } as Parameters<typeof getToken>[0]['req'],
+    secret: process.env.AUTH_SECRET!,
+  });
+
+  if (token?.refreshToken) {
+    await fetch(`${BASE_URL}/api/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: token.refreshToken }),
+    }).catch(() => {});
+  }
+
+  await signOut({ redirectTo: '/login' });
+}
+
+// ─── 서버 fetch ───────────────────────────────────────────────────────────────
 
 export async function serverFetch(path: string, init?: RequestInit) {
   const session = await auth();

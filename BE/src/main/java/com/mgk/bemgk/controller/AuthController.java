@@ -19,6 +19,7 @@ import com.mgk.bemgk.dto.auth.OtpResponse;
 import com.mgk.bemgk.dto.auth.RefreshRequest;
 import com.mgk.bemgk.dto.auth.RefreshResponse;
 import com.mgk.bemgk.dto.auth.SignupRequest;
+import com.mgk.bemgk.dto.auth.SignupResponse;
 import com.mgk.bemgk.service.AuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/signup")
-	public AuthResponse signup(@RequestBody @Valid SignupRequest request) {
+	public SignupResponse signup(@RequestBody @Valid SignupRequest request) {
 		return authService.signup(request);
 
 	}
