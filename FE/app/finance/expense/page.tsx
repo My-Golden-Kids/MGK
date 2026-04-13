@@ -285,7 +285,7 @@ export default function FinanceExpensesPage() {
 
   return (
     <div className="relative flex min-h-dvh flex-col bg-white text-foreground">
-      <main className="flex-1 px-5 pt-3 sm:px-6 sm:pt-4 md:px-8 md:pt-5 lg:px-10 lg:pt-6">
+      <main className="flex-1 px-8 py-4">
         <input
           ref={dateInputRef}
           type="date"
