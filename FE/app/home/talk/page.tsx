@@ -1,10 +1,5 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState } from 'react';
-import SpeechRecognition, {
-  useSpeechRecognition,
-} from 'react-speech-recognition';
 import BackButton from '@/components/common/BackButton';
 import { Button } from '@/components/common/Button';
 import TalkBubble from '@/components/home/talk/TalkBubble';
@@ -12,6 +7,11 @@ import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
 import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 import { fetchPet } from '@/features/settings/api/petSettingsApi';
 import { getStoredMedicalPetId } from '@/lib/medical-record';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from 'react-speech-recognition';
 
 const DEFAULT_MESSAGE = '무엇이 궁금하신가요?';
 const API_BASE_URL = 'http://localhost:8080';
@@ -401,14 +401,14 @@ function HomeTalkPageContent() {
             : assistantMessage || DEFAULT_MESSAGE
         : '이 기기에서는 음성 인식을 사용할 수 없어요.';
   const speechBubbleMessage = isTextMode ? textInput : transcript.trim();
-  const instructionMessage = showMoveConfirm
+  const instructionMessage = isTextMode
+    ? undefined
+    : showMoveConfirm
     ? undefined
     : !speechBubbleMessage
-      ? isTextMode
-        ? '하단 말풍선에 내용을 입력해보세요.'
-        : listening || isRecording
-          ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
-          : `${selectedPetName}를 한 번 눌러\n말씀해보세요.`
+      ? listening || isRecording
+        ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
+        : `${selectedPetName}를 한 번 눌러\n말씀해보세요.`
       : undefined;
   const recordingButtonLabel =
     isRecording || listening
@@ -456,33 +456,27 @@ function HomeTalkPageContent() {
     <OnboardingBackground
       bubbleMessage={bubbleMessage}
       centerImageUrl={selectedPetImageUrl}
+      isCenterImageInteractive={!isTextMode}
+      onCenterImageClick={() => {
+        void toggleRecording();
+      }}
       instructionMessage={instructionMessage}
     >
       <div className="p-3.75">
         <BackButton />
       </div>
       <div className="pointer-events-none relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
-        <button
-          type="button"
-          onClick={() => {
-            void toggleRecording();
-          }}
-          onContextMenu={(event) => event.preventDefault()}
-          className={`-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] rounded-full bg-transparent md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px] ${
-            isTextMode ? 'pointer-events-none' : 'pointer-events-auto'
-          }`}
-          aria-label={recordingButtonLabel}
-          disabled={isTextMode}
-        />
-
         {!showMoveConfirm && isTextMode ? (
           <form
-            className="pointer-events-auto absolute right-6 bottom-[5.5rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:max-w-[24rem] lg:max-w-[26rem]"
+            className="pointer-events-auto absolute right-6 bottom-[8rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:bottom-[9rem] md:max-w-[24rem] lg:bottom-[7rem] lg:max-w-[26rem]"
             onSubmit={async (event) => {
               event.preventDefault();
               await submitTextInput();
             }}
           >
+            <p className="mb-4 text-center font-normal text-2xl text-black leading-[1.4] md:text-[1.7rem] lg:text-[1.8rem]">
+              하단 말풍선에 내용을 입력해보세요.
+            </p>
             <div className="relative overflow-hidden rounded-[2rem] bg-[#75A39D] shadow-[0_10px_30px_rgba(0,0,0,0.08)] md:rounded-[2.25rem] lg:rounded-[2.5rem]">
               <textarea
                 value={textInput}

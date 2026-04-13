@@ -33,7 +33,7 @@ export default function HomePromptBubble({
             <button
               type="button"
               onClick={onNoClick}
-              className="flex items-center justify-center border-[#B2B2B2] border-r font-extrabold text-[#DB1F26] text-[34px] transition active:scale-[0.98] cursor-pointer md:text-[42px] lg:text-[50px]"
+              className="flex cursor-pointer items-center justify-center border-[#B2B2B2] border-r font-extrabold text-[#DB1F26] text-[34px] transition-all hover:bg-[#FFF1F1] hover:text-[#B91C1C] active:scale-[0.98] md:text-[42px] lg:text-[50px]"
               aria-label={noLabel}
             >
               {noLabel}
@@ -42,7 +42,7 @@ export default function HomePromptBubble({
             <button
               type="button"
               onClick={onYesClick}
-              className="flex items-center justify-center font-extrabold text-[#018D70] text-[34px] transition active:scale-[0.98] cursor-pointer md:text-[42px] lg:text-[50px]"
+              className="flex cursor-pointer items-center justify-center font-extrabold text-[#018D70] text-[34px] transition-all hover:bg-[#ECFDF5] hover:text-[#047857] active:scale-[0.98] md:text-[42px] lg:text-[50px]"
               aria-label={yesLabel}
             >
               {yesLabel}

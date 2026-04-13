@@ -333,11 +333,11 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#FFFFFF]">
-      <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto p-5">
-        <header className="flex justify-end">
+      <main className="scrollbar-hide relative min-h-0 flex-1 overflow-y-auto pt-10 px-5">
+        <header>
           <Link
             href="/settings"
-            className="cursor-pointer text-[24px] text-black leading-none"
+            className="absolute top-0 right-0 z-10 cursor-pointer p-8 text-[24px] text-black leading-none transition-all hover:text-gray-500"
           >
             설정
           </Link>
@@ -390,14 +390,14 @@ export default function HomePage() {
             <button
               type="button"
               onClick={handleTalkClick}
-              className="flex flex-1 cursor-pointer items-center justify-center bg-[#25C3A8] font-extrabold text-[18px] text-white"
+              className="flex flex-1 cursor-pointer items-center justify-center bg-[#25C3A8] font-extrabold text-[18px] text-white transition-all hover:brightness-90"
             >
               말하기
             </button>
             <button
               type="button"
               onClick={handleDirectInputClick}
-              className="flex flex-1 cursor-pointer items-center justify-center bg-white font-extrabold text-[#25C3A8] text-[18px]"
+              className="flex flex-1 cursor-pointer items-center justify-center bg-white font-extrabold text-[#25C3A8] text-[18px] transition-opacity hover:opacity-80"
             >
               직접입력
             </button>
@@ -405,7 +405,7 @@ export default function HomePage() {
         </section>
 
         {isSpendingLoading ? (
-          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-5">
+          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
             <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
               <p className="font-extrabold text-[#0DA892] text-[20px] leading-tight">
                 소비 데이터를 불러오는 중이에요.
@@ -437,13 +437,13 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => router.push('/finance/report')}
-              className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] font-extrabold text-[20px] text-white"
+              className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] font-extrabold text-[20px] text-white transition-all hover:brightness-90"
             >
               리포트 보러가기
             </button>
           </section>
         ) : (
-          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-5">
+          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
             <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
               <p className="mb-5 font-extrabold text-[#0DA892] text-[20px] leading-tight">
                 {spendingErrorMessage ?? '아직 등록된 소비 데이터가 없어요!'}
@@ -452,7 +452,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => router.push('/finance/expense/add-image')}
-                className="flex h-[56px] w-full max-w-[280px] cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] px-4 font-extrabold text-[20px] text-white"
+                className="flex h-[56px] w-full max-w-[280px] cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] px-4 font-extrabold text-[20px] text-white transition-all hover:brightness-90"
               >
                 지출 등록하기
               </button>

@@ -156,7 +156,7 @@ export default function Page() {
         onClick={isTermsPhase ? handleSignup : handleConfirm}
         disabled={(isTermsPhase && !allChecked) || isLoading}
         className={cn(
-          'w-full rounded-[10px] bg-main-green py-2.5 text-[28px] text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-300',
+          'w-full cursor-pointer rounded-[10px] bg-main-green py-2.5 text-[28px] text-white transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-300',
           isTermsPhase && 'font-bold',
         )}
       >
