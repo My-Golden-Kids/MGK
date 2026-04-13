@@ -1,5 +1,6 @@
 import type {
   PetApiResult,
+  PetDeleteResult,
   PetFormParams,
   PetSize,
   PetSummary,
@@ -10,8 +11,16 @@ import type {
 } from '@/features/settings/types/petSettings';
 import { clientFetch } from '@/lib/auth';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parsePetSummary(data: any): PetSummary {
+type PetApiResponse = {
+  id: number;
+  name: string;
+  age?: number | null;
+  species?: string | null;
+  imageUrl?: string | null;
+  size?: string | null;
+};
+
+function parsePetSummary(data: PetApiResponse): PetSummary {
   return {
     id: data.id,
     name: data.name,
@@ -27,7 +36,7 @@ export async function fetchPets(): Promise<PetsApiResult> {
     const res = await clientFetch('/api/pets');
     if (!res.ok)
       return { ok: false, errorMessage: '반려동물 목록을 불러오지 못했어요.' };
-    const data = await res.json();
+    const data = (await res.json()) as PetApiResponse[];
     return { ok: true, pets: data.map(parsePetSummary) };
   } catch {
     return { ok: false, errorMessage: '네트워크 오류가 발생했어요.' };
@@ -39,7 +48,7 @@ export async function fetchPet(petId: number): Promise<PetApiResult> {
     const res = await clientFetch(`/api/pets/${petId}`);
     if (!res.ok)
       return { ok: false, errorMessage: '반려동물 정보를 불러오지 못했어요.' };
-    const data = await res.json();
+    const data = (await res.json()) as PetApiResponse;
     return { ok: true, pet: parsePetSummary(data) };
   } catch {
     return { ok: false, errorMessage: '네트워크 오류가 발생했어요.' };
@@ -54,7 +63,7 @@ export async function createPet(params: PetFormParams): Promise<PetApiResult> {
     });
     if (!res.ok)
       return { ok: false, errorMessage: '반려동물 추가에 실패했어요.' };
-    const data = await res.json();
+    const data = (await res.json()) as PetApiResponse;
     return { ok: true, pet: parsePetSummary(data) };
   } catch {
     return { ok: false, errorMessage: '네트워크 오류가 발생했어요.' };
@@ -72,8 +81,21 @@ export async function updatePet(
     });
     if (!res.ok)
       return { ok: false, errorMessage: '반려동물 정보 저장에 실패했어요.' };
-    const data = await res.json();
+    const data = (await res.json()) as PetApiResponse;
     return { ok: true, pet: parsePetSummary(data) };
+  } catch {
+    return { ok: false, errorMessage: '네트워크 오류가 발생했어요.' };
+  }
+}
+
+export async function deletePet(petId: number): Promise<PetDeleteResult> {
+  try {
+    const res = await clientFetch(`/api/pets/${petId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok)
+      return { ok: false, errorMessage: '반려동물 삭제에 실패했어요.' };
+    return { ok: true };
   } catch {
     return { ok: false, errorMessage: '네트워크 오류가 발생했어요.' };
   }

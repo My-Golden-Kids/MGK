@@ -32,6 +32,11 @@ export interface PetsApiResult {
   pets?: PetSummary[];
 }
 
+export interface PetDeleteResult {
+  ok: boolean;
+  errorMessage?: string;
+}
+
 export interface UploadResult {
   ok: boolean;
   errorMessage?: string;
