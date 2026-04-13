@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.Lock;
 
 public interface PetWalkRecordRepository extends JpaRepository<PetWalkRecord, Long> {
 
+    void deleteByPet_Id(Long petId);
+
     List<PetWalkRecord> findAllByPet_IdAndCompletedTrueOrderByWalkedAtDesc(Long petId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
