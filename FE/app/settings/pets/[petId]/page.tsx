@@ -1,10 +1,5 @@
 'use client';
 
-import { ImageUp } from 'lucide-react';
-import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
-import type { ChangeEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
@@ -14,6 +9,11 @@ import {
   updatePet,
   uploadPetImage,
 } from '@/features/settings/api/petSettingsApi';
+import { ImageUp } from 'lucide-react';
+import Image from 'next/image';
+import { useParams, useRouter } from 'next/navigation';
+import type { ChangeEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type PetType = '강아지' | '고양이';
 type PetSize = '소형' | '중형' | '대형';
@@ -185,7 +185,7 @@ export default function PetDetailPage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#ffffff]">
-      <main className="flex flex-1 flex-col px-5 pt-3 sm:px-6 sm:pt-4 md:px-8 md:pt-5 lg:px-10 lg:pt-6">
+      <main className="flex flex-1 flex-col p-5 sm:px-6 sm:pt-4 md:px-8 md:pt-5 lg:px-10 lg:pt-6">
         <div className="pb-4 sm:pb-5 md:pb-6">
           <BackButton />
         </div>

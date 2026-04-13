@@ -97,7 +97,7 @@ export default function Page() {
   return (
     <div className="relative mx-auto flex h-dvh w-full flex-1 flex-col overflow-hidden px-10 pt-5 pb-10 sm:max-w-lg md:max-w-xl">
       <div className="grid grid-cols-3 items-baseline">
-        <div className="justify-self-start">
+        <div className="-ml-4 justify-self-start">
           <BackButton />
         </div>
         <h1 className="justify-self-center font-bold text-[28px] text-main-green sm:text-[30px]">
@@ -184,7 +184,7 @@ export default function Page() {
             </h2>
             <div
               className={cn(
-                'overflow-y-scroll rounded-[5px] bg-gray-100',
+                'overflow-y-scroll rounded-[5px] bg-gray-100 p-4',
                 'wrap-break-word max-h-79.5 sm:max-w-auto',
                 '[&::-webkit-scrollbar]:w-1.75',
                 '[&::-webkit-scrollbar-thumb]:rounded-xs',

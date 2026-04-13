@@ -1,16 +1,16 @@
 'use client';
 
-import { Footprints, NotebookPen, Syringe } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { HealthButton } from '@/components/health/HealthButton';
+import { Footprints, NotebookPen, Syringe } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function HealthPage() {
   const router = useRouter();
 
   return (
     <div className="flex min-h-dvh flex-col bg-white">
-      <main className="flex flex-1 items-center justify-center px-6 py-6">
+      <main className="flex flex-1 items-center justify-center p-8">
         <section className="grid w-full max-w-[596px] grid-cols-2 gap-[20px]">
           <HealthButton
             className="col-span-2"

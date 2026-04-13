@@ -37,7 +37,7 @@ export default function BackButton({
       <button
         type="button"
         onClick={handleBack}
-        className="cursor-pointer px-4 py-3 font-medium text-2xl text-black transition-opacity hover:opacity-75"
+        className="cursor-pointer p-3 font-medium text-2xl text-black transition-opacity hover:opacity-75"
       >
         뒤로
       </button>

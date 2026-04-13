@@ -333,7 +333,7 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#FFFFFF]">
-      <main className="scrollbar-hide relative min-h-0 flex-1 overflow-y-auto pt-10 px-5">
+      <main className="scrollbar-hide relative min-h-0 flex-1 overflow-y-auto p-8">
         <header>
           <Link
             href="/settings"
@@ -369,7 +369,7 @@ export default function HomePage() {
             </p>
           ) : null}
           {isPetsLoading ? (
-            <p className="mt-2 text-center font-medium text-[#66706D] text-[16px]">
+            <p className="text-center font-medium text-[#66706D] text-[16px]">
               반려동물 정보를 불러오는 중이에요.
             </p>
           ) : null}
@@ -379,7 +379,7 @@ export default function HomePage() {
             </p>
           ) : null}
           {!isPetsLoading && !petsErrorMessage && pets.length === 0 ? (
-            <p className="mt-2 text-center font-medium text-[#66706D] text-[16px]">
+            <p className="text-center font-medium text-[#66706D] text-[16px]">
               등록된 반려동물이 없어요. 먼저 반려동물을 추가해 주세요.
             </p>
           ) : null}
@@ -407,7 +407,7 @@ export default function HomePage() {
         {isSpendingLoading ? (
           <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
             <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
-              <p className="font-extrabold text-[#0DA892] text-[20px] leading-tight">
+              <p className="font-extrabold text-[rgb(13,168,146)] text-[20px] leading-tight">
                 소비 데이터를 불러오는 중이에요.
               </p>
             </div>
