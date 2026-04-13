@@ -28,7 +28,6 @@ export async function createSchedule(
     body: JSON.stringify(request),
   });
 
-  console.log(res);
   if (!res.ok) {
     throw new Error(`일정 추가 실패: ${res.status}`);
   }
@@ -38,7 +37,6 @@ export async function getVaccinationSummary(): Promise<
   VaccinationPetSummaryResponse[]
 > {
   const res = await clientFetch('/api/vaccinations/summary');
-  console.log(res);
   if (!res.ok) {
     throw new Error(`접종 현황 조회 실패: ${res.status}`);
   }
