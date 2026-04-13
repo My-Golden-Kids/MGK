@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: org.springframework.ai:spring-ai-autoconfigure-model-chat-memory:2.0.0-M2" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="org.springframework.ai" artifactId="spring-ai-autoconfigure-model-chat-memory" version="2.0.0-M2" baseVersion="2.0.0-M2" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-autoconfigure-model-chat-memory/2.0.0-M2/f199c44f117f814ea1ce7c937653b0e4045fd7da/spring-ai-autoconfigure-model-chat-memory-2.0.0-M2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-autoconfigure-model-chat-memory/2.0.0-M2/1c7a0ba093a0d967ec7c991204edafc40b348bed/spring-ai-autoconfigure-model-chat-memory-2.0.0-M2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

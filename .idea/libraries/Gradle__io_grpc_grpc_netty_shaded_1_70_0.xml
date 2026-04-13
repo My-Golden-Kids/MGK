@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: io.grpc:grpc-netty-shaded:1.70.0" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="io.grpc" artifactId="grpc-netty-shaded" version="1.70.0" baseVersion="1.70.0" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-netty-shaded/1.70.0/8a4450921c3a1c1410404e560679d0a15e943ae1/grpc-netty-shaded-1.70.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.grpc/grpc-netty-shaded/1.70.0/71eb8437a8c266c4fe705059615ea68b9a1b5344/grpc-netty-shaded-1.70.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

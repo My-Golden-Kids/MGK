@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: org.springframework.ai:spring-ai-autoconfigure-model-google-genai:2.0.0-M2" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="org.springframework.ai" artifactId="spring-ai-autoconfigure-model-google-genai" version="2.0.0-M2" baseVersion="2.0.0-M2" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-autoconfigure-model-google-genai/2.0.0-M2/7f6c480678fc68f975f791ffc91606920baa495d/spring-ai-autoconfigure-model-google-genai-2.0.0-M2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-autoconfigure-model-google-genai/2.0.0-M2/12b498c84be227292ad3f050a00b51da1f6366d4/spring-ai-autoconfigure-model-google-genai-2.0.0-M2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

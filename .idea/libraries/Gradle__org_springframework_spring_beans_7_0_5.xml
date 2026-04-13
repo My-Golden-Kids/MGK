@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: org.springframework:spring-beans:7.0.5" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="org.springframework" artifactId="spring-beans" version="7.0.5" baseVersion="7.0.5" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework/spring-beans/7.0.5/e20d1006aca78c2c58f5eb85d58bc60672a3527c/spring-beans-7.0.5.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework/spring-beans/7.0.5/64f69f86296afb022c2bb588d83ac4a60acc4a62/spring-beans-7.0.5-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

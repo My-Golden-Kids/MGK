@@ -1,6 +1,7 @@
 package com.mgk.bemgk.repository;
 
 import com.mgk.bemgk.entity.AccountBook;
+import com.mgk.bemgk.entity.AccountBookCategory;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -90,5 +91,19 @@ public interface AccountBookRepository extends JpaRepository<AccountBook, Long> 
             @Param("category") String category,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
+    );
+
+    @Query("""
+            select count(a)
+            from AccountBook a
+            where a.user.id = :userId
+              and a.category = :category
+              and a.spendDate between :startDateTime and :endDateTime
+            """)
+    Long countByUserIdAndCategoryAndSpendDateTimeBetween(
+            @Param("userId") Long userId,
+            @Param("category") AccountBookCategory category,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime
     );
 }
