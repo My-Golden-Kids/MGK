@@ -11,8 +11,7 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   CHECKUP: '건강검진',
 };
 
-const WALK_ALERT_KEY = 'walk-alert';
-const CALENDAR_ALERT_KEY = 'calendar-alert';
+const ALERT_STORE_KEY = 'home-alert-store';
 
 // ──────────────────────────────────────────
 // Types
@@ -23,15 +22,9 @@ export type ScheduleBubble = {
   onDismiss: () => void;
 };
 
-type WalkAlertState = {
-  date: string;
-  hour: number;
-  dismissed: boolean;
-};
-
-type CalendarAlertState = {
-  date: string;
-  dismissed: Array<{ petId: number; eventType: string }>;
+type AlertStore = {
+  alarmHash: string;
+  dismissed: string[]; // "walk:{hour}" | "calendar:{petId}:{eventType}"
 };
 
 type TodayCalendarEvent = {
@@ -47,65 +40,57 @@ type AlarmResponse = {
 };
 
 // ──────────────────────────────────────────
-// localStorage helpers
+// Hash
 // ──────────────────────────────────────────
 
-function readAlert<T>(key: string): T | null {
+function hashAlarm(todayStr: string, alarm: AlarmResponse): string {
+  const raw = JSON.stringify({
+    date: todayStr,
+    walkHour: alarm.mostFrequentWalkHour,
+    events: alarm.todayEvents
+      .map((e) => `${e.petId}:${e.eventType}`)
+      .sort(),
+  });
+
+  // djb2
+  let h = 5381;
+  for (let i = 0; i < raw.length; i++) {
+    h = Math.imul(h << 5, h) + raw.charCodeAt(i);
+  }
+  return (h >>> 0).toString(36);
+}
+
+// ──────────────────────────────────────────
+// Alert store helpers
+// ──────────────────────────────────────────
+
+function readStore(): AlertStore | null {
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
+    const raw = localStorage.getItem(ALERT_STORE_KEY);
+    return raw ? (JSON.parse(raw) as AlertStore) : null;
   } catch {
     return null;
   }
 }
 
-function writeAlert<T>(key: string, value: T): void {
+function writeStore(store: AlertStore): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem(ALERT_STORE_KEY, JSON.stringify(store));
   } catch {}
 }
 
-function isWalkAlertDismissed(dateStr: string, hour: number): boolean {
-  const state = readAlert<WalkAlertState>(WALK_ALERT_KEY);
-  return (
-    state?.date === dateStr && state?.hour === hour && state?.dismissed === true
-  );
+function resolveStore(currentHash: string): AlertStore {
+  const stored = readStore();
+  // 해시가 다르면 (날짜 변경 or 알람 내용 변경) dismissed 리셋
+  if (stored?.alarmHash === currentHash) return stored;
+  return { alarmHash: currentHash, dismissed: [] };
 }
 
-function dismissWalkAlert(dateStr: string, hour: number): void {
-  writeAlert<WalkAlertState>(WALK_ALERT_KEY, {
-    date: dateStr,
-    hour,
-    dismissed: true,
-  });
-}
-
-function isCalendarEventDismissed(
-  dateStr: string,
-  petId: number,
-  eventType: string,
-): boolean {
-  const state = readAlert<CalendarAlertState>(CALENDAR_ALERT_KEY);
-  if (state?.date !== dateStr) return false;
-  return state.dismissed.some(
-    (d) => d.petId === petId && d.eventType === eventType,
-  );
-}
-
-function dismissCalendarEvent(
-  dateStr: string,
-  petId: number,
-  eventType: string,
-): void {
-  const state = readAlert<CalendarAlertState>(CALENDAR_ALERT_KEY);
-  const existing = state?.date === dateStr ? state.dismissed : [];
-  if (existing.some((d) => d.petId === petId && d.eventType === eventType)) {
-    return;
-  }
-  writeAlert<CalendarAlertState>(CALENDAR_ALERT_KEY, {
-    date: dateStr,
-    dismissed: [...existing, { petId, eventType }],
-  });
+function addDismissed(id: string): void {
+  const stored = readStore();
+  if (!stored) return;
+  if (stored.dismissed.includes(id)) return;
+  writeStore({ ...stored, dismissed: [...stored.dismissed, id] });
 }
 
 // ──────────────────────────────────────────
@@ -123,27 +108,34 @@ export async function fetchScheduleBubbles(
     if (!res.ok) return bubbles;
 
     const alarm = (await res.json()) as AlarmResponse;
+    const hash = hashAlarm(todayStr, alarm);
+    const store = resolveStore(hash);
+
+    // 최신 hash로 store 초기화 (dismissed 리셋 포함)
+    writeStore(store);
 
     // ① 산책 알림 (최우선)
     if (
       alarm.mostFrequentWalkHour !== null &&
-      currentHour === alarm.mostFrequentWalkHour &&
-      !isWalkAlertDismissed(todayStr, currentHour)
+      currentHour === alarm.mostFrequentWalkHour
     ) {
-      bubbles.push({
-        message: WALK_BUBBLE_MESSAGE,
-        onDismiss: () => dismissWalkAlert(todayStr, currentHour),
-      });
+      const id = `walk:${currentHour}`;
+      if (!store.dismissed.includes(id)) {
+        bubbles.push({
+          message: WALK_BUBBLE_MESSAGE,
+          onDismiss: () => addDismissed(id),
+        });
+      }
     }
 
     // ② 오늘 CalendarEvent 알림 (펫별·이벤트별 독립 dismiss)
     for (const event of alarm.todayEvents) {
-      if (!isCalendarEventDismissed(todayStr, event.petId, event.eventType)) {
+      const id = `calendar:${event.petId}:${event.eventType}`;
+      if (!store.dismissed.includes(id)) {
         const label = EVENT_TYPE_LABEL[event.eventType] ?? event.eventType;
         bubbles.push({
           message: `${event.petName}의 ${label} 일정이 오늘이에요!`,
-          onDismiss: () =>
-            dismissCalendarEvent(todayStr, event.petId, event.eventType),
+          onDismiss: () => addDismissed(id),
         });
       }
     }
