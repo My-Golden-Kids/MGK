@@ -10,6 +10,7 @@ import static org.mockito.Mockito.*;
 
 import com.mgk.bemgk.auth.JwtProvider;
 import com.mgk.bemgk.dto.auth.AuthResponse;
+import com.mgk.bemgk.dto.auth.SignupResponse;
 import com.mgk.bemgk.dto.auth.ChangePasswordRequest;
 import com.mgk.bemgk.dto.auth.DeleteAccountRequest;
 import com.mgk.bemgk.dto.auth.LoginRequest;
@@ -85,18 +86,14 @@ class AuthServiceTest {
         given(userRepository.existsByEmail("new@test.com")).willReturn(false);
         given(passwordEncoder.encode("Test1234!")).willReturn("encodedPassword");
         given(userRepository.save(any(User.class))).willReturn(saved);
-        given(jwtProvider.generateAccessToken(1L, "new@test.com")).willReturn("access");
-        given(jwtProvider.generateRefreshToken(1L)).willReturn("refresh");
         given(accountBookRepository.save(any())).willReturn(mock(AccountBook.class));
 
-        AuthResponse response = authService.signup(request);
+        SignupResponse response = authService.signup(request);
 
-        assertThat(response.getAccessToken()).isEqualTo("access");
-        assertThat(response.getRefreshToken()).isEqualTo("refresh");
         assertThat(response.getEmail()).isEqualTo("new@test.com");
+        assertThat(response.getUserId()).isEqualTo(1L);
         then(accountRepository).should().save(any());
         then(accountBookRepository).should().save(any());
-        then(refreshTokenRepository).should().save(any(RefreshToken.class));
     }
 
     @Test
