@@ -19,6 +19,7 @@ import com.mgk.bemgk.dto.auth.OtpResponse;
 import com.mgk.bemgk.dto.auth.RefreshRequest;
 import com.mgk.bemgk.dto.auth.RefreshResponse;
 import com.mgk.bemgk.dto.auth.SignupRequest;
+import com.mgk.bemgk.dto.auth.SignupResponse;
 import com.mgk.bemgk.service.AuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/signup")
-	public AuthResponse signup(@RequestBody @Valid SignupRequest request) {
+	public SignupResponse signup(@RequestBody @Valid SignupRequest request) {
 		return authService.signup(request);
 
 	}
@@ -53,11 +54,7 @@ public class AuthController {
 
 	@PostMapping("/delete-account")
 	public void deleteAccount(@RequestBody @Valid DeleteAccountRequest request) {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		if (authentication == null || !authentication.isAuthenticated()) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
-		}
-		Long userId = (Long) authentication.getPrincipal();
+		Long userId = resolveUserId();
 		authService.deleteAccount(userId, request);
 	}
 
@@ -73,11 +70,20 @@ public class AuthController {
 
 	@PostMapping("/change-password")
 	public void changePassword(@RequestBody @Valid ChangePasswordRequest request) {
+		Long userId = resolveUserId();
+		authService.changePassword(userId, request);
+	}
+
+	@PostMapping("/logout")
+	public void logout(@RequestBody @Valid RefreshRequest request) {
+		authService.logout(request.getRefreshToken());
+	}
+
+	private Long resolveUserId() {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		if (authentication == null || !authentication.isAuthenticated()) {
+		if (authentication == null || !(authentication.getPrincipal() instanceof Long userId)) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 		}
-		Long userId = (Long) authentication.getPrincipal();
-		authService.changePassword(userId, request);
+		return userId;
 	}
 }

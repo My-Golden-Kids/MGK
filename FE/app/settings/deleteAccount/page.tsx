@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { logout } from '@/lib/auth.action';
 import { useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
@@ -37,7 +37,7 @@ export default function DeleteAccountPage() {
       return;
     }
 
-    await signOut({ callbackUrl: '/login' });
+    await logout();
   };
 
   return (

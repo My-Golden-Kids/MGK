@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { logout } from '@/lib/auth.action';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
@@ -111,9 +111,9 @@ export default function SettingsPage() {
     });
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsLogoutModalOpen(false);
-    signOut({ callbackUrl: '/login' });
+    await logout();
   };
 
   const menuItems = useMemo(
