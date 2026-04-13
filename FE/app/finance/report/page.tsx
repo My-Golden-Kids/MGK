@@ -60,8 +60,8 @@ export default function FinanceReportPage() {
   }, [safeMonthlyData]);
 
   return (
-    <div className="min-h-dvh">
-      <main>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto">
         <div className="relative mx-auto w-full overflow-hidden px-5 py-5 md:px-6 lg:px-7">
           <section className="relative flex items-center justify-center">
             <Link
