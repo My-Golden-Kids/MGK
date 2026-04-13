@@ -462,13 +462,13 @@ function HomeTalkPageContent() {
       }}
       instructionMessage={instructionMessage}
     >
-      <div className="p-3.75">
-        <BackButton />
-      </div>
       <div className="pointer-events-none relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
+        <div className="pointer-events-auto absolute top-4 left-4">
+          <BackButton />
+        </div>
         {!showMoveConfirm && isTextMode ? (
           <form
-            className="pointer-events-auto absolute right-6 bottom-[8rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:bottom-[9rem] md:max-w-[24rem] lg:bottom-[7rem] lg:max-w-[26rem]"
+            className="pointer-events-auto absolute right-6 bottom-[3.25rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:bottom-[4.25rem] md:max-w-[24rem] lg:bottom-[4rem] lg:max-w-[26rem]"
             onSubmit={async (event) => {
               event.preventDefault();
               await submitTextInput();
