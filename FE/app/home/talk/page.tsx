@@ -1,33 +1,33 @@
-"use client";
+'use client';
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import SpeechRecognition, {
   useSpeechRecognition,
-} from "react-speech-recognition";
+} from 'react-speech-recognition';
+import BackButton from '@/components/common/BackButton';
+import { Button } from '@/components/common/Button';
+import TalkBubble from '@/components/home/talk/TalkBubble';
+import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
+import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
+import { fetchPet } from '@/features/settings/api/petSettingsApi';
+import { getStoredMedicalPetId } from '@/lib/medical-record';
 
-import { Button } from "@/components/common/Button";
-import TalkBubble from "@/components/home/talk/TalkBubble";
-import TalkChoiceButtons from "@/components/home/talk/TalkChoiceButtons";
-import OnboardingBackground from "@/components/onboarding/OnboardingBackground";
-import { fetchPet } from "@/features/settings/api/petSettingsApi";
-import { getStoredMedicalPetId } from "@/lib/medical-record";
-
-const DEFAULT_MESSAGE = "무엇이 궁금하신가요?";
-const API_BASE_URL = "http://localhost:8080";
+const DEFAULT_MESSAGE = '무엇이 궁금하신가요?';
+const API_BASE_URL = 'http://localhost:8080';
 const MAX_REQUEST_TRANSCRIPT_LENGTH = 60;
-const PREPARING_MESSAGE = "답변을 준비하고 있어요.";
-const REQUEST_ERROR_MESSAGE = "답변을 불러오지 못했어요.";
-const DEFAULT_PET_NAME = "별송이";
+const PREPARING_MESSAGE = '답변을 준비하고 있어요.';
+const REQUEST_ERROR_MESSAGE = '답변을 불러오지 못했어요.';
+const DEFAULT_PET_NAME = '별송이';
 
 function buildRequestTranscript(transcript: string) {
   const normalizedTranscript = transcript
-    .replace(/\s+/g, " ")
-    .replace(/[.?!]+/g, ".")
+    .replace(/\s+/g, ' ')
+    .replace(/[.?!]+/g, '.')
     .trim();
 
   if (!normalizedTranscript) {
-    return "";
+    return '';
   }
 
   const segments = normalizedTranscript
@@ -42,76 +42,76 @@ function buildRequestTranscript(transcript: string) {
 }
 
 function resolveCommandRoute(transcript: string) {
-  const normalizedTranscript = transcript.replaceAll(" ", "");
+  const normalizedTranscript = transcript.replaceAll(' ', '');
 
   if (
-    normalizedTranscript.includes("지출추가") ||
-    normalizedTranscript.includes("지출등록")
+    normalizedTranscript.includes('지출추가') ||
+    normalizedTranscript.includes('지출등록')
   ) {
-    return "/finance/expense/add-image";
+    return '/finance/expense/add-image';
   }
 
-  if (normalizedTranscript.includes("리포트")) {
-    return "/finance/report";
-  }
-
-  if (
-    normalizedTranscript.includes("통장") ||
-    normalizedTranscript.includes("잔고") ||
-    normalizedTranscript.includes("재정") ||
-    normalizedTranscript.includes("금융") ||
-    normalizedTranscript.includes("가계부") ||
-    normalizedTranscript.includes("소비") ||
-    normalizedTranscript.includes("지출")
-  ) {
-    return "/finance";
-  }
-
-  if (normalizedTranscript.includes("산책")) {
-    return "/health/walk";
+  if (normalizedTranscript.includes('리포트')) {
+    return '/finance/report';
   }
 
   if (
-    normalizedTranscript.includes("접종") ||
-    normalizedTranscript.includes("예방접종") ||
-    normalizedTranscript.includes("백신")
+    normalizedTranscript.includes('통장') ||
+    normalizedTranscript.includes('잔고') ||
+    normalizedTranscript.includes('재정') ||
+    normalizedTranscript.includes('금융') ||
+    normalizedTranscript.includes('가계부') ||
+    normalizedTranscript.includes('소비') ||
+    normalizedTranscript.includes('지출')
   ) {
-    return "/health/vaccinations";
+    return '/finance';
+  }
+
+  if (normalizedTranscript.includes('산책')) {
+    return '/health/walk';
   }
 
   if (
-    normalizedTranscript.includes("병원기록") ||
-    normalizedTranscript.includes("진료기록") ||
-    normalizedTranscript.includes("의료기록")
+    normalizedTranscript.includes('접종') ||
+    normalizedTranscript.includes('예방접종') ||
+    normalizedTranscript.includes('백신')
   ) {
-    return "/health/medical-records";
+    return '/health/vaccinations';
   }
 
   if (
-    normalizedTranscript.includes("건강") ||
-    normalizedTranscript.includes("헬스")
+    normalizedTranscript.includes('병원기록') ||
+    normalizedTranscript.includes('진료기록') ||
+    normalizedTranscript.includes('의료기록')
   ) {
-    return "/health";
+    return '/health/medical-records';
   }
 
   if (
-    normalizedTranscript.includes("상품") ||
-    normalizedTranscript.includes("보험") ||
-    normalizedTranscript.includes("적금") ||
-    normalizedTranscript.includes("구독")
+    normalizedTranscript.includes('건강') ||
+    normalizedTranscript.includes('헬스')
   ) {
-    return "/product";
+    return '/health';
   }
 
   if (
-    normalizedTranscript.includes("설정") ||
-    normalizedTranscript.includes("마이페이지")
+    normalizedTranscript.includes('상품') ||
+    normalizedTranscript.includes('보험') ||
+    normalizedTranscript.includes('적금') ||
+    normalizedTranscript.includes('구독')
   ) {
-    return "/settings";
+    return '/product';
   }
 
-  if (normalizedTranscript.includes("홈")) {
-    return "/home";
+  if (
+    normalizedTranscript.includes('설정') ||
+    normalizedTranscript.includes('마이페이지')
+  ) {
+    return '/settings';
+  }
+
+  if (normalizedTranscript.includes('홈')) {
+    return '/home';
   }
 
   return null;
@@ -119,49 +119,49 @@ function resolveCommandRoute(transcript: string) {
 
 function buildConfirmMessage(route: string | null) {
   switch (route) {
-    case "/finance":
-      return "재정 화면으로 이동할까요?";
-    case "/finance/report":
-      return "리포트 화면으로 이동할까요?";
-    case "/finance/expense/add-image":
-      return "지출 등록 화면으로 이동할까요?";
-    case "/health":
-      return "건강 화면으로 이동할까요?";
-    case "/health/walk":
-      return "산책 화면으로 이동할까요?";
-    case "/health/vaccinations":
-      return "접종 화면으로 이동할까요?";
-    case "/health/medical-records":
-      return "병원기록 화면으로 이동할까요?";
-    case "/product":
-      return "상품 화면으로 이동할까요?";
-    case "/settings":
-      return "설정 화면으로 이동할까요?";
-    case "/home":
-      return "홈 화면으로 이동할까요?";
+    case '/finance':
+      return '재정 화면으로 이동할까요?';
+    case '/finance/report':
+      return '리포트 화면으로 이동할까요?';
+    case '/finance/expense/add-image':
+      return '지출 등록 화면으로 이동할까요?';
+    case '/health':
+      return '건강 화면으로 이동할까요?';
+    case '/health/walk':
+      return '산책 화면으로 이동할까요?';
+    case '/health/vaccinations':
+      return '접종 화면으로 이동할까요?';
+    case '/health/medical-records':
+      return '병원기록 화면으로 이동할까요?';
+    case '/product':
+      return '상품 화면으로 이동할까요?';
+    case '/settings':
+      return '설정 화면으로 이동할까요?';
+    case '/home':
+      return '홈 화면으로 이동할까요?';
     default:
-      return "이동할까요?";
+      return '이동할까요?';
   }
 }
 
 function HomeTalkPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const lastSpokenBubbleMessageRef = useRef("");
+  const lastSpokenBubbleMessageRef = useRef('');
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [shouldSubmit, setShouldSubmit] = useState(false);
   const [showMoveConfirm, setShowMoveConfirm] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<string | null>(null);
-  const [assistantMessage, setAssistantMessage] = useState("");
-  const [requestedTranscript, setRequestedTranscript] = useState("");
-  const [textInput, setTextInput] = useState("");
+  const [assistantMessage, setAssistantMessage] = useState('');
+  const [requestedTranscript, setRequestedTranscript] = useState('');
+  const [textInput, setTextInput] = useState('');
   const [selectedPetName, setSelectedPetName] = useState(DEFAULT_PET_NAME);
   const [selectedPetImageUrl, setSelectedPetImageUrl] = useState<
     string | undefined
   >(undefined);
-  const isTextMode = searchParams.get("mode") === "text";
+  const isTextMode = searchParams.get('mode') === 'text';
   const {
     transcript,
     resetTranscript,
@@ -214,21 +214,21 @@ function HomeTalkPageContent() {
   }, [isTextMode]);
 
   useEffect(() => {
-    const normalizedTranscript = transcript.replaceAll(" ", "");
+    const normalizedTranscript = transcript.replaceAll(' ', '');
 
     if (isTextMode || showMoveConfirm || !normalizedTranscript) {
       return;
     }
 
     const shouldMoveFinance =
-      normalizedTranscript.includes("통장") ||
-      normalizedTranscript.includes("잔고");
+      normalizedTranscript.includes('통장') ||
+      normalizedTranscript.includes('잔고');
 
     if (!shouldMoveFinance) {
       return;
     }
 
-    setPendingRoute("/finance");
+    setPendingRoute('/finance');
     setShowMoveConfirm(true);
   }, [isTextMode, showMoveConfirm, transcript]);
 
@@ -254,9 +254,9 @@ function HomeTalkPageContent() {
         setAssistantMessage(PREPARING_MESSAGE);
 
         const response = await fetch(`${API_BASE_URL}/api/talk`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             transcript: requestTranscript,
@@ -298,15 +298,15 @@ function HomeTalkPageContent() {
 
     resetTranscript();
     setShowMoveConfirm(false);
-    setAssistantMessage("");
+    setAssistantMessage('');
     setShouldSubmit(false);
-    setRequestedTranscript("");
+    setRequestedTranscript('');
     setIsRecording(true);
     window.speechSynthesis?.cancel();
 
     await SpeechRecognition.startListening({
       continuous: false,
-      language: "ko-KR",
+      language: 'ko-KR',
     });
   };
 
@@ -336,7 +336,7 @@ function HomeTalkPageContent() {
     if (commandRoute) {
       setPendingRoute(commandRoute);
       setShowMoveConfirm(true);
-      setAssistantMessage("");
+      setAssistantMessage('');
       return;
     }
 
@@ -346,9 +346,9 @@ function HomeTalkPageContent() {
       setAssistantMessage(PREPARING_MESSAGE);
 
       const response = await fetch(`${API_BASE_URL}/api/talk`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           transcript: requestTranscript,
@@ -394,21 +394,21 @@ function HomeTalkPageContent() {
           ? PREPARING_MESSAGE
           : assistantMessage || DEFAULT_MESSAGE
       : browserSupportsSpeechRecognition
-      ? showMoveConfirm
-        ? confirmMessage
-        : isRequesting
-          ? "답변을 준비하고 있어요."
-          : assistantMessage || DEFAULT_MESSAGE
-      : "이 기기에서는 음성 인식을 사용할 수 없어요.";
+        ? showMoveConfirm
+          ? confirmMessage
+          : isRequesting
+            ? '답변을 준비하고 있어요.'
+            : assistantMessage || DEFAULT_MESSAGE
+        : '이 기기에서는 음성 인식을 사용할 수 없어요.';
   const speechBubbleMessage = isTextMode ? textInput : transcript.trim();
   const instructionMessage = showMoveConfirm
     ? undefined
     : !speechBubbleMessage
       ? isTextMode
-        ? "하단 말풍선에 내용을 입력해보세요."
+        ? '하단 말풍선에 내용을 입력해보세요.'
         : listening || isRecording
-        ? "듣고 있어요.\n한 번 더 누르면 멈춰요."
-        : `${selectedPetName}를 한 번 눌러\n말씀해보세요.`
+          ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
+          : `${selectedPetName}를 한 번 눌러\n말씀해보세요.`
       : undefined;
   const recordingButtonLabel =
     isRecording || listening
@@ -432,15 +432,15 @@ function HomeTalkPageContent() {
     }
 
     const utterance = new SpeechSynthesisUtterance(
-      bubbleMessage.replaceAll("\n", " "),
+      bubbleMessage.replaceAll('\n', ' '),
     );
-    utterance.lang = "ko-KR";
+    utterance.lang = 'ko-KR';
     utterance.rate = 0.95;
     utterance.pitch = 1;
 
     const availableVoices = speechSynthesis.getVoices();
     const koreanVoice = availableVoices.find((voice) =>
-      voice.lang.toLowerCase().startsWith("ko"),
+      voice.lang.toLowerCase().startsWith('ko'),
     );
 
     if (koreanVoice) {
@@ -458,6 +458,9 @@ function HomeTalkPageContent() {
       centerImageUrl={selectedPetImageUrl}
       instructionMessage={instructionMessage}
     >
+      <div className="p-3.75">
+        <BackButton />
+      </div>
       <div className="pointer-events-none relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
         <button
           type="button"
@@ -466,7 +469,7 @@ function HomeTalkPageContent() {
           }}
           onContextMenu={(event) => event.preventDefault()}
           className={`-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] rounded-full bg-transparent md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px] ${
-            isTextMode ? "pointer-events-none" : "pointer-events-auto"
+            isTextMode ? 'pointer-events-none' : 'pointer-events-auto'
           }`}
           aria-label={recordingButtonLabel}
           disabled={isTextMode}
@@ -495,7 +498,7 @@ function HomeTalkPageContent() {
                 <Button
                   type="submit"
                   disabled={!textInput.trim() || isRequesting}
-                  className="mx-0 h-auto rounded-[14px] bg-[#00A389] px-6 py-2.5 text-xl font-medium text-white shadow-none hover:bg-[#008f78] disabled:bg-[#9BBAB2] md:rounded-2xl md:px-8 md:py-3.5 md:text-2xl lg:rounded-3xl lg:px-10 lg:py-4 lg:text-3xl"
+                  className="mx-0 h-auto rounded-[14px] bg-[#00A389] px-6 py-2.5 font-medium text-white text-xl shadow-none hover:bg-[#008f78] disabled:bg-[#9BBAB2] md:rounded-2xl md:px-8 md:py-3.5 md:text-2xl lg:rounded-3xl lg:px-10 lg:py-4 lg:text-3xl"
                 >
                   전송
                 </Button>
@@ -523,14 +526,14 @@ function HomeTalkPageContent() {
                   return;
                 }
 
-                router.push("/finance");
+                router.push('/finance');
               }}
               onNoClick={() => {
                 setShowMoveConfirm(false);
                 setPendingRoute(null);
-                setAssistantMessage("");
+                setAssistantMessage('');
                 if (isTextMode) {
-                  setRequestedTranscript("");
+                  setRequestedTranscript('');
                 } else {
                   resetTranscript();
                 }
