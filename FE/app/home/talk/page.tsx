@@ -1,5 +1,10 @@
 'use client';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from 'react-speech-recognition';
 import BackButton from '@/components/common/BackButton';
 import { Button } from '@/components/common/Button';
 import TalkBubble from '@/components/home/talk/TalkBubble';
@@ -7,11 +12,7 @@ import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
 import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 import { fetchPet } from '@/features/settings/api/petSettingsApi';
 import { getStoredMedicalPetId } from '@/lib/medical-record';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState } from 'react';
-import SpeechRecognition, {
-  useSpeechRecognition,
-} from 'react-speech-recognition';
+import { cancelTtsPlayback, playTts } from '@/lib/tts';
 
 const DEFAULT_MESSAGE = '무엇이 궁금하신가요?';
 const API_BASE_URL = 'http://localhost:8080';
@@ -202,7 +203,7 @@ function HomeTalkPageContent() {
   useEffect(() => {
     return () => {
       SpeechRecognition.stopListening();
-      window.speechSynthesis?.cancel();
+      cancelTtsPlayback();
     };
   }, []);
 
@@ -302,7 +303,7 @@ function HomeTalkPageContent() {
     setShouldSubmit(false);
     setRequestedTranscript('');
     setIsRecording(true);
-    window.speechSynthesis?.cancel();
+    cancelTtsPlayback();
 
     await SpeechRecognition.startListening({
       continuous: false,
@@ -404,16 +405,12 @@ function HomeTalkPageContent() {
   const instructionMessage = isTextMode
     ? undefined
     : showMoveConfirm
-    ? undefined
-    : !speechBubbleMessage
-      ? listening || isRecording
-        ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
-        : `${selectedPetName}를 한 번 눌러\n말씀해보세요.`
-      : undefined;
-  const recordingButtonLabel =
-    isRecording || listening
-      ? `${selectedPetName}를 눌러 음성 입력 종료`
-      : `${selectedPetName}를 눌러 음성 입력 시작`;
+      ? undefined
+      : !speechBubbleMessage
+        ? listening || isRecording
+          ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
+          : `${selectedPetName}를 한 번 눌러\n말씀해보세요.`
+        : undefined;
 
   useEffect(() => {
     if (
@@ -425,31 +422,20 @@ function HomeTalkPageContent() {
       return;
     }
 
-    const speechSynthesis = window.speechSynthesis;
-
-    if (!speechSynthesis) {
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(
-      bubbleMessage.replaceAll('\n', ' '),
-    );
-    utterance.lang = 'ko-KR';
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
-
-    const availableVoices = speechSynthesis.getVoices();
-    const koreanVoice = availableVoices.find((voice) =>
-      voice.lang.toLowerCase().startsWith('ko'),
-    );
-
-    if (koreanVoice) {
-      utterance.voice = koreanVoice;
-    }
-
     lastSpokenBubbleMessageRef.current = bubbleMessage;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
+    const abortController = new AbortController();
+
+    void playTts(bubbleMessage.replaceAll('\n', ' '), {
+      signal: abortController.signal,
+    }).catch(() => {
+      if (lastSpokenBubbleMessageRef.current === bubbleMessage) {
+        lastSpokenBubbleMessageRef.current = '';
+      }
+    });
+
+    return () => {
+      abortController.abort();
+    };
   }, [bubbleMessage, isClient]);
 
   return (
