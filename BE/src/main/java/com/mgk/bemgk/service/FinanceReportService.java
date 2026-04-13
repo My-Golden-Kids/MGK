@@ -35,10 +35,11 @@ public class FinanceReportService {
 
 	public FinanceReportResponse getRetirementReport(Long userId) {
 		List<Pet> pets = petRepository.findByUser_Id(userId);
+		List<Pet> alivePets = getAlivePetsAsOfToday(pets);
 
-		BigDecimal monthlyAverageExpense = calculateMonthlyAverageExpense(userId);
+		BigDecimal monthlyAverageExpense = calculateMonthlyAverageExpense(userId, pets);
 		BigDecimal totalAsset = defaultAmount(accountRepository.sumMoneyAmountByUserId(userId));
-		BigDecimal futurePetCost = calculateFuturePetCost(monthlyAverageExpense, pets);
+		BigDecimal futurePetCost = calculateFuturePetCost(monthlyAverageExpense, alivePets);
 
 		BigDecimal retirementImpactPercent = BigDecimal.ZERO;
 		if (totalAsset.compareTo(BigDecimal.ZERO) > 0) {
@@ -100,34 +101,53 @@ public class FinanceReportService {
 
 
 	// 최근 1년간 user 기준 반려동물 평균 한 달 지출
-	private BigDecimal calculateMonthlyAverageExpense(Long userId) {
+	private BigDecimal calculateMonthlyAverageExpense(Long userId, List<Pet> pets) {
+		if (pets == null || pets.isEmpty()) {
+			return BigDecimal.ZERO;
+		}
+
 		LocalDateTime firstPetSpendDateTime = accountBookRepository.findFirstPetSpendDateByUserId(userId);
 
 		if (firstPetSpendDateTime == null) {
 			return BigDecimal.ZERO;
 		}
 
-		LocalDate firstPetSpendDate = firstPetSpendDateTime.toLocalDate();
-		LocalDate now = LocalDate.now();
-
-		long observedMonths = ChronoUnit.MONTHS.between(firstPetSpendDate.withDayOfMonth(1), now.withDayOfMonth(1)) + 1;
+		YearMonth firstSpendMonth = YearMonth.from(firstPetSpendDateTime);
+		YearMonth currentMonth = YearMonth.now();
+		long observedMonths = ChronoUnit.MONTHS.between(firstSpendMonth, currentMonth) + 1;
 
 		if (observedMonths <= 0) {
-			observedMonths = 1;
+			return BigDecimal.ZERO;
 		}
 
-		// 1년 미만: 지금까지 평균
-		if (observedMonths < 12) {
-			BigDecimal totalExpense = defaultAmount(accountBookRepository.sumPetExpenseByUserId(userId));
+		YearMonth startMonth = observedMonths < 12 ? firstSpendMonth : currentMonth.minusMonths(11);
+		Map<YearMonth, BigDecimal> monthlyExpenseMap = getMonthlyExpenseMap(userId, startMonth, currentMonth);
 
-			return totalExpense.divide(BigDecimal.valueOf(observedMonths), 2, RoundingMode.HALF_UP);
+		BigDecimal adjustedExpenseSum = BigDecimal.ZERO;
+		long countedMonths = 0;
+
+		for (YearMonth month = startMonth; !month.isAfter(currentMonth); month = month.plusMonths(1)) {
+			int activePetCount = countActivePetsForMonth(pets, month);
+			if (activePetCount <= 0) {
+				continue;
+			}
+
+			BigDecimal monthlyExpense = defaultAmount(monthlyExpenseMap.get(month));
+			BigDecimal adjustedMonthlyExpense = monthlyExpense.divide(
+				BigDecimal.valueOf(activePetCount),
+				2,
+				RoundingMode.HALF_UP
+			);
+
+			adjustedExpenseSum = adjustedExpenseSum.add(adjustedMonthlyExpense);
+			countedMonths++;
 		}
 
-		// 1년 이상: 최근 1년간 평균
-		LocalDateTime oneYearAgoStart = now.minusYears(1).withDayOfMonth(1).atStartOfDay();
-		BigDecimal lastYearExpense = defaultAmount(accountBookRepository.sumPetExpenseLastYear(userId, oneYearAgoStart));
+		if (countedMonths == 0) {
+			return BigDecimal.ZERO;
+		}
 
-		return lastYearExpense.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
+		return adjustedExpenseSum.divide(BigDecimal.valueOf(countedMonths), 2, RoundingMode.HALF_UP);
 	}
 
 	/**
@@ -147,8 +167,7 @@ public class FinanceReportService {
 			return BigDecimal.ZERO;
 		}
 
-		BigDecimal annualExpense = monthlyAverageExpense.multiply(BigDecimal.valueOf(12));
-		int totalPetCount = pets.size();
+		BigDecimal annualExpensePerPet = monthlyAverageExpense.multiply(TWELVE);
 
 		List<Integer> projectedYears = pets.stream()
 			.map(this::getProjectedYears)
@@ -180,9 +199,8 @@ public class FinanceReportService {
 
 			if (alivePetCount == 0) continue;
 
-			BigDecimal livingCostForYear = annualExpense
-				.multiply(BigDecimal.valueOf(alivePetCount))
-				.divide(BigDecimal.valueOf(totalPetCount), 2, RoundingMode.HALF_UP);
+			BigDecimal livingCostForYear = annualExpensePerPet
+				.multiply(BigDecimal.valueOf(alivePetCount));
 
 			totalCost = totalCost.add(livingCostForYear).add(medicalCostForYear);
 		}
@@ -282,5 +300,71 @@ public class FinanceReportService {
 
 	private String safeLower(String value) {
 		return value == null ? "" : value.toLowerCase();
+	}
+
+	private Map<YearMonth, BigDecimal> getMonthlyExpenseMap(Long userId, YearMonth startMonth, YearMonth endMonth) {
+		Map<YearMonth, BigDecimal> monthlyExpenseMap = new LinkedHashMap<>();
+		for (YearMonth month = startMonth; !month.isAfter(endMonth); month = month.plusMonths(1)) {
+			monthlyExpenseMap.put(month, BigDecimal.ZERO);
+		}
+
+		LocalDateTime startDateTime = startMonth.atDay(1).atStartOfDay();
+		LocalDateTime endDateTime = endMonth.atEndOfMonth().atTime(23, 59, 59);
+
+		List<Object[]> rawMonthlyExpenses =
+			accountBookRepository.sumMonthlyPetExpenseByUserId(userId, startDateTime, endDateTime);
+
+		for (Object[] row : rawMonthlyExpenses) {
+			YearMonth month = YearMonth.of(
+				((Number) row[0]).intValue(),
+				((Number) row[1]).intValue()
+			);
+			BigDecimal amount = row[2] == null ? BigDecimal.ZERO : new BigDecimal(row[2].toString());
+			if (monthlyExpenseMap.containsKey(month)) {
+				monthlyExpenseMap.put(month, amount);
+			}
+		}
+
+		return monthlyExpenseMap;
+	}
+
+	private int countActivePetsForMonth(List<Pet> pets, YearMonth month) {
+		int count = 0;
+		LocalDate monthStart = month.atDay(1);
+		LocalDate monthEnd = month.atEndOfMonth();
+
+		for (Pet pet : pets) {
+			LocalDate createdDate = pet.getCreatedAt() == null ? null : pet.getCreatedAt().toLocalDate();
+			if (createdDate != null && createdDate.isAfter(monthEnd)) {
+				continue;
+			}
+
+			if (isDeadBeforeMonthStart(pet, monthStart)) {
+				continue;
+			}
+
+			count++;
+		}
+
+		return count;
+	}
+
+	private List<Pet> getAlivePetsAsOfToday(List<Pet> pets) {
+		LocalDate today = LocalDate.now();
+		return pets.stream()
+			.filter(pet -> !isDeadBeforeMonthStart(pet, today.plusDays(1)))
+			.toList();
+	}
+
+	private boolean isDeadBeforeMonthStart(Pet pet, LocalDate monthStart) {
+		if (!Boolean.TRUE.equals(pet.getDeath())) {
+			return false;
+		}
+
+		if (pet.getDeathDate() == null) {
+			return true;
+		}
+
+		return pet.getDeathDate().toLocalDate().isBefore(monthStart);
 	}
 }

@@ -38,7 +38,7 @@ public class Pet extends BaseEntity {
     @Column(length = 100)
     private String species;
 
-    @Column(length = 100)
+    @Column(length = 2048)
     private String image;
 
     @Column

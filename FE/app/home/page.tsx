@@ -1,10 +1,25 @@
 'use client';
 
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import HomePromptBubble from '@/components/home/HomePromptBubble';
+import HomeScheduleBubble from '@/components/home/HomeScheduleBubble';
 import SelectedPetProfile, {
   type Pet,
 } from '@/components/home/SelectedPetProfile';
+<<<<<<< HEAD
+=======
+import {
+  dismissCalendarEvent,
+  dismissWalkAlert,
+  EVENT_TYPE_LABEL,
+  fetchScheduleBubbles,
+  WALK_BUBBLE_MESSAGE,
+} from '@/features/home/homeApi';
+import type { Product } from '@/features/product/types/product';
+>>>>>>> origin/dev
 import { fetchPets } from '@/features/settings/api/petSettingsApi';
 import { getStoredAlarmEnabled } from '@/lib/alarm-setting';
 import { clientFetch } from '@/lib/auth';
@@ -12,9 +27,6 @@ import {
   getStoredMedicalPetId,
   storeSelectedPetId,
 } from '@/lib/medical-record';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
 
 type HomeSpendingSummaryResponse = {
   monthlyAmount: number | string | null;
@@ -60,9 +72,17 @@ export default function HomePage() {
   >(null);
   const [showBubble, setShowBubble] = useState(true);
   const [isAlarmEnabled, setIsAlarmEnabled] = useState(true);
+  const [scheduleBubbles, setScheduleBubbles] = useState<string[]>([]);
+  const [scheduleBubbleIndex, setScheduleBubbleIndex] = useState(0);
 
   const shouldShowPromptBubble =
     isAlarmEnabled && !isPetsLoading && pets.length === 0 && showBubble;
+
+  const shouldShowScheduleBubble =
+    isAlarmEnabled &&
+    !isPetsLoading &&
+    pets.length > 0 &&
+    scheduleBubbleIndex < scheduleBubbles.length;
 
   useEffect(() => {
     setIsAlarmEnabled(getStoredAlarmEnabled());
@@ -139,6 +159,34 @@ export default function HomePage() {
 
     storeSelectedPetId(selectedPetId);
   }, [selectedPetId]);
+
+  useEffect(() => {
+    if (selectedPetId == null || !isAlarmEnabled) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const buildScheduleBubbles = async () => {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const bubbles = await fetchScheduleBubbles(
+        selectedPetId,
+        todayStr,
+        now.getHours(),
+      );
+      if (!isCancelled) {
+        setScheduleBubbles(bubbles);
+        setScheduleBubbleIndex(0);
+      }
+    };
+
+    void buildScheduleBubbles();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedPetId, isAlarmEnabled]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -236,6 +284,31 @@ export default function HomePage() {
               noLabel="X"
             />
           </div>
+          {shouldShowScheduleBubble && (
+            <HomeScheduleBubble
+              messages={scheduleBubbles}
+              currentIndex={scheduleBubbleIndex}
+              onDismiss={() => {
+                const dismissedMessage = scheduleBubbles[scheduleBubbleIndex];
+                const now = new Date();
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+                if (dismissedMessage === WALK_BUBBLE_MESSAGE) {
+                  dismissWalkAlert(todayStr, now.getHours());
+                } else {
+                  const eventType = Object.entries(EVENT_TYPE_LABEL).find(
+                    ([, label]) =>
+                      dismissedMessage === `오늘 ${label} 일정이 있어요!`,
+                  )?.[0];
+                  if (eventType) {
+                    dismissCalendarEvent(todayStr, eventType);
+                  }
+                }
+
+                setScheduleBubbleIndex((i) => i + 1);
+              }}
+            />
+          )}
         </section>
 
         <section className="mb-6">
@@ -289,7 +362,7 @@ export default function HomePage() {
         {isSpendingLoading ? (
           <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
             <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
-              <p className="font-extrabold text-[rgb(13,168,146)] text-[20px] leading-tight">
+              <p className="font-extrabold text-[20px] text-[rgb(13,168,146)] leading-tight">
                 소비 데이터를 불러오는 중이에요.
               </p>
             </div>
