@@ -12,9 +12,15 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { clientFetch } from '@/lib/auth';
-import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Search,
+} from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type ExpenseGroup = {
   id: string;
@@ -79,6 +85,10 @@ function formatDateInputValue(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function formatYearLabel(date: Date) {
+  return `${date.getFullYear()}년`;
+}
+
 function formatMonthLabel(date: Date) {
   return `${date.getMonth() + 1}월`;
 }
@@ -90,6 +100,7 @@ function formatDateLabel(value: string) {
 
 export default function FinanceExpensesPage() {
   const today = useMemo(() => new Date(), []);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -262,13 +273,47 @@ export default function FinanceExpensesPage() {
     }
   };
 
+  const handleCalendarButtonClick = () => {
+    const input = dateInputRef.current;
+
+    if (!input) {
+      return;
+    }
+
+    const pickerInput = input as HTMLInputElement & {
+      showPicker?: () => void;
+    };
+
+    if (typeof pickerInput.showPicker === 'function') {
+      pickerInput.showPicker();
+      return;
+    }
+
+    input.click();
+  };
+
   return (
     <div className="relative flex min-h-dvh flex-col bg-white text-foreground">
-      <main className="flex-1 p-8">
-        <div className="grid grid-cols-3 items-baseline">
-          <div className="-ml-3 justify-self-start">
-            <BackButton />
-          </div>
+      <main className="flex-1 px-8 pt-4">
+        <input
+          ref={dateInputRef}
+          type="date"
+          value={selectedDate}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            setSelectedDate(nextValue);
+
+            if (!nextValue) {
+              setMonthOffset(0);
+            }
+          }}
+          max={formatDateInputValue(today)}
+          className="sr-only"
+          aria-label="날짜 선택"
+        />
+
+        <div className="-ml-3">
+          <BackButton />
         </div>
 
         <section className="flex items-center justify-between">
@@ -283,6 +328,9 @@ export default function FinanceExpensesPage() {
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
+            <p className="font-medium text-[20px] text-foreground md:text-[24px] lg:text-[28px]">
+              {formatYearLabel(currentMonth)}
+            </p>
             <h1
               className={`${RESPONSIVE_TEXT_SIZE} font-semibold text-foreground tracking-[-0.03em]`}
             >
@@ -299,6 +347,14 @@ export default function FinanceExpensesPage() {
             >
               <ChevronRight className="h-5 w-5" />
             </Button>
+            <button
+              type="button"
+              onClick={handleCalendarButtonClick}
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-[var(--color-main-green)]/10 text-[var(--color-main-green)] transition-all hover:bg-[var(--color-main-green)]/15 hover:brightness-95 md:h-8 md:w-8"
+              aria-label="캘린더로 날짜 선택"
+            >
+              <CalendarDays className="h-4.5 w-4.5 md:h-5 md:w-5" />
+            </button>
           </div>
 
           <Link
@@ -315,23 +371,6 @@ export default function FinanceExpensesPage() {
               <Plus className="h-8 w-8" />
             </Button>
           </Link>
-        </section>
-
-        <section className="mt-4">
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={(event) => {
-              const nextValue = event.target.value;
-              setSelectedDate(nextValue);
-
-              if (!nextValue) {
-                setMonthOffset(0);
-              }
-            }}
-            max={formatDateInputValue(today)}
-            className="h-12 cursor-pointer rounded-2xl border border-[var(--color-main-green)]/20 bg-white px-4 text-[16px] text-foreground transition-all hover:brightness-95 focus-visible:ring-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:transition-all [&::-webkit-calendar-picker-indicator:hover]:brightness-90 sm:text-[16px] md:text-[20px] lg:text-[24px]"
-          />
         </section>
 
         <section className="mt-6 space-y-1">
