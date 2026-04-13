@@ -53,7 +53,7 @@ function SegmentedControl<T extends string>({
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
-            className={`min-w-[5.3rem] cursor-pointer rounded-xl px-4 py-2 font-semibold text-lg transition-colors md:min-w-[6rem] md:px-5 md:text-xl ${
+            className={`min-w-[5.3rem] cursor-pointer rounded-xl px-4 py-2 font-semibold text-lg transition-colors hover:bg-white/70 md:min-w-[6rem] md:px-5 md:text-xl ${
               isSelected
                 ? 'bg-white text-[#1E1E1E] shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
                 : 'text-[#8A8A8A]'
@@ -195,7 +195,7 @@ export default function PetDetailPage() {
             <button
               type="button"
               onClick={handleProfileImageClick}
-              className="group relative flex h-52 w-52 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-full bg-[#E5E5E5] text-center transition-transform hover:scale-[1.01] md:h-60 md:w-60 lg:h-64 lg:w-64"
+              className="group relative flex h-52 w-52 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-full bg-[#E5E5E5] text-center transition-[transform,filter] hover:scale-[1.01] hover:brightness-105 md:h-60 md:w-60 lg:h-64 lg:w-64"
             >
               {previewImage ? (
                 <>

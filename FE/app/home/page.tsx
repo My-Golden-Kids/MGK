@@ -12,6 +12,7 @@ import {
   getStoredMedicalPetId,
   storeSelectedPetId,
 } from '@/lib/medical-record';
+import { getStoredAlarmEnabled } from '@/lib/alarm-setting';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -177,8 +178,14 @@ export default function HomePage() {
     string | null
   >(null);
   const [showBubble, setShowBubble] = useState(true);
+  const [isAlarmEnabled, setIsAlarmEnabled] = useState(true);
 
-  const shouldShowPromptBubble = !isPetsLoading && pets.length === 0 && showBubble;
+  const shouldShowPromptBubble =
+    isAlarmEnabled && !isPetsLoading && pets.length === 0 && showBubble;
+
+  useEffect(() => {
+    setIsAlarmEnabled(getStoredAlarmEnabled());
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;

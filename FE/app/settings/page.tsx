@@ -10,6 +10,7 @@ import Modal from '@/components/common/Modal';
 import PetSettingCard from '@/components/settings/PetSettingCard';
 import { fetchPets } from '@/features/settings/api/petSettingsApi';
 import type { PetSummary } from '@/features/settings/types/petSettings';
+import { getStoredAlarmEnabled, storeAlarmEnabled } from '@/lib/alarm-setting';
 
 type MenuRowProps = {
   label: string;
@@ -48,7 +49,7 @@ function AlarmToggle({
       aria-checked={enabled}
       aria-label={`${text.alarmSetting} ${enabled ? text.alarmOn : text.alarmOff}`}
       onClick={onToggle}
-      className={`relative inline-flex h-10 w-[6rem] cursor-pointer items-center rounded-full px-1.5 transition-colors md:h-12 md:w-[6.9rem] lg:h-13 lg:w-[7.4rem] ${
+      className={`relative inline-flex h-10 w-[6rem] cursor-pointer items-center rounded-full px-1.5 transition-[filter,colors] hover:brightness-105 md:h-12 md:w-[6.9rem] lg:h-13 lg:w-[7.4rem] ${
         enabled ? 'bg-[#16B364]' : 'bg-[#EE3124]'
       }`}
     >
@@ -81,7 +82,7 @@ function MenuRow({ label, onClick, rightSlot }: MenuRowProps) {
       <button
         type="button"
         onClick={onClick}
-        className="flex min-h-[64px] w-full items-center justify-between border-[#9D9D9D] border-b py-3 text-left md:min-h-[76px] md:py-4 lg:min-h-[84px] lg:py-5"
+        className="flex min-h-[64px] w-full cursor-pointer items-center justify-between border-[#9D9D9D] border-b py-3 text-left transition-colors hover:bg-black/5 md:min-h-[76px] md:py-4 lg:min-h-[84px] lg:py-5"
       >
         <span className={labelClassName}>{label}</span>
         {rightSlot}
@@ -99,9 +100,13 @@ function MenuRow({ label, onClick, rightSlot }: MenuRowProps) {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [isAlarmEnabled, setIsAlarmEnabled] = useState(false);
+  const [isAlarmEnabled, setIsAlarmEnabled] = useState(true);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [pets, setPets] = useState<PetSummary[]>([]);
+
+  useEffect(() => {
+    setIsAlarmEnabled(getStoredAlarmEnabled());
+  }, []);
 
   useEffect(() => {
     fetchPets().then((result) => {
@@ -191,7 +196,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={handleAddPet}
-              className="text-right font-semibold text-[#222222] text-[1.2rem] md:text-[1.45rem] lg:text-[1.7rem]"
+              className="cursor-pointer text-right font-semibold text-[#222222] transition-opacity hover:opacity-75 text-[1.2rem] md:text-[1.45rem] lg:text-[1.7rem]"
             >
               {text.addPet}
             </button>
@@ -206,7 +211,13 @@ export default function SettingsPage() {
             rightSlot={
               <AlarmToggle
                 enabled={isAlarmEnabled}
-                onToggle={() => setIsAlarmEnabled((prev) => !prev)}
+                onToggle={() =>
+                  setIsAlarmEnabled((prev) => {
+                    const nextValue = !prev;
+                    storeAlarmEnabled(nextValue);
+                    return nextValue;
+                  })
+                }
               />
             }
           />
