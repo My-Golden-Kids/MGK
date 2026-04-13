@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface MedicalDocumentRepository extends JpaRepository<MedicalDocument, Long> {
 
+    void deleteByPet_Id(Long petId);
+
     List<MedicalDocument> findByPet_IdOrderByDateDescCreatedAtDesc(Long petId);
 
     List<MedicalDocument> findByPet_IdAndTypeOrderByDateDescCreatedAtDesc(Long petId, MedicalDocumentType type);
