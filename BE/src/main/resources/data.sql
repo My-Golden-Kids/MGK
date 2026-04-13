@@ -1,6 +1,7 @@
 SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE account_books;
 TRUNCATE TABLE accounts;
+TRUNCATE TABLE pet_walk_records;
 TRUNCATE TABLE pets;
 TRUNCATE TABLE users;
 TRUNCATE TABLE products;
@@ -112,3 +113,56 @@ SET updated_at = ended_at
 WHERE completed = TRUE AND ended_at IS NOT NULL;
 
 DROP TABLE IF EXISTS pet_walk_syncs;
+
+-- ──────────────────────────────────────────
+-- pet_walk_records 시드 데이터
+-- 최빈 산책 시간: 오전 10시 (5회) > 오전 7시 (2회) > 오후 3시 (1회)
+-- source는 (pet_id, source) unique constraint로 인해 레코드마다 고유값 사용
+-- ──────────────────────────────────────────
+INSERT IGNORE INTO pet_walk_records
+(pet_id, source, walked_at, step_count, walk_time_seconds, distance_km, reward_amount, completed, status, started_at, ended_at, created_at, updated_at)
+SELECT p.id, 'SEED_20260413_1000', '2026-04-13 10:05:00', 4500, 1800, 3.2, 1, TRUE, 'COMPLETED', '2026-04-13 10:05:00', '2026-04-13 10:35:00', '2026-04-13 10:05:00', '2026-04-13 10:35:00'
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'th2gr22n@gmail.com' AND p.name = '돌';
+
+INSERT IGNORE INTO pet_walk_records
+(pet_id, source, walked_at, step_count, walk_time_seconds, distance_km, reward_amount, completed, status, started_at, ended_at, created_at, updated_at)
+SELECT p.id, 'SEED_20260412_1000', '2026-04-12 10:10:00', 3900, 1560, 2.8, 1, TRUE, 'COMPLETED', '2026-04-12 10:10:00', '2026-04-12 10:36:00', '2026-04-12 10:10:00', '2026-04-12 10:36:00'
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'th2gr22n@gmail.com' AND p.name = '돌';
+
+INSERT IGNORE INTO pet_walk_records
+(pet_id, source, walked_at, step_count, walk_time_seconds, distance_km, reward_amount, completed, status, started_at, ended_at, created_at, updated_at)
+SELECT p.id, 'SEED_20260411_1000', '2026-04-11 10:20:00', 5100, 2040, 3.7, 1, TRUE, 'COMPLETED', '2026-04-11 10:20:00', '2026-04-11 10:54:00', '2026-04-11 10:20:00', '2026-04-11 10:54:00'
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'th2gr22n@gmail.com' AND p.name = '돌';
+
+INSERT IGNORE INTO pet_walk_records
+(pet_id, source, walked_at, step_count, walk_time_seconds, distance_km, reward_amount, completed, status, started_at, ended_at, created_at, updated_at)
+SELECT p.id, 'SEED_20260410_1000', '2026-04-10 10:00:00', 4200, 1680, 3.0, 1, TRUE, 'COMPLETED', '2026-04-10 10:00:00', '2026-04-10 10:28:00', '2026-04-10 10:00:00', '2026-04-10 10:28:00'
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'th2gr22n@gmail.com' AND p.name = '돌';
+
+INSERT IGNORE INTO pet_walk_records
+(pet_id, source, walked_at, step_count, walk_time_seconds, distance_km, reward_amount, completed, status, started_at, ended_at, created_at, updated_at)
+SELECT p.id, 'SEED_20260409_1000', '2026-04-09 10:45:00', 3600, 1440, 2.6, 1, TRUE, 'COMPLETED', '2026-04-09 10:45:00', '2026-04-09 11:09:00', '2026-04-09 10:45:00', '2026-04-09 11:09:00'
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'th2gr22n@gmail.com' AND p.name = '돌';
+
+INSERT IGNORE INTO pet_walk_records
+(pet_id, source, walked_at, step_count, walk_time_seconds, distance_km, reward_amount, completed, status, started_at, ended_at, created_at, updated_at)
+SELECT p.id, 'SEED_20260408_0700', '2026-04-08 07:15:00', 3000, 1200, 2.1, 1, TRUE, 'COMPLETED', '2026-04-08 07:15:00', '2026-04-08 07:35:00', '2026-04-08 07:15:00', '2026-04-08 07:35:00'
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'th2gr22n@gmail.com' AND p.name = '돌';
+
+INSERT IGNORE INTO pet_walk_records
+(pet_id, source, walked_at, step_count, walk_time_seconds, distance_km, reward_amount, completed, status, started_at, ended_at, created_at, updated_at)
+SELECT p.id, 'SEED_20260407_0700', '2026-04-07 07:30:00', 2700, 1080, 1.9, 0, TRUE, 'COMPLETED', '2026-04-07 07:30:00', '2026-04-07 07:48:00', '2026-04-07 07:30:00', '2026-04-07 07:48:00'
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'th2gr22n@gmail.com' AND p.name = '돌';
+
+INSERT IGNORE INTO pet_walk_records
+(pet_id, source, walked_at, step_count, walk_time_seconds, distance_km, reward_amount, completed, status, started_at, ended_at, created_at, updated_at)
+SELECT p.id, 'SEED_20260406_1500', '2026-04-06 15:00:00', 6000, 2400, 4.3, 2, TRUE, 'COMPLETED', '2026-04-06 15:00:00', '2026-04-06 15:40:00', '2026-04-06 15:00:00', '2026-04-06 15:40:00'
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'th2gr22n@gmail.com' AND p.name = '돌';

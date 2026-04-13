@@ -1,7 +1,11 @@
 'use client';
 
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import HomePromptBubble from '@/components/home/HomePromptBubble';
+import HomeScheduleBubble from '@/components/home/HomeScheduleBubble';
 import SelectedPetProfile, {
   type Pet,
 } from '@/components/home/SelectedPetProfile';
@@ -13,9 +17,6 @@ import {
   getStoredMedicalPetId,
   storeSelectedPetId,
 } from '@/lib/medical-record';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
 
 type FinanceExpenseCategory = 'Food' | 'Hospital' | 'Etc';
 
@@ -54,6 +55,94 @@ const CATEGORY_PRODUCT_LABEL: Record<FinanceExpenseCategory, string> = {
   Etc: '적금',
   Food: '구독',
 };
+
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  VACCINATION: '예방접종',
+  CHECKUP: '건강검진',
+};
+
+function getMostFrequentWalkHour(
+  records: Array<{ walkedAt: string | null }>,
+): number | null {
+  const counts: Record<number, number> = {};
+  for (const r of records) {
+    if (!r.walkedAt) continue;
+    const h = new Date(r.walkedAt).getHours();
+    counts[h] = (counts[h] ?? 0) + 1;
+  }
+  const entries = Object.entries(counts);
+  if (!entries.length) return null;
+  entries.sort(([hA, cA], [hB, cB]) =>
+    cB !== cA ? cB - cA : Number(hA) - Number(hB),
+  );
+  return Number(entries[0][0]);
+}
+
+// ──────────────────────────────────────────
+// Alert localStorage helpers (user-level, 키 1개씩 고정)
+// ──────────────────────────────────────────
+
+const WALK_ALERT_KEY = 'walk-alert';
+const CALENDAR_ALERT_KEY = 'calendar-alert';
+
+type WalkAlertState = {
+  date: string;
+  hour: number;
+  dismissed: boolean;
+};
+
+type CalendarAlertState = {
+  date: string;
+  dismissedEventTypes: string[];
+};
+
+function readAlert<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeAlert<T>(key: string, value: T): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+}
+
+function isWalkAlertDismissed(dateStr: string, hour: number): boolean {
+  const state = readAlert<WalkAlertState>(WALK_ALERT_KEY);
+  return (
+    state?.date === dateStr && state?.hour === hour && state?.dismissed === true
+  );
+}
+
+function dismissWalkAlert(dateStr: string, hour: number): void {
+  writeAlert<WalkAlertState>(WALK_ALERT_KEY, {
+    date: dateStr,
+    hour,
+    dismissed: true,
+  });
+}
+
+function isCalendarEventDismissed(dateStr: string, eventType: string): boolean {
+  const state = readAlert<CalendarAlertState>(CALENDAR_ALERT_KEY);
+  if (state?.date !== dateStr) return false;
+  return state.dismissedEventTypes.includes(eventType);
+}
+
+function dismissCalendarEvent(dateStr: string, eventType: string): void {
+  const state = readAlert<CalendarAlertState>(CALENDAR_ALERT_KEY);
+  const existing =
+    state?.date === dateStr ? state.dismissedEventTypes : [];
+  writeAlert<CalendarAlertState>(CALENDAR_ALERT_KEY, {
+    date: dateStr,
+    dismissedEventTypes: [...new Set([...existing, eventType])],
+  });
+}
+
+const WALK_BUBBLE_MESSAGE = '산책할 시간이에요!';
 
 const CARD_SUMMARY_SUFFIX = '이 가장 잘 맞아요';
 const DEFAULT_INSURANCE_LIMIT_COUNT = 20;
@@ -179,9 +268,17 @@ export default function HomePage() {
   >(null);
   const [showBubble, setShowBubble] = useState(true);
   const [isAlarmEnabled, setIsAlarmEnabled] = useState(true);
+  const [scheduleBubbles, setScheduleBubbles] = useState<string[]>([]);
+  const [scheduleBubbleIndex, setScheduleBubbleIndex] = useState(0);
 
   const shouldShowPromptBubble =
     isAlarmEnabled && !isPetsLoading && pets.length === 0 && showBubble;
+
+  const shouldShowScheduleBubble =
+    isAlarmEnabled &&
+    !isPetsLoading &&
+    pets.length > 0 &&
+    scheduleBubbleIndex < scheduleBubbles.length;
 
   useEffect(() => {
     setIsAlarmEnabled(getStoredAlarmEnabled());
@@ -258,6 +355,74 @@ export default function HomePage() {
 
     storeSelectedPetId(selectedPetId);
   }, [selectedPetId]);
+
+  useEffect(() => {
+    if (selectedPetId == null || !isAlarmEnabled) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const buildScheduleBubbles = async () => {
+      const newBubbles: string[] = [];
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const currentHour = now.getHours();
+
+      // ① 산책 알림 (최우선)
+      try {
+        const res = await clientFetch(
+          `/api/pets/${selectedPetId}/walk-records`,
+        );
+        if (res.ok) {
+          const records = (await res.json()) as Array<{
+            walkedAt: string | null;
+          }>;
+          const mostFrequentHour = getMostFrequentWalkHour(records);
+          if (
+            mostFrequentHour !== null &&
+            currentHour === mostFrequentHour &&
+            !isWalkAlertDismissed(todayStr, currentHour)
+          ) {
+            newBubbles.push(WALK_BUBBLE_MESSAGE);
+          }
+        }
+      } catch {}
+
+      // ② 오늘 CalendarEvent 알림
+      try {
+        const res = await clientFetch(
+          `/api/vaccinations/schedules?year=${now.getFullYear()}&month=${now.getMonth() + 1}`,
+        );
+        if (res.ok) {
+          const schedules = (await res.json()) as Array<{
+            date: string;
+            eventTypes: string[];
+          }>;
+          for (const s of schedules.filter((s) => s.date === todayStr)) {
+            for (const et of s.eventTypes) {
+              if (!isCalendarEventDismissed(todayStr, et)) {
+                newBubbles.push(
+                  `오늘 ${EVENT_TYPE_LABEL[et] ?? et} 일정이 있어요!`,
+                );
+              }
+            }
+          }
+        }
+      } catch {}
+
+      if (!isCancelled) {
+        setScheduleBubbles(newBubbles);
+        setScheduleBubbleIndex(0);
+      }
+    };
+
+    void buildScheduleBubbles();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedPetId, isAlarmEnabled]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -354,6 +519,31 @@ export default function HomePage() {
               noLabel="X"
             />
           </div>
+          {shouldShowScheduleBubble && (
+            <HomeScheduleBubble
+              messages={scheduleBubbles}
+              currentIndex={scheduleBubbleIndex}
+              onDismiss={() => {
+                const dismissedMessage = scheduleBubbles[scheduleBubbleIndex];
+                const now = new Date();
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+                if (dismissedMessage === WALK_BUBBLE_MESSAGE) {
+                  dismissWalkAlert(todayStr, now.getHours());
+                } else {
+                  const eventType = Object.entries(EVENT_TYPE_LABEL).find(
+                    ([, label]) =>
+                      dismissedMessage === `오늘 ${label} 일정이 있어요!`,
+                  )?.[0];
+                  if (eventType) {
+                    dismissCalendarEvent(todayStr, eventType);
+                  }
+                }
+
+                setScheduleBubbleIndex((i) => i + 1);
+              }}
+            />
+          )}
         </section>
 
         <section className="mb-6">
@@ -407,7 +597,7 @@ export default function HomePage() {
         {isSpendingLoading ? (
           <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
             <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
-              <p className="font-extrabold text-[rgb(13,168,146)] text-[20px] leading-tight">
+              <p className="font-extrabold text-[20px] text-[rgb(13,168,146)] leading-tight">
                 소비 데이터를 불러오는 중이에요.
               </p>
             </div>
