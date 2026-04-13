@@ -7,6 +7,8 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import java.security.Key;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -67,6 +69,11 @@ public class JwtProvider {
 
     public String getEmail(String token) {
         return parseClaims(token).get("email", String.class);
+    }
+
+    public LocalDateTime getExpiration(String token) {
+        Date expiration = parseClaims(token).getExpiration();
+        return expiration.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
 
     private Claims parseClaims(String token) {

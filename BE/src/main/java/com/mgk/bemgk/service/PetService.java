@@ -11,7 +11,10 @@ import com.mgk.bemgk.entity.Pet;
 import com.mgk.bemgk.entity.PetSize;
 import com.mgk.bemgk.entity.PetWalkRecord;
 import com.mgk.bemgk.entity.User;
+import com.mgk.bemgk.repository.AccountBookRepository;
 import com.mgk.bemgk.repository.AccountRepository;
+import com.mgk.bemgk.repository.CalendarRepository;
+import com.mgk.bemgk.repository.MedicalDocumentRepository;
 import com.mgk.bemgk.repository.PetRepository;
 import com.mgk.bemgk.repository.PetWalkRecordRepository;
 import com.mgk.bemgk.repository.UserRepository;
@@ -37,6 +40,9 @@ public class PetService {
     private final PetRepository petRepository;
     private final PetWalkRecordRepository petWalkRecordRepository;
     private final AccountRepository accountRepository;
+    private final AccountBookRepository accountBookRepository;
+    private final CalendarRepository calendarRepository;
+    private final MedicalDocumentRepository medicalDocumentRepository;
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
 
@@ -66,6 +72,18 @@ public class PetService {
         return petRepository.findByUser_Id(userId).stream()
                 .map(PetResponse::from)
                 .toList();
+    }
+
+    @Transactional
+    public void deletePet(Long petId) {
+        Long userId = currentUserService.getCurrentUserId();
+        Pet pet = findOwnedPet(petId, userId);
+
+        accountBookRepository.clearPetByPetId(pet.getId());
+        petWalkRecordRepository.deleteByPet_Id(pet.getId());
+        medicalDocumentRepository.deleteByPet_Id(pet.getId());
+        calendarRepository.deleteByPet_Id(pet.getId());
+        petRepository.delete(pet);
     }
 
     @Transactional

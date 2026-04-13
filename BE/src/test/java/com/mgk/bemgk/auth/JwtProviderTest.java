@@ -2,6 +2,7 @@ package com.mgk.bemgk.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,5 +67,21 @@ class JwtProviderTest {
     @DisplayName("빈 문자열 토큰은 validateToken false 반환")
     void validateToken_empty_returns_false() {
         assertThat(jwtProvider.validateToken("")).isFalse();
+    }
+
+    @Test
+    @DisplayName("refreshToken에서 만료시각 파싱 - 현재보다 미래여야 함")
+    void getExpiration_from_refreshToken() {
+        String token = jwtProvider.generateRefreshToken(1L);
+        LocalDateTime expiration = jwtProvider.getExpiration(token);
+        assertThat(expiration).isAfter(LocalDateTime.now());
+    }
+
+    @Test
+    @DisplayName("accessToken에서 만료시각 파싱 - 현재보다 미래여야 함")
+    void getExpiration_from_accessToken() {
+        String token = jwtProvider.generateAccessToken(1L, "test@test.com");
+        LocalDateTime expiration = jwtProvider.getExpiration(token);
+        assertThat(expiration).isAfter(LocalDateTime.now());
     }
 }

@@ -11,6 +11,8 @@ type OnboardingBackgroundProps = {
   bubbleMessageFrames?: string[];
   children?: ReactNode;
   centerImageUrl?: string;
+  isCenterImageInteractive?: boolean;
+  onCenterImageClick?: () => void;
   instructionMessage?: string;
 };
 
@@ -19,6 +21,8 @@ export default function OnboardingBackground({
   bubbleMessageFrames,
   children,
   centerImageUrl,
+  isCenterImageInteractive = false,
+  onCenterImageClick,
   instructionMessage,
 }: OnboardingBackgroundProps) {
   const centerMediaClassName = centerImageUrl
@@ -42,7 +46,10 @@ export default function OnboardingBackground({
       <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
         <PetProfileImage
           imageUrl={centerImageUrl}
-          className={`${centerMediaClassName} cursor-default`}
+          onClick={isCenterImageInteractive ? onCenterImageClick : undefined}
+          className={`${centerMediaClassName} ${
+            isCenterImageInteractive ? '' : 'cursor-default'
+          }`}
           aria-label="Onboarding pet profile"
         />
       </div>

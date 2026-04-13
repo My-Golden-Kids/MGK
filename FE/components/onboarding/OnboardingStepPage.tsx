@@ -20,6 +20,7 @@ import {
   RETRY_PET_NAME_MESSAGE,
   SKIP_PHOTO_CHAT_GUIDE_MESSAGE,
 } from '@/components/onboarding/onboardingSteps';
+import { uploadPetImage } from '@/features/settings/api/petSettingsApi';
 import { clientFetch } from '@/lib/auth';
 
 type OnboardingStepPageProps = {
@@ -210,6 +211,13 @@ export default function OnboardingStepPage({
     setIsRecording(false);
     resetTranscript();
   }, [resetTranscript, step.id]);
+
+  useEffect(() => {
+    if (step.id === 'pet-name-confirm' && !petName.trim()) {
+      goToStep(7, flowState);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step.id, petName]);
 
   useEffect(() => {
     ttsAutoAdvanceHandledRef.current = false;
@@ -405,22 +413,10 @@ export default function OnboardingStepPage({
     setIsUploading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('file', pendingImageFile);
+      const result = await uploadPetImage(pendingImageFile);
 
-      const response = await fetch('/api/pet-upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('upload failed');
-      }
-
-      const data = (await response.json()) as { path?: string };
-
-      if (!data.path) {
-        throw new Error('missing upload path');
+      if (!result.ok || !result.path) {
+        throw new Error(result.errorMessage ?? 'missing upload path');
       }
 
       setIsUploadModalOpen(false);
@@ -428,7 +424,7 @@ export default function OnboardingStepPage({
       setPendingImagePreviewUrl('');
       goToStep(11, {
         ...flowState,
-        petImage: data.path,
+        petImage: result.path,
         photoSkipped: false,
         retryPetName: false,
       });

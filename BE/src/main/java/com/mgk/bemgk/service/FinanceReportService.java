@@ -1,5 +1,6 @@
 package com.mgk.bemgk.service;
 
+import com.mgk.bemgk.dto.finance.FinanceMonthlyExpenseChartResponse;
 import com.mgk.bemgk.dto.finance.FinanceReportResponse;
 import com.mgk.bemgk.entity.Pet;
 import com.mgk.bemgk.repository.AccountBookRepository;
@@ -8,9 +9,14 @@ import com.mgk.bemgk.repository.PetRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +38,6 @@ public class FinanceReportService {
 
 		BigDecimal monthlyAverageExpense = calculateMonthlyAverageExpense(userId);
 		BigDecimal totalAsset = defaultAmount(accountRepository.sumMoneyAmountByUserId(userId));
-
 		BigDecimal futurePetCost = calculateFuturePetCost(monthlyAverageExpense, pets);
 
 		BigDecimal retirementImpactPercent = BigDecimal.ZERO;
@@ -51,14 +56,58 @@ public class FinanceReportService {
 			.build();
 	}
 
-	// 최근 1년간 user 기준 반려동물 지출 총합 / 관측 개월 수
-	private BigDecimal calculateMonthlyAverageExpense(Long userId) {
-		LocalDate firstPetSpendDate = accountBookRepository.findFirstPetSpendDateByUserId(userId);
+	public FinanceMonthlyExpenseChartResponse getMonthlyExpenseChart(Long userId) {
+		LocalDate now = LocalDate.now();
+		YearMonth currentMonth = YearMonth.from(now);
 
-		if (firstPetSpendDate == null) {
+		Map<YearMonth, BigDecimal> monthlyAmountMap = new LinkedHashMap<>();
+		for (int i = 11; i >= 0; i--) {
+			YearMonth targetMonth = currentMonth.minusMonths(i);
+			monthlyAmountMap.put(targetMonth, BigDecimal.ZERO);
+		}
+
+		LocalDateTime startDateTime = currentMonth.minusMonths(11).atDay(1).atStartOfDay();
+		LocalDateTime endDateTime = currentMonth.atEndOfMonth().atTime(23, 59, 59);
+
+		List<Object[]> rawMonthlyExpenses =
+			accountBookRepository.sumMonthlyPetExpenseByUserId(userId, startDateTime, endDateTime);
+
+		for (Object[] row : rawMonthlyExpenses) {
+			Integer year = ((Number) row[0]).intValue();
+			Integer month = ((Number) row[1]).intValue();
+			BigDecimal amount = row[2] == null ? BigDecimal.ZERO : new BigDecimal(row[2].toString());
+
+			YearMonth ym = YearMonth.of(year, month);
+			if (monthlyAmountMap.containsKey(ym)) {
+				monthlyAmountMap.put(ym, amount);
+			}
+		}
+
+		List<FinanceMonthlyExpenseChartResponse.MonthlyExpenseItem> monthlyExpenses = new ArrayList<>();
+		monthlyAmountMap.forEach((ym, amount) -> {
+			monthlyExpenses.add(
+				FinanceMonthlyExpenseChartResponse.MonthlyExpenseItem.builder()
+					.month(ym.getMonthValue() + "월")
+					.amount(defaultAmount(amount).setScale(0, RoundingMode.HALF_UP))
+					.build()
+			);
+		});
+
+		return FinanceMonthlyExpenseChartResponse.builder()
+			.monthlyExpenses(monthlyExpenses)
+			.build();
+	}
+
+
+	// 최근 1년간 user 기준 반려동물 평균 한 달 지출
+	private BigDecimal calculateMonthlyAverageExpense(Long userId) {
+		LocalDateTime firstPetSpendDateTime = accountBookRepository.findFirstPetSpendDateByUserId(userId);
+
+		if (firstPetSpendDateTime == null) {
 			return BigDecimal.ZERO;
 		}
 
+		LocalDate firstPetSpendDate = firstPetSpendDateTime.toLocalDate();
 		LocalDate now = LocalDate.now();
 
 		long observedMonths = ChronoUnit.MONTHS.between(firstPetSpendDate.withDayOfMonth(1), now.withDayOfMonth(1)) + 1;
@@ -75,8 +124,8 @@ public class FinanceReportService {
 		}
 
 		// 1년 이상: 최근 1년간 평균
-		LocalDate oneYearAgo = now.minusYears(1).withDayOfMonth(1);
-		BigDecimal lastYearExpense = defaultAmount(accountBookRepository.sumPetExpenseLastYear(userId, oneYearAgo));
+		LocalDateTime oneYearAgoStart = now.minusYears(1).withDayOfMonth(1).atStartOfDay();
+		BigDecimal lastYearExpense = defaultAmount(accountBookRepository.sumPetExpenseLastYear(userId, oneYearAgoStart));
 
 		return lastYearExpense.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
 	}

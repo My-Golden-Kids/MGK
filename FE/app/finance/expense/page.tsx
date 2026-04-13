@@ -1,8 +1,5 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
-import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import Modal from '@/components/common/Modal';
@@ -15,6 +12,9 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { clientFetch } from '@/lib/auth';
+import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
 type ExpenseGroup = {
   id: string;
@@ -72,6 +72,13 @@ function getMonthDate(baseDate: Date, offset: number) {
   return new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
 }
 
+function formatDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function formatMonthLabel(date: Date) {
   return `${date.getMonth() + 1}월`;
 }
@@ -84,6 +91,7 @@ function formatDateLabel(value: string) {
 export default function FinanceExpensesPage() {
   const today = useMemo(() => new Date(), []);
   const [monthOffset, setMonthOffset] = useState(0);
+  const [selectedDate, setSelectedDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [expenseSummary, setExpenseSummary] =
     useState<FinanceExpenseSummaryResponse | null>(null);
@@ -95,10 +103,14 @@ export default function FinanceExpensesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const currentMonth = useMemo(
-    () => getMonthDate(today, monthOffset),
-    [monthOffset, today],
+    () =>
+      selectedDate
+        ? new Date(`${selectedDate}T00:00:00`)
+        : getMonthDate(today, monthOffset),
+    [monthOffset, selectedDate, today],
   );
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const normalizedSelectedDate = selectedDate.trim();
   const groupedExpenses = useMemo(() => {
     if (!expenseSummary) {
       return [];
@@ -163,14 +175,16 @@ export default function FinanceExpensesPage() {
   }, [currentMonth, refreshKey]);
 
   const filteredGroups = useMemo(() => {
-    if (!normalizedQuery) {
-      return groupedExpenses;
-    }
-
     return groupedExpenses
+      .filter((group) =>
+        normalizedSelectedDate ? group.id === normalizedSelectedDate : true,
+      )
       .map((group) => ({
         ...group,
         items: group.items.filter((item) => {
+          if (!normalizedQuery) {
+            return true;
+          }
           const title = item.title.toLowerCase();
           const category = item.category.toLowerCase();
           return (
@@ -180,9 +194,36 @@ export default function FinanceExpensesPage() {
         }),
       }))
       .filter((group) => group.items.length > 0);
-  }, [groupedExpenses, normalizedQuery]);
+  }, [groupedExpenses, normalizedQuery, normalizedSelectedDate]);
+
+  const canMoveNext = useMemo(() => {
+    const todayMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const viewedMonth = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      1,
+    );
+
+    return viewedMonth < todayMonth;
+  }, [currentMonth, today]);
 
   const moveMonth = (direction: -1 | 1) => {
+    if (selectedDate) {
+      const baseDate = new Date(`${selectedDate}T00:00:00`);
+      const nextDate = new Date(
+        baseDate.getFullYear(),
+        baseDate.getMonth() + direction,
+        baseDate.getDate(),
+      );
+
+      if (direction === 1 && nextDate > today) {
+        return;
+      }
+
+      setSelectedDate(formatDateInputValue(nextDate));
+      return;
+    }
+
     setMonthOffset((currentOffset) => {
       if (direction === 1 && currentOffset >= 0) {
         return currentOffset;
@@ -223,18 +264,20 @@ export default function FinanceExpensesPage() {
 
   return (
     <div className="relative flex min-h-dvh flex-col bg-white text-foreground">
-      <main className="flex-1 px-6 pb-6">
-        <div className="overflow-hidden">
-          <BackButton />
+      <main className="flex-1 p-8">
+        <div className="grid grid-cols-3 items-baseline">
+          <div className="-ml-3 justify-self-start">
+            <BackButton />
+          </div>
         </div>
 
-        <section className="mt-2 flex items-center justify-between">
+        <section className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
               type="button"
               variant="secondary"
               size="icon-sm"
-              className="rounded-full bg-[var(--color-main-green)]/10 text-[var(--color-main-green)] hover:bg-[var(--color-main-green)]/15"
+              className="cursor-pointer rounded-full bg-[var(--color-main-green)]/10 text-[var(--color-main-green)] transition-all hover:bg-[var(--color-main-green)]/15 hover:brightness-95"
               onClick={() => moveMonth(-1)}
               aria-label="이전 달 보기"
             >
@@ -249,9 +292,9 @@ export default function FinanceExpensesPage() {
               type="button"
               variant="secondary"
               size="icon-sm"
-              className="rounded-full bg-[var(--color-main-green)]/10 text-[var(--color-main-green)] hover:bg-[var(--color-main-green)]/15"
+              className="cursor-pointer rounded-full bg-[var(--color-main-green)]/10 text-[var(--color-main-green)] transition-all hover:bg-[var(--color-main-green)]/15 hover:brightness-95"
               onClick={() => moveMonth(1)}
-              disabled={monthOffset >= 0}
+              disabled={!canMoveNext}
               aria-label="다음 달 보기"
             >
               <ChevronRight className="h-5 w-5" />
@@ -267,11 +310,28 @@ export default function FinanceExpensesPage() {
               type="button"
               variant="ghost"
               size="icon"
-              className="rounded-full text-[var(--color-main-green)] hover:bg-[var(--color-main-green)]/10 hover:text-[var(--color-main-green)]"
+              className="cursor-pointer rounded-full text-[var(--color-main-green)] transition-all hover:bg-[var(--color-main-green)]/10 hover:text-[var(--color-main-green)] hover:brightness-95"
             >
               <Plus className="h-8 w-8" />
             </Button>
           </Link>
+        </section>
+
+        <section className="mt-4">
+          <Input
+            type="date"
+            value={selectedDate}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setSelectedDate(nextValue);
+
+              if (!nextValue) {
+                setMonthOffset(0);
+              }
+            }}
+            max={formatDateInputValue(today)}
+            className="h-12 cursor-pointer rounded-2xl border border-[var(--color-main-green)]/20 bg-white px-4 text-[16px] text-foreground transition-all hover:brightness-95 focus-visible:ring-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:transition-all [&::-webkit-calendar-picker-indicator:hover]:brightness-90 sm:text-[16px] md:text-[20px] lg:text-[24px]"
+          />
         </section>
 
         <section className="mt-6 space-y-1">
@@ -308,7 +368,7 @@ export default function FinanceExpensesPage() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="검색"
-              className="h-12 rounded-2xl border-none bg-muted pl-13 text-[16px] text-foreground placeholder:text-muted-foreground focus-visible:ring-0 sm:text-[16px] md:text-[20px] lg:text-[24px]"
+              className="h-5 rounded-2xl border-none bg-muted pl-13 text-[16px] text-foreground placeholder:text-muted-foreground focus-visible:ring-0 sm:text-[16px] md:text-[20px] lg:text-[24px]"
             />
           </div>
         </Card>
@@ -355,7 +415,7 @@ export default function FinanceExpensesPage() {
                             setSelectedExpense(originalItem);
                           }
                         }}
-                        className="w-full cursor-pointer text-left"
+                        className="w-full cursor-pointer text-left transition-all hover:brightness-95"
                       >
                         <ExpenseItem {...item} />
                       </button>

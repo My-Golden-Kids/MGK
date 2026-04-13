@@ -1,6 +1,15 @@
 import NextAuth, { type User } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 
+function getTokenExpiry(accessToken: string): number {
+  try {
+    const payload = JSON.parse(atob(accessToken.split('.')[1]));
+    return payload.exp * 1000 - 60_000;
+  } catch {
+    return Date.now() + 3_600_000 - 60_000;
+  }
+}
+
 async function readErrorBody(res: Response) {
   const contentType = res.headers.get('content-type') ?? '';
 
@@ -136,7 +145,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.name = u.name ?? null;
         // accessToken 만료 시각 저장 (security.yml access-expiration: 3600000ms = 1h)
         // 60초 여유를 두고 만료 처리
-        token.accessTokenExpiry = Date.now() + 3600000 - 60_000;
+        token.accessTokenExpiry = getTokenExpiry(token.accessToken as string);
         return token;
       }
 
@@ -160,12 +169,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!res.ok) throw new Error('refresh failed');
 
-        const { accessToken } = await res.json();
+        const { accessToken, refreshToken } = await res.json();
         token.accessToken = accessToken;
-        token.accessTokenExpiry = Date.now() + 3600000 - 60_000;
+        token.refreshToken = refreshToken;
+        token.accessTokenExpiry = getTokenExpiry(accessToken as string);
       } catch {
         // refresh 실패 → 세션 무효화 (다음 auth() 호출 시 null 반환)
-        return { ...token, error: 'RefreshTokenError' };
+        return { ...token, error: 'RefreshTokenError' as const };
       }
 
       return token;
@@ -179,7 +189,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       };
       if (token.error === 'RefreshTokenError') {
         // 클라이언트에서 useSession()으로 에러 감지 후 로그아웃 처리 가능
-        (session as any).error = 'RefreshTokenError';
+        session.error = 'RefreshTokenError';
       }
       return session;
     },

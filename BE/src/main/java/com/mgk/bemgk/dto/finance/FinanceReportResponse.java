@@ -15,6 +15,4 @@ public class FinanceReportResponse {
 	private BigDecimal averageExpense;
 
 	private BigDecimal totalAsset;
-
-	private BigDecimal remainingLife;
 }

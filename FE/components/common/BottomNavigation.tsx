@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
+import { cn } from "@/lib/utils";
+import { HeartPulse, HouseIcon, ShoppingBag, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HeartPulse, Wallet, ShoppingBag, HouseIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import React from "react";
 
 interface NavItem {
   href: string;
@@ -40,7 +40,7 @@ export function BottomNavigation() {
             <Link
               href={item.href}
               key={item.label}
-              className="relative flex h-full flex-col items-center justify-center pt-2 pb-3 text-sm font-medium"
+              className="relative flex h-full cursor-pointer flex-col items-center justify-center pt-2 pb-3 text-sm font-medium transition-all hover:brightness-50"
             >
               <div className="flex h-7 items-center justify-center">
                 <Icon

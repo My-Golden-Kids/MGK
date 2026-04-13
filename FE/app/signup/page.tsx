@@ -1,8 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
-import { useEffect, useRef, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import Modal from '@/components/common/Modal';
 import CheckboxButton from '@/components/signup/CheckboxButton';
@@ -10,6 +7,9 @@ import InputField from '@/components/signup/InputField';
 import { signup } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { type SignupValues, validateSignupField } from '@/lib/validator';
+import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import { STEPS, TERMS } from './constants';
 
 export default function Page() {
@@ -95,12 +95,12 @@ export default function Page() {
   const visibleSteps = isTermsPhase ? STEPS : STEPS.slice(0, step + 1);
 
   return (
-    <div className="relative mx-auto flex h-dvh w-full flex-1 flex-col overflow-hidden px-6.25 sm:max-w-lg md:max-w-xl">
+    <div className="relative mx-auto flex h-dvh w-full flex-1 flex-col overflow-hidden px-10 pt-5 pb-10 sm:max-w-lg md:max-w-xl">
       <div className="grid grid-cols-3 items-baseline">
-        <div className="justify-self-start">
+        <div className="-ml-4 justify-self-start">
           <BackButton />
         </div>
-        <h1 className="mt-14.75 justify-self-center font-bold text-[28px] text-main-green sm:text-[30px]">
+        <h1 className="justify-self-center font-bold text-[28px] text-main-green sm:text-[30px]">
           회원가입
         </h1>
       </div>
@@ -156,7 +156,7 @@ export default function Page() {
         onClick={isTermsPhase ? handleSignup : handleConfirm}
         disabled={(isTermsPhase && !allChecked) || isLoading}
         className={cn(
-          'mb-10 w-full rounded-[10px] bg-main-green py-2.5 text-[28px] text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-300',
+          'w-full cursor-pointer rounded-[10px] bg-main-green py-2.5 text-[28px] text-white transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-300',
           isTermsPhase && 'font-bold',
         )}
       >
@@ -171,25 +171,32 @@ export default function Page() {
         isOpen={!!openTermKey}
         onClose={() => setOpenTermKey(null)}
         onConfirm={handleTermConfirm}
+        onCancel={() => setOpenTermKey(null)}
         confirmText="동의"
-        buttonVariant="single"
+        cancelText="취소"
+        buttonVariant="double"
         isHighlightButton
       >
         {activeTerm && (
-          <div
-            className={cn(
-              'overflow-y-scroll rounded-[5px] bg-gray-100',
-              'wrap-break-word max-h-79.5 sm:max-w-auto',
-              '[&::-webkit-scrollbar]:w-1.75',
-              '[&::-webkit-scrollbar-thumb]:rounded-xs',
-              '[&::-webkit-scrollbar-thumb]:bg-main-green',
-              '[&::-webkit-scrollbar-track]:bg-transparent',
-            )}
-          >
-            <h2 className="font-bold text-[18px]">{activeTerm.subTitle}</h2>
-            <p className="whitespace-pre-wrap indent-1 text-[18px]">
-              {activeTerm.content}
-            </p>
+          <div>
+            <h2 className="mb-4 text-center font-bold text-[34px]">
+              이용약관
+            </h2>
+            <div
+              className={cn(
+                'overflow-y-scroll rounded-[5px] bg-gray-100 p-4',
+                'wrap-break-word max-h-79.5 sm:max-w-auto',
+                '[&::-webkit-scrollbar]:w-1.75',
+                '[&::-webkit-scrollbar-thumb]:rounded-xs',
+                '[&::-webkit-scrollbar-thumb]:bg-main-green',
+                '[&::-webkit-scrollbar-track]:bg-transparent',
+              )}
+            >
+              <h3 className="font-bold text-[18px]">{activeTerm.subTitle}</h3>
+              <p className="whitespace-pre-wrap indent-1 text-[18px]">
+                {activeTerm.content}
+              </p>
+            </div>
           </div>
         )}
       </Modal>

@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { clientFetch } from '@/lib/auth';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
 type FinanceDashboardResponse = {
   bankName: string;

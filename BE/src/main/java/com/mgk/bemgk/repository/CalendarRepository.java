@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CalendarRepository extends JpaRepository<CalendarEvent, Long> {
 
+    void deleteByPet_Id(Long petId);
+
     List<CalendarEvent> findByPet_User_IdAndDateBetweenOrderByDate(Long userId, LocalDate start, LocalDate end);
 
     Optional<CalendarEvent> findFirstByPet_IdAndDateGreaterThanEqualOrderByDateAsc(Long petId, LocalDate date);

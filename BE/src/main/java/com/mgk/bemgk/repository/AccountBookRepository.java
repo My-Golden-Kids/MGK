@@ -7,16 +7,24 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface AccountBookRepository extends JpaRepository<AccountBook, Long> {
 
+    @Modifying
+    @Query("""
+            update AccountBook a
+            set a.pet = null
+            where a.pet.id = :petId
+            """)
+    void clearPetByPetId(@Param("petId") Long petId);
+
     @Query("""
             select coalesce(sum(a.amount), 0)
             from AccountBook a
             where a.user.id = :userId
-              and a.pet is not null
             """)
     BigDecimal sumPetExpenseByUserId(@Param("userId") Long userId);
 
@@ -24,20 +32,32 @@ public interface AccountBookRepository extends JpaRepository<AccountBook, Long> 
             select min(a.spendDate)
             from AccountBook a
             where a.user.id = :userId
-              and a.pet is not null
-        """)
-    LocalDate findFirstPetSpendDateByUserId(@Param("userId") Long userId);
+            """)
+    LocalDateTime findFirstPetSpendDateByUserId(@Param("userId") Long userId);
 
     @Query("""
             select coalesce(sum(a.amount), 0)
             from AccountBook a
             where a.user.id = :userId
-              and a.pet is not null
-              and a.spendDate >= :startDate
-        """)
+              and a.spendDate >= :startDateTime
+            """)
     BigDecimal sumPetExpenseLastYear(
         @Param("userId") Long userId,
-        @Param("startDate") LocalDate startDate
+        @Param("startDateTime") LocalDateTime startDateTime
+    );
+
+    @Query("""
+            select year(a.spendDate), month(a.spendDate), coalesce(sum(a.amount), 0)
+            from AccountBook a
+            where a.user.id = :userId
+              and a.spendDate between :startDateTime and :endDateTime
+            group by year(a.spendDate), month(a.spendDate)
+            order by year(a.spendDate), month(a.spendDate)
+            """)
+    List<Object[]> sumMonthlyPetExpenseByUserId(
+        @Param("userId") Long userId,
+        @Param("startDateTime") LocalDateTime startDateTime,
+        @Param("endDateTime") LocalDateTime endDateTime
     );
 
     @Query("""

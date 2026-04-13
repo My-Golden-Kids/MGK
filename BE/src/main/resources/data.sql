@@ -1,4 +1,7 @@
 SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE account_books;
+TRUNCATE TABLE accounts;
+TRUNCATE TABLE pets;
 TRUNCATE TABLE users;
 TRUNCATE TABLE products;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -51,6 +54,29 @@ WHERE u.email = 'th2gr22n@gmail.com'
     FROM pets
     WHERE user_id = u.id AND name = '이'
 );
+
+INSERT INTO pets
+(user_id, name, species, image, age, size, walk_count, walk_time, last_walk_at, eat_meal, created_at, updated_at)
+SELECT u.id, '돌멩이이', '강아지', '/images/pet/dolmeng1.jpeg', 5, '중형', 0, 0, NULL, 'NO', NOW(), NOW()
+FROM users u
+WHERE u.email = 'yjjeon08@gmail.com'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pets
+    WHERE user_id = u.id AND name = '돌멩이이'
+);
+
+-- 자산 계좌 1개 추가 (총 자산 100억)
+-- INSERT INTO accounts
+-- (user_id, account_number, bank_name, money_amount, reward_amount, total_amount, created_at, updated_at)
+-- SELECT u.id, '01085338796', '하나은행', 10000000, 10, 500000000, NOW(), NOW()
+-- FROM users u
+-- WHERE u.email = 'yjjeon08@gmail.com'
+--   AND NOT EXISTS (
+--     SELECT 1
+--     FROM accounts
+--     WHERE user_id = u.id AND account_number = '01085338796'
+-- )
 
 -- 상품
 INSERT INTO products

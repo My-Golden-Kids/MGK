@@ -1,19 +1,20 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import HomePromptBubble from '@/components/home/HomePromptBubble';
 import SelectedPetProfile, {
   type Pet,
 } from '@/components/home/SelectedPetProfile';
 import { fetchPets } from '@/features/settings/api/petSettingsApi';
+import { getStoredAlarmEnabled } from '@/lib/alarm-setting';
 import { clientFetch } from '@/lib/auth';
 import {
   getStoredMedicalPetId,
   storeSelectedPetId,
 } from '@/lib/medical-record';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 type HomeSpendingSummaryResponse = {
   monthlyAmount: number | string | null;
@@ -58,6 +59,14 @@ export default function HomePage() {
     string | null
   >(null);
   const [showBubble, setShowBubble] = useState(true);
+  const [isAlarmEnabled, setIsAlarmEnabled] = useState(true);
+
+  const shouldShowPromptBubble =
+    isAlarmEnabled && !isPetsLoading && pets.length === 0 && showBubble;
+
+  useEffect(() => {
+    setIsAlarmEnabled(getStoredAlarmEnabled());
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -197,28 +206,27 @@ export default function HomePage() {
   }, [pets, selectedPetId]);
 
   const handleTalkClick = () => {
-    if (!selectedPet) {
-      router.push('/onboarding/7');
-      return;
-    }
-
     router.push('/home/talk');
+  };
+
+  const handleDirectInputClick = () => {
+    router.push('/home/talk?mode=text');
   };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#FFFFFF]">
-      <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-4 pt-6 pb-4">
-        <header className="mb-4 flex justify-end">
+      <main className="scrollbar-hide relative min-h-0 flex-1 overflow-y-auto p-8">
+        <header>
           <Link
             href="/settings"
-            className="cursor-pointer font-extrabold text-[24px] text-black leading-none"
+            className="absolute top-0 right-0 z-10 cursor-pointer p-8 text-[24px] text-black leading-none transition-all hover:text-gray-500"
           >
             설정
           </Link>
         </header>
 
-        <section className="mb-5">
-          <div className={showBubble ? '' : 'invisible'}>
+        <section className="">
+          <div className={shouldShowPromptBubble ? '' : 'invisible'}>
             <HomePromptBubble
               message={`주인님! 저에 대해\n더 알려주세요!`}
               showAnswerButtons={true}
@@ -238,12 +246,12 @@ export default function HomePage() {
             onSelectedClick={handleTalkClick}
           />
           {selectedPet ? (
-            <p className="mt-4 text-center font-extrabold text-[28px] text-black leading-none">
+            <p className="text-center font-extrabold text-[28px] text-black leading-none">
               {selectedPet.name}
             </p>
           ) : null}
           {isPetsLoading ? (
-            <p className="mt-4 text-center font-medium text-[#66706D] text-[16px]">
+            <p className="text-center font-medium text-[#66706D] text-[16px]">
               반려동물 정보를 불러오는 중이에요.
             </p>
           ) : null}
@@ -253,24 +261,25 @@ export default function HomePage() {
             </p>
           ) : null}
           {!isPetsLoading && !petsErrorMessage && pets.length === 0 ? (
-            <p className="mt-4 text-center font-medium text-[#66706D] text-[16px]">
+            <p className="text-center font-medium text-[#66706D] text-[16px]">
               등록된 반려동물이 없어요. 먼저 반려동물을 추가해 주세요.
             </p>
           ) : null}
         </section>
 
-        <section className="mb-8 flex justify-center">
-          <div className="flex h-[54px] w-full max-w-[330px] overflow-hidden rounded-full border-2 border-[#25C3A8] bg-white">
+        <section className="mb-6 flex justify-center">
+          <div className="flex h-[50px] w-full max-w-[260px] overflow-hidden rounded-full border-2 border-[#25C3A8] bg-white">
             <button
               type="button"
               onClick={handleTalkClick}
-              className="flex flex-1 cursor-pointer items-center justify-center bg-[#25C3A8] font-extrabold text-[18px] text-white"
+              className="flex flex-1 cursor-pointer items-center justify-center bg-[#25C3A8] font-extrabold text-[18px] text-white transition-all hover:brightness-90"
             >
               말하기
             </button>
             <button
               type="button"
-              className="flex flex-1 cursor-pointer items-center justify-center bg-white font-extrabold text-[#25C3A8] text-[18px]"
+              onClick={handleDirectInputClick}
+              className="flex flex-1 cursor-pointer items-center justify-center bg-white font-extrabold text-[#25C3A8] text-[18px] transition-opacity hover:opacity-80"
             >
               직접입력
             </button>
@@ -278,9 +287,9 @@ export default function HomePage() {
         </section>
 
         {isSpendingLoading ? (
-          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white px-4 py-5">
+          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
             <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
-              <p className="font-extrabold text-[#0DA892] text-[20px] leading-tight">
+              <p className="font-extrabold text-[rgb(13,168,146)] text-[20px] leading-tight">
                 소비 데이터를 불러오는 중이에요.
               </p>
             </div>
@@ -310,13 +319,13 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => router.push('/finance/report')}
-              className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] font-extrabold text-[20px] text-white"
+              className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] font-extrabold text-[20px] text-white transition-all hover:brightness-90"
             >
               리포트 보러가기
             </button>
           </section>
         ) : (
-          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white px-4 py-5">
+          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
             <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
               <p className="mb-5 font-extrabold text-[#0DA892] text-[20px] leading-tight">
                 {spendingErrorMessage ?? '아직 등록된 소비 데이터가 없어요!'}
@@ -325,7 +334,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => router.push('/finance/expense/add-image')}
-                className="flex h-[56px] w-full max-w-[280px] cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] px-4 font-extrabold text-[20px] text-white"
+                className="flex h-[56px] w-full max-w-[280px] cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] px-4 font-extrabold text-[20px] text-white transition-all hover:brightness-90"
               >
                 지출 등록하기
               </button>
