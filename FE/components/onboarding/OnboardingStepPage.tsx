@@ -212,6 +212,13 @@ export default function OnboardingStepPage({
   }, [resetTranscript, step.id]);
 
   useEffect(() => {
+    if (step.id === 'pet-name-confirm' && !petName.trim()) {
+      goToStep(7, flowState);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step.id, petName]);
+
+  useEffect(() => {
     ttsAutoAdvanceHandledRef.current = false;
 
     if (
