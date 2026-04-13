@@ -1,5 +1,10 @@
 import { clientFetch } from '@/lib/auth';
 
+export interface PetCandidate {
+  id: number;
+  name: string;
+}
+
 export interface PendingCalendarEvent {
   petId: number;
   eventType: string;
@@ -47,10 +52,24 @@ function parseDateFromTranscript(normalized: string): Date | null {
   return null;
 }
 
+function findPetInTranscript(
+  normalized: string,
+  pets: PetCandidate[],
+): PetCandidate | null {
+  for (const pet of pets) {
+    const normalizedName = pet.name.replaceAll(' ', '');
+    if (normalizedName && normalized.includes(normalizedName)) {
+      return pet;
+    }
+  }
+  return null;
+}
+
 export function parseCalendarIntent(
   transcript: string,
-  petId: number,
-  petName: string,
+  pets: PetCandidate[],
+  fallbackPetId: number,
+  fallbackPetName: string,
 ): PendingCalendarEvent | null {
   const normalized = transcript.replaceAll(' ', '');
 
@@ -83,6 +102,10 @@ export function parseCalendarIntent(
 
   const date = parseDateFromTranscript(normalized);
   if (!date) return null;
+
+  const matchedPet = findPetInTranscript(normalized, pets);
+  const petId = matchedPet ? matchedPet.id : fallbackPetId;
+  const petName = matchedPet ? matchedPet.name : fallbackPetName;
 
   const month = date.getMonth() + 1;
   const day = date.getDate();

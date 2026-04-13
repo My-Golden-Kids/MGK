@@ -14,8 +14,9 @@ import {
   createCalendarEvent,
   parseCalendarIntent,
   type PendingCalendarEvent,
+  type PetCandidate,
 } from '@/features/home/talk/calendarApi';
-import { fetchPet } from '@/features/settings/api/petSettingsApi';
+import { fetchPet, fetchPets } from '@/features/settings/api/petSettingsApi';
 import { getStoredMedicalPetId } from '@/lib/medical-record';
 import { cancelTtsPlayback, playTts } from '@/lib/tts';
 
@@ -164,6 +165,7 @@ function HomeTalkPageContent() {
   const [assistantMessage, setAssistantMessage] = useState('');
   const [requestedTranscript, setRequestedTranscript] = useState('');
   const [textInput, setTextInput] = useState('');
+  const [pets, setPets] = useState<PetCandidate[]>([]);
   const [selectedPetId, setSelectedPetId] = useState(0);
   const [selectedPetName, setSelectedPetName] = useState(DEFAULT_PET_NAME);
   const [selectedPetImageUrl, setSelectedPetImageUrl] = useState<
@@ -188,7 +190,10 @@ function HomeTalkPageContent() {
 
     const loadSelectedPet = async () => {
       const petId = getStoredMedicalPetId();
-      const result = await fetchPet(petId);
+      const [result, petsResult] = await Promise.all([
+        fetchPet(petId),
+        fetchPets(),
+      ]);
 
       if (isCancelled) {
         return;
@@ -201,6 +206,7 @@ function HomeTalkPageContent() {
       setSelectedPetImageUrl(
         result.ok ? (result.pet?.imageUrl ?? undefined) : undefined,
       );
+      setPets(petsResult.ok ? (petsResult.pets ?? []) : []);
     };
 
     void loadSelectedPet();
@@ -281,6 +287,7 @@ function HomeTalkPageContent() {
 
     const calendarIntent = parseCalendarIntent(
       requestTranscript,
+      pets,
       selectedPetId,
       selectedPetName,
     );
@@ -341,6 +348,7 @@ function HomeTalkPageContent() {
     isRecording,
     isRequesting,
     listening,
+    pets,
     requestedTranscript,
     selectedPetId,
     selectedPetName,
@@ -392,6 +400,7 @@ function HomeTalkPageContent() {
 
     const calendarIntent = parseCalendarIntent(
       requestTranscript,
+      pets,
       selectedPetId,
       selectedPetName,
     );
