@@ -22,6 +22,7 @@ import {
 } from '@/components/onboarding/onboardingSteps';
 import { uploadPetImage } from '@/features/settings/api/petSettingsApi';
 import { clientFetch } from '@/lib/auth';
+import { cancelTtsPlayback, playTts } from '@/lib/tts';
 
 type OnboardingStepPageProps = {
   stepNumber: number;
@@ -203,7 +204,7 @@ export default function OnboardingStepPage({
       }
 
       void SpeechRecognition.stopListening();
-      window.speechSynthesis?.cancel();
+      cancelTtsPlayback();
     };
   }, []);
 
@@ -301,26 +302,14 @@ export default function OnboardingStepPage({
       return;
     }
 
-    const speechSynthesis = window.speechSynthesis;
-
-    if (!speechSynthesis) {
-      return;
-    }
-
     if (browserSupportsSpeechRecognition) {
       void SpeechRecognition.stopListening();
     }
 
-    const utterance = new SpeechSynthesisUtterance(
-      bubbleMessage.replaceAll('\n', ' '),
-    );
-    utterance.lang = 'ko-KR';
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
-    utterance.onstart = () => {
-      lastSpokenMessageRef.current = bubbleMessage;
-    };
-    utterance.onend = () => {
+    const abortController = new AbortController();
+    lastSpokenMessageRef.current = bubbleMessage;
+
+    const handlePlaybackFinished = () => {
       if (
         step.autoAdvanceDelay !== undefined &&
         stepNumber < LAST_ONBOARDING_STEP &&
@@ -332,23 +321,23 @@ export default function OnboardingStepPage({
         }, TTS_AUTO_ADVANCE_DELAY_MS);
       }
     };
-    utterance.onerror = () => {
+
+    const speak = playTts(bubbleMessage.replaceAll('\n', ' '), {
+      signal: abortController.signal,
+      onEnd: handlePlaybackFinished,
+    });
+
+    void speak.catch(() => {
       if (lastSpokenMessageRef.current === bubbleMessage) {
         lastSpokenMessageRef.current = '';
       }
+
+      handlePlaybackFinished();
+    });
+
+    return () => {
+      abortController.abort();
     };
-
-    const availableVoices = speechSynthesis.getVoices();
-    const koreanVoice = availableVoices.find((voice) =>
-      voice.lang.toLowerCase().startsWith('ko'),
-    );
-
-    if (koreanVoice) {
-      utterance.voice = koreanVoice;
-    }
-
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
   }, [
     browserSupportsSpeechRecognition,
     bubbleMessage,
@@ -479,7 +468,7 @@ export default function OnboardingStepPage({
 
     resetTranscript();
     setIsRecording(true);
-    window.speechSynthesis?.cancel();
+    cancelTtsPlayback();
 
     await SpeechRecognition.startListening({
       continuous: false,
