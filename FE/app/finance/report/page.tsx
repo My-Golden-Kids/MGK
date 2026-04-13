@@ -120,7 +120,7 @@ export default function FinanceReportPage() {
               {safeMonthlyData.map((item, index) => {
                 const amount = item.amount ?? 0;
                 const height =
-                  maxAmount > 0 ? Math.max((amount / maxAmount) * 156, 5) : 5;
+                  maxAmount > 0 ? Math.max((amount / maxAmount) * 156, 10) : 5;
                 const isActive = index === safeMonthlyData.length - 1;
 
                 return (

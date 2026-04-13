@@ -9,6 +9,7 @@ import com.mgk.bemgk.repository.PetRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -65,16 +66,16 @@ public class FinanceReportService {
 			monthlyAmountMap.put(targetMonth, BigDecimal.ZERO);
 		}
 
-		LocalDate startDate = currentMonth.minusMonths(11).atDay(1);
-		LocalDate endDate = currentMonth.atEndOfMonth();
+		LocalDateTime startDateTime = currentMonth.minusMonths(11).atDay(1).atStartOfDay();
+		LocalDateTime endDateTime = currentMonth.atEndOfMonth().atTime(23, 59, 59);
 
 		List<Object[]> rawMonthlyExpenses =
-			accountBookRepository.sumMonthlyPetExpenseByUserId(userId, startDate, endDate);
+			accountBookRepository.sumMonthlyPetExpenseByUserId(userId, startDateTime, endDateTime);
 
 		for (Object[] row : rawMonthlyExpenses) {
-			Integer year = (Integer) row[0];
-			Integer month = (Integer) row[1];
-			BigDecimal amount = defaultAmount((BigDecimal) row[2]);
+			Integer year = ((Number) row[0]).intValue();
+			Integer month = ((Number) row[1]).intValue();
+			BigDecimal amount = row[2] == null ? BigDecimal.ZERO : new BigDecimal(row[2].toString());
 
 			YearMonth ym = YearMonth.of(year, month);
 			if (monthlyAmountMap.containsKey(ym)) {
@@ -100,12 +101,13 @@ public class FinanceReportService {
 
 	// 최근 1년간 user 기준 반려동물 평균 한 달 지출
 	private BigDecimal calculateMonthlyAverageExpense(Long userId) {
-		LocalDate firstPetSpendDate = accountBookRepository.findFirstPetSpendDateByUserId(userId);
+		LocalDateTime firstPetSpendDateTime = accountBookRepository.findFirstPetSpendDateByUserId(userId);
 
-		if (firstPetSpendDate == null) {
+		if (firstPetSpendDateTime == null) {
 			return BigDecimal.ZERO;
 		}
 
+		LocalDate firstPetSpendDate = firstPetSpendDateTime.toLocalDate();
 		LocalDate now = LocalDate.now();
 
 		long observedMonths = ChronoUnit.MONTHS.between(firstPetSpendDate.withDayOfMonth(1), now.withDayOfMonth(1)) + 1;
@@ -122,8 +124,8 @@ public class FinanceReportService {
 		}
 
 		// 1년 이상: 최근 1년간 평균
-		LocalDate oneYearAgo = now.minusYears(1).withDayOfMonth(1);
-		BigDecimal lastYearExpense = defaultAmount(accountBookRepository.sumPetExpenseLastYear(userId, oneYearAgo));
+		LocalDateTime oneYearAgoStart = now.minusYears(1).withDayOfMonth(1).atStartOfDay();
+		BigDecimal lastYearExpense = defaultAmount(accountBookRepository.sumPetExpenseLastYear(userId, oneYearAgoStart));
 
 		return lastYearExpense.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
 	}

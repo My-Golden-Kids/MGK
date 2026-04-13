@@ -37,9 +37,24 @@ public class FinanceReportController {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 		}
 
-		String email = authentication.getName();
-		User user = userRepository.findByEmail(email).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다."));
+		Object principal = authentication.getPrincipal();
+		if (principal instanceof Number number) {
+			return number.longValue();
+		}
 
+		if (principal instanceof String principalString) {
+			try {
+				return Long.parseLong(principalString);
+			} catch (NumberFormatException ignored) {
+				User user = userRepository.findByEmail(principalString)
+					.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다."));
+				return user.getId();
+			}
+		}
+
+		String email = authentication.getName();
+		User user = userRepository.findByEmail(email)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다."));
 		return user.getId();
 	}
 }
