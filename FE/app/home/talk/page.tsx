@@ -149,6 +149,7 @@ function HomeTalkPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lastSpokenBubbleMessageRef = useRef('');
+  const hadActiveListeningRef = useRef(false);
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
@@ -210,9 +211,30 @@ function HomeTalkPageContent() {
   useEffect(() => {
     if (isTextMode) {
       setIsRecording(false);
+      hadActiveListeningRef.current = false;
       void SpeechRecognition.stopListening();
     }
   }, [isTextMode]);
+
+  useEffect(() => {
+    if (!isRecording) {
+      hadActiveListeningRef.current = false;
+      return;
+    }
+
+    if (listening) {
+      hadActiveListeningRef.current = true;
+      return;
+    }
+
+    if (!hadActiveListeningRef.current) {
+      return;
+    }
+
+    hadActiveListeningRef.current = false;
+    setIsRecording(false);
+    setShouldSubmit(true);
+  }, [isRecording, listening]);
 
   useEffect(() => {
     const normalizedTranscript = transcript.replaceAll(' ', '');
@@ -245,6 +267,16 @@ function HomeTalkPageContent() {
       isRequesting ||
       requestedTranscript === requestTranscript
     ) {
+      return;
+    }
+
+    const commandRoute = resolveCommandRoute(requestTranscript);
+
+    if (commandRoute) {
+      setPendingRoute(commandRoute);
+      setShowMoveConfirm(true);
+      setShouldSubmit(false);
+      setAssistantMessage('');
       return;
     }
 
@@ -312,10 +344,11 @@ function HomeTalkPageContent() {
   };
 
   const stopRecording = async () => {
-    if (!isRecording) {
+    if (!isRecording && !listening) {
       return;
     }
 
+    hadActiveListeningRef.current = false;
     setIsRecording(false);
     await SpeechRecognition.stopListening();
     setShouldSubmit(true);
