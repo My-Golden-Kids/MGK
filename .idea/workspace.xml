@@ -10,11 +10,14 @@
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+<<<<<<< HEAD
+=======
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$/BE">
       <ProjectState />
     </projectState>
   </component>
+>>>>>>> origin/dev
   <component name="ExternalProjectsManager">
     <system id="GRADLE">
       <state>
@@ -51,6 +54,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
+<<<<<<< HEAD
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RequestMappingsPanelOrder0": "0",
+    "RequestMappingsPanelOrder1": "1",
+    "RequestMappingsPanelWidth0": "75",
+    "RequestMappingsPanelWidth1": "75",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Spring Boot.BeMgkApplication.executor": "Run",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/campus2H062/Desktop/MGK/BE/secrets",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "pnpm",
+    "ts.external.directory.path": "C:\\Users\\campus2H062\\AppData\\Roaming\\JetBrains\\IntelliJIdea2025.3\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
+    "vue.rearranger.settings.migration": "true"
+=======
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
@@ -80,14 +109,19 @@
     &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
     &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\campus2H062\\AppData\\Roaming\\JetBrains\\IntelliJIdea2025.3\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+>>>>>>> origin/dev
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\campus2H062\Desktop\MGK\BE\secrets" />
     </key>
   </component>
   <component name="RunManager">
+<<<<<<< HEAD
+    <configuration default="true" type="JetRunConfigurationType">
+      <module name="BE_MGK" />
+=======
     <configuration name="BeMgkApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
       <module name="BE_MGK.main" />
       <option name="SHORTEN_COMMAND_LINE" value="ARGS_FILE" />
@@ -99,10 +133,18 @@
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
+>>>>>>> origin/dev
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+<<<<<<< HEAD
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <module name="BE_MGK" />
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+=======
     <configuration default="true" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
       <option name="SHORTEN_COMMAND_LINE" value="ARGS_FILE" />
       <method v="2">
@@ -114,6 +156,7 @@
         <item itemvalue="Spring Boot.BeMgkApplication" />
       </list>
     </recent_temporary>
+>>>>>>> origin/dev
   </component>
   <component name="SharedIndexes">
     <attachedChunks>

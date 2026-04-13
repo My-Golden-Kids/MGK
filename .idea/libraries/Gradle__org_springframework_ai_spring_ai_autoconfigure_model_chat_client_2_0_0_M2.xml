@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: org.springframework.ai:spring-ai-autoconfigure-model-chat-client:2.0.0-M2" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="org.springframework.ai" artifactId="spring-ai-autoconfigure-model-chat-client" version="2.0.0-M2" baseVersion="2.0.0-M2" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-autoconfigure-model-chat-client/2.0.0-M2/284cf2773c39822519721a54182c055973a3ab61/spring-ai-autoconfigure-model-chat-client-2.0.0-M2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-autoconfigure-model-chat-client/2.0.0-M2/e997b9ba017f4ba405744902a6baaf189549f222/spring-ai-autoconfigure-model-chat-client-2.0.0-M2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

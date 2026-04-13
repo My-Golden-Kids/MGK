@@ -4,12 +4,14 @@ import com.mgk.bemgk.dto.finance.AccountBookResponse;
 import com.mgk.bemgk.dto.finance.CreateAccountBookRequest;
 import com.mgk.bemgk.dto.finance.FinanceDashboardResponse;
 import com.mgk.bemgk.dto.finance.FinanceExpenseSummaryResponse;
+import com.mgk.bemgk.dto.finance.HomeSpendingSummaryResponse;
 import com.mgk.bemgk.entity.AccountBook;
 import com.mgk.bemgk.service.CurrentUserService;
 import com.mgk.bemgk.service.FinanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -35,6 +37,18 @@ public class FinanceController {
         Long userId = currentUserService.getCurrentUserIdOrDefault();
 
         return financeService.getDashboard(userId);
+    }
+
+    @GetMapping("/home-summary")
+    public ResponseEntity<HomeSpendingSummaryResponse> getHomeSpendingSummary(
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
+        Long userId = currentUserService.getCurrentUserIdOrDefault();
+
+        return financeService.getHomeSpendingSummary(userId, year, month)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @GetMapping

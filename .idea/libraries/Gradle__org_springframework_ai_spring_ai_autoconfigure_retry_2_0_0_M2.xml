@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: org.springframework.ai:spring-ai-autoconfigure-retry:2.0.0-M2" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="org.springframework.ai" artifactId="spring-ai-autoconfigure-retry" version="2.0.0-M2" baseVersion="2.0.0-M2" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-autoconfigure-retry/2.0.0-M2/22de85343da565add7ca1e8e637a74ca6f7b3ddc/spring-ai-autoconfigure-retry-2.0.0-M2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-autoconfigure-retry/2.0.0-M2/25050f287b336dc9ade4b4cbc1826ef26acb91df/spring-ai-autoconfigure-retry-2.0.0-M2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

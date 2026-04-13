@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: com.google.genai:google-genai:1.30.0" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="com.google.genai" artifactId="google-genai" version="1.30.0" baseVersion="1.30.0" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.google.genai/google-genai/1.30.0/9576548242244001c4386e39f832430fa5d27c13/google-genai-1.30.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.google.genai/google-genai/1.30.0/7b1436074897a8eccab658fb9b9a4145150d649b/google-genai-1.30.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
