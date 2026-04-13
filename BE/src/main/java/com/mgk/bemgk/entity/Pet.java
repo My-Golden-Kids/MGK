@@ -54,6 +54,12 @@ public class Pet extends BaseEntity {
     @Column(name = "walk_time")
     private Integer walkTime;
 
+    @Column
+    private Boolean death;
+
+    @Column(name = "death_date")
+    private LocalDateTime deathDate;
+
     @Column(name = "last_walk_at")
     private LocalDateTime lastWalkAt;
 
@@ -63,8 +69,8 @@ public class Pet extends BaseEntity {
 
     @Builder
     public Pet(User user, String name, String species, String image, Double age, PetSize size,
-               Integer walkCount, Integer walkTime, LocalDateTime lastWalkAt,
-               MealStatus eatMeal) {
+               Integer walkCount, Integer walkTime, Boolean death,
+               LocalDateTime deathDate, LocalDateTime lastWalkAt, MealStatus eatMeal) {
         this.user = user;
         this.name = name;
         this.species = species;
@@ -73,6 +79,8 @@ public class Pet extends BaseEntity {
         this.size = size;
         this.walkCount = walkCount;
         this.walkTime = walkTime;
+        this.death = death;
+        this.deathDate = deathDate;
         this.lastWalkAt = lastWalkAt;
         this.eatMeal = eatMeal;
     }
