@@ -1,8 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import HomePromptBubble from '@/components/home/HomePromptBubble';
 import SelectedPetProfile, {
@@ -15,6 +12,9 @@ import {
   getStoredMedicalPetId,
   storeSelectedPetId,
 } from '@/lib/medical-record';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 type FinanceExpenseCategory = 'Food' | 'Hospital' | 'Etc';
 
@@ -178,6 +178,8 @@ export default function HomePage() {
   >(null);
   const [showBubble, setShowBubble] = useState(true);
 
+  const shouldShowPromptBubble = !isPetsLoading && pets.length === 0 && showBubble;
+
   useEffect(() => {
     let isCancelled = false;
 
@@ -325,18 +327,18 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#FFFFFF]">
-      <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-4 pt-6 pb-4">
-        <header className="mb-4 flex justify-end">
+      <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto p-5">
+        <header className="flex justify-end">
           <Link
             href="/settings"
-            className="cursor-pointer font-extrabold text-[24px] text-black leading-none"
+            className="cursor-pointer text-[24px] text-black leading-none"
           >
             설정
           </Link>
         </header>
 
-        <section className="mb-5">
-          <div className={showBubble ? '' : 'invisible'}>
+        <section className="">
+          <div className={shouldShowPromptBubble ? '' : 'invisible'}>
             <HomePromptBubble
               message={`주인님! 저에 대해\n더 알려주세요!`}
               showAnswerButtons={true}
@@ -356,12 +358,12 @@ export default function HomePage() {
             onSelectedClick={handleTalkClick}
           />
           {selectedPet ? (
-            <p className="mt-4 text-center font-extrabold text-[28px] text-black leading-none">
+            <p className="text-center font-extrabold text-[28px] text-black leading-none">
               {selectedPet.name}
             </p>
           ) : null}
           {isPetsLoading ? (
-            <p className="mt-4 text-center font-medium text-[#66706D] text-[16px]">
+            <p className="mt-2 text-center font-medium text-[#66706D] text-[16px]">
               반려동물 정보를 불러오는 중이에요.
             </p>
           ) : null}
@@ -377,8 +379,8 @@ export default function HomePage() {
           ) : null}
         </section>
 
-        <section className="mb-8 flex justify-center">
-          <div className="flex h-[54px] w-full max-w-[330px] overflow-hidden rounded-full border-2 border-[#25C3A8] bg-white">
+        <section className="mb-6 flex justify-center">
+          <div className="flex h-[50px] w-full max-w-[260px] overflow-hidden rounded-full border-2 border-[#25C3A8] bg-white">
             <button
               type="button"
               onClick={handleTalkClick}
@@ -396,7 +398,7 @@ export default function HomePage() {
         </section>
 
         {isSpendingLoading ? (
-          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white px-4 py-5">
+          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-5">
             <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
               <p className="font-extrabold text-[#0DA892] text-[20px] leading-tight">
                 소비 데이터를 불러오는 중이에요.
@@ -434,7 +436,7 @@ export default function HomePage() {
             </button>
           </section>
         ) : (
-          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white px-4 py-5">
+          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-5">
             <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
               <p className="mb-5 font-extrabold text-[#0DA892] text-[20px] leading-tight">
                 {spendingErrorMessage ?? '아직 등록된 소비 데이터가 없어요!'}
