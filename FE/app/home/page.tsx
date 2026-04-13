@@ -8,7 +8,6 @@ import HomePromptBubble from '@/components/home/HomePromptBubble';
 import SelectedPetProfile, {
   type Pet,
 } from '@/components/home/SelectedPetProfile';
-import type { Product } from '@/features/product/types/product';
 import { fetchPets } from '@/features/settings/api/petSettingsApi';
 import { clientFetch } from '@/lib/auth';
 import {
@@ -16,23 +15,11 @@ import {
   storeSelectedPetId,
 } from '@/lib/medical-record';
 
-type FinanceExpenseCategory = 'Food' | 'Hospital' | 'Etc';
-
-type FinanceExpenseItem = {
-  id: number;
-  title: string;
-  category: FinanceExpenseCategory;
-  amount: number;
-  memo: string | null;
-  spendDate: string;
-};
-
-type FinanceExpenseSummaryResponse = {
-  year: number;
-  month: number;
-  monthlyExpense: number;
-  todayExpense: number;
-  items: FinanceExpenseItem[];
+type HomeSpendingSummaryResponse = {
+  monthlyAmount: number | string | null;
+  primaryCategory: string;
+  summary: string;
+  savingsHint: string;
 };
 
 type SpendingData = {
@@ -42,126 +29,20 @@ type SpendingData = {
   savingsHint: string;
 };
 
-const CATEGORY_PRIORITY = [
-  'Hospital',
-  'Etc',
-  'Food',
-] as const satisfies readonly FinanceExpenseCategory[];
-
-const CATEGORY_PRODUCT_LABEL: Record<FinanceExpenseCategory, string> = {
-  Hospital: '보험',
-  Etc: '적금',
-  Food: '구독',
-};
-
-const CARD_SUMMARY_SUFFIX = '이 가장 잘 맞아요';
-const DEFAULT_INSURANCE_LIMIT_COUNT = 20;
-const DEFAULT_INSURANCE_BENEFIT_AMOUNT = 100000;
-const DEFAULT_SUBSCRIPTION_SAVINGS_LABEL = '1.5만원';
 const SPENDING_LOAD_ERROR_MESSAGE = '소비 데이터를 불러오지 못했어요.';
 
 function formatCurrency(value: number) {
   return `${value.toLocaleString()}원`;
 }
 
-function formatNumberText(value: number) {
-  if (!Number.isFinite(value)) {
-    return '0';
-  }
-
-  return Number.isInteger(value) ? `${value}` : value.toFixed(1);
-}
-
-function formatBenefitRateText(value?: number | null) {
-  if (value == null || !Number.isFinite(value)) {
-    return null;
-  }
-
-  return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
-}
-
-function getDominantCategory(
-  items: FinanceExpenseItem[],
-): FinanceExpenseCategory | null {
-  const totals = {
-    Food: 0,
-    Hospital: 0,
-    Etc: 0,
-  } satisfies Record<FinanceExpenseCategory, number>;
-
-  for (const item of items) {
-    totals[item.category] += item.amount;
-  }
-
-  const dominantCategory = CATEGORY_PRIORITY.reduce((currentBest, category) => {
-    if (totals[category] > totals[currentBest]) {
-      return category;
-    }
-
-    return currentBest;
-  }, CATEGORY_PRIORITY[0]);
-
-  return totals[dominantCategory] > 0 ? dominantCategory : null;
-}
-
-function buildSavingsHint(
-  dominantCategory: FinanceExpenseCategory,
-  items: FinanceExpenseItem[],
-  products: Product[],
-) {
-  if (dominantCategory === 'Hospital') {
-    const insuranceProduct = products.find(
-      (product) => product.isActive && product.productType === 'INSURANCE',
-    );
-    const monthlyHospitalCount = items.filter(
-      (item) => item.category === 'Hospital',
-    ).length;
-    const coveredCount = Math.min(
-      monthlyHospitalCount,
-      insuranceProduct?.benefitLimitCount ?? DEFAULT_INSURANCE_LIMIT_COUNT,
-    );
-    const benefitAmountManwon =
-      Number(
-        insuranceProduct?.benefitAmount ?? DEFAULT_INSURANCE_BENEFIT_AMOUNT,
-      ) / 10000;
-    const discountAmount = coveredCount * benefitAmountManwon;
-
-    return `하나 펫 보험 가입하면, ${formatNumberText(discountAmount)}만원 할인 가능`;
-  }
-
-  if (dominantCategory === 'Etc') {
-    const savingsProduct = products.find(
-      (product) => product.isActive && product.productType === 'SAVINGS',
-    );
-    const benefitRateText = formatBenefitRateText(savingsProduct?.benefitRate);
-
-    return benefitRateText
-      ? `하나 펫 적금 가입하면, 연 ${benefitRateText}% 이자 가능`
-      : '하나 펫 적금 가입하면, 이자 혜택 확인 가능';
-  }
-
-  return `하나 펫 구독 가입하면, ${DEFAULT_SUBSCRIPTION_SAVINGS_LABEL} 절약 가능`;
-}
-
-function buildSpendingData(
-  financeSummary: FinanceExpenseSummaryResponse,
-  products: Product[],
-): SpendingData | null {
-  const dominantCategory = getDominantCategory(financeSummary.items);
-
-  if (!dominantCategory) {
-    return null;
-  }
-
+function mapHomeSpendingSummary(
+  summary: HomeSpendingSummaryResponse,
+): SpendingData {
   return {
-    monthlyAmount: formatCurrency(Number(financeSummary.monthlyExpense ?? 0)),
-    primaryCategory: CATEGORY_PRODUCT_LABEL[dominantCategory],
-    summary: CARD_SUMMARY_SUFFIX,
-    savingsHint: buildSavingsHint(
-      dominantCategory,
-      financeSummary.items,
-      products,
-    ),
+    monthlyAmount: formatCurrency(Number(summary.monthlyAmount ?? 0)),
+    primaryCategory: summary.primaryCategory,
+    summary: summary.summary,
+    savingsHint: summary.savingsHint,
   };
 }
 
@@ -259,14 +140,18 @@ export default function HomePage() {
 
       try {
         const currentMonth = new Date();
-        const [financeResponse, productsResponse] = await Promise.all([
-          clientFetch(
-            `/api/account-books?year=${currentMonth.getFullYear()}&month=${
-              currentMonth.getMonth() + 1
-            }`,
-          ),
-          clientFetch('/api/products'),
-        ]);
+        const financeResponse = await clientFetch(
+          `/api/account-books/home-summary?year=${currentMonth.getFullYear()}&month=${
+            currentMonth.getMonth() + 1
+          }`,
+        );
+
+        if (financeResponse.status === 204) {
+          if (!isCancelled) {
+            setSpendingData(null);
+          }
+          return;
+        }
 
         if (!financeResponse.ok) {
           if (!isCancelled) {
@@ -277,16 +162,13 @@ export default function HomePage() {
         }
 
         const financeSummary =
-          (await financeResponse.json()) as FinanceExpenseSummaryResponse;
-        const products = productsResponse.ok
-          ? ((await productsResponse.json()) as Product[])
-          : [];
+          (await financeResponse.json()) as HomeSpendingSummaryResponse;
 
         if (isCancelled) {
           return;
         }
 
-        setSpendingData(buildSpendingData(financeSummary, products));
+        setSpendingData(mapHomeSpendingSummary(financeSummary));
       } catch {
         if (!isCancelled) {
           setSpendingData(null);
