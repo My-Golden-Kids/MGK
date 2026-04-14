@@ -257,8 +257,8 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#FFFFFF]">
-      <main className="scrollbar-hide relative min-h-0 flex-1 overflow-y-auto px-8 py-6">
-        <header className="flex h-10 items-center justify-between">
+      <main className="scrollbar-hide flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <header className="flex h-10 shrink-0 items-center justify-between px-8 py-6">
           <Link
             href="/home/coupon"
             className="z-10 flex h-10 w-10 items-center justify-center rounded-full transition-transform hover:scale-105"
@@ -280,132 +280,138 @@ export default function HomePage() {
           </Link>
         </header>
 
-        <section className="">
-          <div className={shouldShowPromptBubble ? '' : 'invisible'}>
-            <HomePromptBubble
-              message={`주인님! 저에 대해\n더 알려주세요!`}
-              showAnswerButtons={true}
-              onYesClick={() => router.push('/onboarding/7')}
-              onNoClick={() => setShowBubble(false)}
-              yesLabel="O"
-              noLabel="X"
-            />
+        <div className="flex flex-1 flex-col px-8 pb-6">
+          <div className="my-auto flex flex-col gap-4 py-4">
+            {(shouldShowPromptBubble || shouldShowScheduleBubble) && (
+              <section className="px-8">
+                {shouldShowPromptBubble && (
+                  <HomePromptBubble
+                    message={`주인님! 저에 대해\n더 알려주세요!`}
+                    showAnswerButtons={true}
+                    onYesClick={() => router.push('/onboarding/7')}
+                    onNoClick={() => setShowBubble(false)}
+                    yesLabel="O"
+                    noLabel="X"
+                  />
+                )}
+                {shouldShowScheduleBubble && (
+                  <HomeScheduleBubble
+                    messages={scheduleBubbles.map((b) => b.message)}
+                    currentIndex={scheduleBubbleIndex}
+                    onDismiss={() => {
+                      scheduleBubbles[scheduleBubbleIndex]?.onDismiss();
+                      setScheduleBubbleIndex((i) => i + 1);
+                    }}
+                  />
+                )}
+              </section>
+            )}
+
+            <section>
+              <SelectedPetProfile
+                pets={pets}
+                selectedPetId={selectedPetId}
+                onChange={setSelectedPetId}
+                onSelectedClick={handleTalkClick}
+              />
+              {selectedPet ? (
+                <p className="text-center font-extrabold text-[28px] text-black leading-none">
+                  {selectedPet.name}
+                </p>
+              ) : null}
+              {isPetsLoading ? (
+                <p className="text-center font-medium text-[#66706D] text-[16px]">
+                  반려동물 정보를 불러오는 중이에요.
+                </p>
+              ) : null}
+              {!isPetsLoading && petsErrorMessage ? (
+                <p className="mt-4 text-center font-medium text-[16px] text-red-500">
+                  {petsErrorMessage}
+                </p>
+              ) : null}
+              {!isPetsLoading && !petsErrorMessage && pets.length === 0 ? (
+                <p className="text-center font-medium text-[#66706D] text-[16px]">
+                  등록된 반려동물이 없어요. 먼저 반려동물을 추가해 주세요.
+                </p>
+              ) : null}
+            </section>
+
+            <section className="flex justify-center">
+              <div className="flex h-[50px] w-full max-w-[260px] overflow-hidden rounded-full border-2 border-[#25C3A8] bg-white">
+                <button
+                  type="button"
+                  onClick={handleTalkClick}
+                  className="flex flex-1 cursor-pointer items-center justify-center bg-[#25C3A8] font-extrabold text-[18px] text-white transition-all hover:brightness-90"
+                >
+                  말하기
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDirectInputClick}
+                  className="flex flex-1 cursor-pointer items-center justify-center bg-white font-extrabold text-[#25C3A8] text-[18px] transition-opacity hover:opacity-80"
+                >
+                  직접입력
+                </button>
+              </div>
+            </section>
+
+            {isSpendingLoading ? (
+              <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
+                <div className="flex min-h-[170px] flex-col items-center justify-center text-center">
+                  <p className="font-extrabold text-[20px] text-[rgb(13,168,146)] leading-tight">
+                    소비 데이터를 불러오는 중이에요.
+                  </p>
+                </div>
+              </section>
+            ) : spendingData ? (
+              <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white px-4 py-5">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <h2 className="font-extrabold text-[#0DA892] text-[20px] leading-tight">
+                    이번달 소비
+                  </h2>
+                  <p className="text-right font-extrabold text-[22px] text-black leading-tight">
+                    {spendingData.monthlyAmount}
+                  </p>
+                </div>
+
+                <p className="mb-1 font-bold text-[18px] text-black leading-snug">
+                  <span className="text-[#0DA892]">
+                    {spendingData.primaryCategory}
+                  </span>
+                  {spendingData.summary}
+                </p>
+
+                <p className="mb-5 font-bold text-[18px] text-black leading-snug">
+                  {spendingData.savingsHint}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => router.push('/finance/report')}
+                  className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] font-extrabold text-[20px] text-white transition-all hover:brightness-90"
+                >
+                  리포트 보러가기
+                </button>
+              </section>
+            ) : (
+              <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
+                <div className="flex min-h-[170px] flex-col items-center justify-center text-center">
+                  <p className="mb-5 font-extrabold text-[#0DA892] text-[20px] leading-tight">
+                    {spendingErrorMessage ?? '아직 등록된 소비 데이터가 없어요!'}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => router.push('/finance/expense/add-image')}
+                    className="flex h-[56px] w-full max-w-[280px] cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] px-4 font-extrabold text-[20px] text-white transition-all hover:brightness-90"
+                  >
+                    지출 등록하기
+                  </button>
+                </div>
+              </section>
+            )}
           </div>
-          {shouldShowScheduleBubble && (
-            <HomeScheduleBubble
-              messages={scheduleBubbles.map((b) => b.message)}
-              currentIndex={scheduleBubbleIndex}
-              onDismiss={() => {
-                scheduleBubbles[scheduleBubbleIndex]?.onDismiss();
-                setScheduleBubbleIndex((i) => i + 1);
-              }}
-            />
-          )}
-        </section>
-
-        <section className="mb-4">
-          <SelectedPetProfile
-            pets={pets}
-            selectedPetId={selectedPetId}
-            onChange={setSelectedPetId}
-            onSelectedClick={handleTalkClick}
-          />
-          {selectedPet ? (
-            <p className="text-center font-extrabold text-[28px] text-black leading-none">
-              {selectedPet.name}
-            </p>
-          ) : null}
-          {isPetsLoading ? (
-            <p className="text-center font-medium text-[#66706D] text-[16px]">
-              반려동물 정보를 불러오는 중이에요.
-            </p>
-          ) : null}
-          {!isPetsLoading && petsErrorMessage ? (
-            <p className="mt-4 text-center font-medium text-[16px] text-red-500">
-              {petsErrorMessage}
-            </p>
-          ) : null}
-          {!isPetsLoading && !petsErrorMessage && pets.length === 0 ? (
-            <p className="text-center font-medium text-[#66706D] text-[16px]">
-              등록된 반려동물이 없어요. 먼저 반려동물을 추가해 주세요.
-            </p>
-          ) : null}
-        </section>
-
-        <section className="mb-6 flex justify-center">
-          <div className="flex h-[50px] w-full max-w-[260px] overflow-hidden rounded-full border-2 border-[#25C3A8] bg-white">
-            <button
-              type="button"
-              onClick={handleTalkClick}
-              className="flex flex-1 cursor-pointer items-center justify-center bg-[#25C3A8] font-extrabold text-[18px] text-white transition-all hover:brightness-90"
-            >
-              말하기
-            </button>
-            <button
-              type="button"
-              onClick={handleDirectInputClick}
-              className="flex flex-1 cursor-pointer items-center justify-center bg-white font-extrabold text-[#25C3A8] text-[18px] transition-opacity hover:opacity-80"
-            >
-              직접입력
-            </button>
-          </div>
-        </section>
-
-        {isSpendingLoading ? (
-          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
-            <div className="flex min-h-[170px] flex-col items-center justify-center text-center">
-              <p className="font-extrabold text-[20px] text-[rgb(13,168,146)] leading-tight">
-                소비 데이터를 불러오는 중이에요.
-              </p>
-            </div>
-          </section>
-        ) : spendingData ? (
-          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white px-4 py-5">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <h2 className="font-extrabold text-[#0DA892] text-[20px] leading-tight">
-                이번달 소비
-              </h2>
-              <p className="text-right font-extrabold text-[22px] text-black leading-tight">
-                {spendingData.monthlyAmount}
-              </p>
-            </div>
-
-            <p className="mb-1 font-bold text-[18px] text-black leading-snug">
-              <span className="text-[#0DA892]">
-                {spendingData.primaryCategory}
-              </span>
-              {spendingData.summary}
-            </p>
-
-            <p className="mb-5 font-bold text-[18px] text-black leading-snug">
-              {spendingData.savingsHint}
-            </p>
-
-            <button
-              type="button"
-              onClick={() => router.push('/finance/report')}
-              className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] font-extrabold text-[20px] text-white transition-all hover:brightness-90"
-            >
-              리포트 보러가기
-            </button>
-          </section>
-        ) : (
-          <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
-            <div className="flex min-h-[170px] flex-col items-center justify-center text-center">
-              <p className="mb-5 font-extrabold text-[#0DA892] text-[20px] leading-tight">
-                {spendingErrorMessage ?? '아직 등록된 소비 데이터가 없어요!'}
-              </p>
-
-              <button
-                type="button"
-                onClick={() => router.push('/finance/expense/add-image')}
-                className="flex h-[56px] w-full max-w-[280px] cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] px-4 font-extrabold text-[20px] text-white transition-all hover:brightness-90"
-              >
-                지출 등록하기
-              </button>
-            </div>
-          </section>
-        )}
+        </div>
       </main>
 
       <BottomNavigation />
