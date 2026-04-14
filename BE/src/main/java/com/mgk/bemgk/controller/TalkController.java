@@ -19,6 +19,6 @@ public class TalkController {
 
     @PostMapping
     public TalkResponse talk(@Valid @RequestBody TalkRequest request) {
-        return talkService.ask(request.transcript());
+        return talkService.ask(request.transcript(), request.petId());
     }
 }

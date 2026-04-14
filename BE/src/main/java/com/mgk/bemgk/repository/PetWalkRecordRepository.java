@@ -24,5 +24,11 @@ public interface PetWalkRecordRepository extends JpaRepository<PetWalkRecord, Lo
             String sourcePrefix
     );
 
+    Optional<PetWalkRecord> findFirstByPet_IdAndCompletedTrueAndWalkedAtBetweenOrderByWalkedAtDesc(
+            Long petId,
+            LocalDateTime startAt,
+            LocalDateTime endAt
+    );
+
     List<PetWalkRecord> findAllByPet_User_IdAndCompletedTrue(Long userId);
 }

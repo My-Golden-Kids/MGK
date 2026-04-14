@@ -17,15 +17,28 @@ import {
   type PetCandidate,
 } from '@/features/home/talk/calendarApi';
 import { fetchPet, fetchPets } from '@/features/settings/api/petSettingsApi';
+import { clientFetch } from '@/lib/auth';
 import { getStoredMedicalPetId } from '@/lib/medical-record';
 import { cancelTtsPlayback, playTts } from '@/lib/tts';
 
 const DEFAULT_MESSAGE = '무엇이 궁금하신가요?';
-const API_BASE_URL = 'http://localhost:8080';
 const MAX_REQUEST_TRANSCRIPT_LENGTH = 60;
 const PREPARING_MESSAGE = '답변을 준비하고 있어요.';
 const REQUEST_ERROR_MESSAGE = '답변을 불러오지 못했어요.';
 const DEFAULT_PET_NAME = '별송이';
+const NAVIGATION_KEYWORDS = ['가줘', '이동', '열어줘', '들어가줘', '화면'] as const;
+const NAVIGATION_SHOW_KEYWORDS = ['보여줘', '확인해줘'] as const;
+const QUERY_KEYWORDS = [
+  '언제',
+  '오늘',
+  '했나',
+  '했어',
+  '갔지',
+  '얼마',
+  '있는지',
+  '있어',
+  '기록있나',
+] as const;
 
 function buildRequestTranscript(transcript: string) {
   const normalizedTranscript = transcript
@@ -50,6 +63,23 @@ function buildRequestTranscript(transcript: string) {
 
 function resolveCommandRoute(transcript: string) {
   const normalizedTranscript = transcript.replaceAll(' ', '');
+  const hasNavigationIntent = NAVIGATION_KEYWORDS.some((keyword) =>
+    normalizedTranscript.includes(keyword),
+  );
+  const hasNavigationShowIntent = NAVIGATION_SHOW_KEYWORDS.some((keyword) =>
+    normalizedTranscript.includes(keyword),
+  );
+  const hasQueryIntent = QUERY_KEYWORDS.some((keyword) =>
+    normalizedTranscript.includes(keyword),
+  );
+
+  if (hasQueryIntent) {
+    return null;
+  }
+
+  if (!hasNavigationIntent && !hasNavigationShowIntent) {
+    return null;
+  }
 
   if (
     normalizedTranscript.includes('지출추가') ||
@@ -258,15 +288,13 @@ function HomeTalkPageContent() {
       return;
     }
 
-    const shouldMoveFinance =
-      normalizedTranscript.includes('통장') ||
-      normalizedTranscript.includes('잔고');
+    const route = resolveCommandRoute(normalizedTranscript);
 
-    if (!shouldMoveFinance) {
+    if (!route) {
       return;
     }
 
-    setPendingRoute('/finance');
+    setPendingRoute(route);
     setShowMoveConfirm(true);
   }, [isTextMode, showMoveConfirm, transcript]);
 
@@ -316,13 +344,11 @@ function HomeTalkPageContent() {
         setRequestedTranscript(requestTranscript);
         setAssistantMessage(PREPARING_MESSAGE);
 
-        const response = await fetch(`${API_BASE_URL}/api/talk`, {
+        const response = await clientFetch('/api/talk', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({
             transcript: requestTranscript,
+            petId: selectedPetId || null,
           }),
         });
 
@@ -426,13 +452,11 @@ function HomeTalkPageContent() {
       setRequestedTranscript(requestTranscript);
       setAssistantMessage(PREPARING_MESSAGE);
 
-      const response = await fetch(`${API_BASE_URL}/api/talk`, {
+      const response = await clientFetch('/api/talk', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           transcript: requestTranscript,
+          petId: selectedPetId || null,
         }),
       });
 
