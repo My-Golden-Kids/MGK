@@ -72,14 +72,20 @@ jobs:
             git restore BE/src/main/resources/application.yml || true &&
             git pull origin dev &&
             cd /home/ec2-user/workspace/MGK/BE &&
-            pkill -f 'java -jar app.jar' || true &&
-            nohup java -jar app.jar > /home/ec2-user/mgk-be.log 2>&1 &
+            pm2 describe mgk-be > /dev/null 2>&1 &&
+            pm2 restart mgk-be --update-env ||
+            pm2 start 'java -jar app.jar' --name mgk-be
           "
 
           ssh ec2-user@${{ secrets.WAS_HOST }} "
             cd /home/ec2-user/workspace/MGK/FE &&
             pnpm install --frozen-lockfile &&
             pnpm exec next build --webpack &&
-            pkill -f 'next start -p 3000' || true &&
-            nohup pnpm exec next start -p 3000 > /home/ec2-user/mgk-fe.log 2>&1 &
+            pm2 describe mgk-fe > /dev/null 2>&1 &&
+            pm2 restart mgk-fe --update-env ||
+            pm2 start 'pnpm exec next start -p 3000' --name mgk-fe
+          "
+
+          ssh ec2-user@${{ secrets.WAS_HOST }} "
+            pm2 save
           "
