@@ -2,3 +2,19 @@ jwt:
   secret: dGVzdFNlY3JldEtleUZvckpXVFRlc3RpbmdQdXJwb3Nlc09ubHk=
   access-expiration: 3600000
   refresh-expiration: 604800000
+
+cloud:
+  aws:
+    credentials:
+      access-key: test-access-key
+      secret-key: test-secret-key
+    region:
+      static: ap-northeast-2
+    s3:
+      bucket:
+        public: test-public-bucket
+        private: test-private-bucket
+
+google:
+  vision:
+    credentials-path:
