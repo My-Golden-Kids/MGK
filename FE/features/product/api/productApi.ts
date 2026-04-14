@@ -24,11 +24,3 @@ export async function getPersonalizedProducts(): Promise<
   if (!res.ok) throw new Error('개인화 상품 조회 실패');
   return res.json();
 }
-
-export async function getFeaturedPersonalizedProduct(): Promise<PersonalizedProductReport | null> {
-  const res = await serverFetch('/api/products/personalized/featured', {
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error('대표 추천 상품 조회 실패');
-  return res.json();
-}
