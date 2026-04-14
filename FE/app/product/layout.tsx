@@ -20,7 +20,9 @@ export default async function ProductLayout({
           <ProductCategorySection products={products} />
         </section>
 
-        <section className="min-h-0 flex-1 overflow-y-auto">{children}</section>
+        <section className="mt-5 min-h-0 flex-1 overflow-y-auto md:mt-6 lg:mt-7">
+          {children}
+        </section>
 
         <div className="shrink-0">
           <BottomNavigation />

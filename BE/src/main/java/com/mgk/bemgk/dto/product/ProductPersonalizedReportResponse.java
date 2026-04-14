@@ -16,6 +16,13 @@ public class ProductPersonalizedReportResponse {
     private String description;
     private String url;
     private Boolean isActive;
+    private BigDecimal benefitRate;
+    private BigDecimal benefitAmount;
+    private BigDecimal benefitLimitAmount;
+    private Integer benefitLimitCount;
+    private String benefitPeriod;
+    private String targetCategory;
+    private String sourceType;
     private Boolean eligible;
     private Boolean recommendedForFinanceReport;
     private String recommendationReason;
