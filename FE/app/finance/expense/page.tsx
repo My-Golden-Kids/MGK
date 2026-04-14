@@ -294,7 +294,7 @@ export default function FinanceExpensesPage() {
 
   return (
     <div className="relative flex min-h-dvh flex-col bg-white text-foreground">
-      <main className="flex-1 px-8 pt-4">
+      <main className="flex-1 px-8 pt-6">
         <input
           ref={dateInputRef}
           type="date"
@@ -312,7 +312,7 @@ export default function FinanceExpensesPage() {
           aria-label="날짜 선택"
         />
 
-        <div className="-ml-3">
+        <div className="mb-6">
           <BackButton />
         </div>
 

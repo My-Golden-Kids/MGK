@@ -1,5 +1,10 @@
 'use client';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from 'react-speech-recognition';
 import BackButton from '@/components/common/BackButton';
 import { Button } from '@/components/common/Button';
 import TalkBubble from '@/components/home/talk/TalkBubble';
@@ -7,26 +12,27 @@ import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
 import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 import {
   createCalendarEvent,
-  parseCalendarIntent,
   type PendingCalendarEvent,
   type PetCandidate,
+  parseCalendarIntent,
 } from '@/features/home/talk/calendarApi';
 import { fetchPet, fetchPets } from '@/features/settings/api/petSettingsApi';
 import { clientFetch } from '@/lib/auth';
 import { getStoredMedicalPetId } from '@/lib/medical-record';
 import { cancelTtsPlayback, playTts } from '@/lib/tts';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState } from 'react';
-import SpeechRecognition, {
-  useSpeechRecognition,
-} from 'react-speech-recognition';
 
 const DEFAULT_MESSAGE = '무엇이 궁금하신가요?';
 const MAX_REQUEST_TRANSCRIPT_LENGTH = 60;
 const PREPARING_MESSAGE = '답변을 준비하고 있어요.';
 const REQUEST_ERROR_MESSAGE = '답변을 불러오지 못했어요.';
 const DEFAULT_PET_NAME = '별송이';
-const NAVIGATION_KEYWORDS = ['가줘', '이동', '열어줘', '들어가줘', '화면'] as const;
+const NAVIGATION_KEYWORDS = [
+  '가줘',
+  '이동',
+  '열어줘',
+  '들어가줘',
+  '화면',
+] as const;
 const NAVIGATION_SHOW_KEYWORDS = ['보여줘', '확인해줘'] as const;
 const QUERY_KEYWORDS = [
   '언제',
@@ -555,7 +561,7 @@ function HomeTalkPageContent() {
       instructionMessage={instructionMessage}
     >
       <div className="pointer-events-none relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
-        <div className="pointer-events-auto absolute top-4 left-4">
+        <div className="pointer-events-auto absolute top-0 left-0 px-8 py-6">
           <BackButton />
         </div>
         {!showMoveConfirm && isTextMode ? (
@@ -610,7 +616,8 @@ function HomeTalkPageContent() {
                 if (pendingCalendarEvent) {
                   setShowMoveConfirm(false);
                   setIsRequesting(true);
-                  const result = await createCalendarEvent(pendingCalendarEvent);
+                  const result =
+                    await createCalendarEvent(pendingCalendarEvent);
                   setPendingCalendarEvent(null);
                   setIsRequesting(false);
                   setAssistantMessage(

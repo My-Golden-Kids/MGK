@@ -1,7 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { TypeSelect } from '@/components/common/TypeSelect';
 import MedicalRecordItem from '@/components/health/medical/MedicalRecordItem';
@@ -10,6 +9,8 @@ import {
   groupMedicalRecordsByDate,
   type MedicalRecordItemData,
 } from '@/lib/medical-record';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 const tabs = ['진료', '접종'] as const;
 type MedicalRecordTab = (typeof tabs)[number];
@@ -71,15 +72,18 @@ export default function MedicalRecordsPage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-white text-[#27312D]">
-      <main className="flex-1 p-10">
-        <div className="relative mb-4 flex items-center justify-center">
+      <main className="flex-1 px-8 py-6">
+        <div className="grid grid-cols-3">
+          <div className="">
+            <BackButton />
+          </div>
           <h1 className="text-center text-[28px] leading-none sm:text-[28px] md:text-[34px] lg:text-[40px]">
             진료 이력
           </h1>
           <button
             type="button"
             onClick={() => router.push('/health/medical-records/add-image')}
-            className="-translate-y-1/2 absolute top-1/2 right-0 cursor-pointer px-4 py-3 font-medium text-2xl text-[#00A58C]"
+            className="justify-self-end font-medium text-2xl text-[#00A58C]"
           >
             추가
           </button>

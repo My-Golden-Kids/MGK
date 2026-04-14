@@ -121,7 +121,7 @@ export default function Calendar({
   for (let i = 1; i <= remaining; i++) cells.push({ day: i, type: 'next' });
 
   return (
-    <div className="w-full select-none rounded-2xl bg-white p-5">
+    <div className="w-full select-none rounded-2xl bg-white mt-6">
       {/* 헤더 */}
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-1">

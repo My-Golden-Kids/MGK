@@ -609,7 +609,7 @@ export default function OnboardingStepPage({
         >
           <div className="pointer-events-none relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
             {BACK_BUTTON_STEP_IDS.has(step.id) ? (
-              <div className="pointer-events-auto absolute top-4 left-4">
+              <div className="pointer-events-auto absolute top-0 left-0 px-8 py-6">
                 <BackButton onClick={handleBackClick} useHistory={false} />
               </div>
             ) : null}

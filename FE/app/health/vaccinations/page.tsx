@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import Modal from '@/components/common/Modal';
 import { TypeSelect } from '@/components/common/TypeSelect';
@@ -17,6 +17,7 @@ import {
   type VaccinationPetSummaryResponse,
   type VisitType,
 } from '@/features/health/types/vaccination';
+import { useEffect, useState } from 'react';
 
 const VISIT_TYPE_OPTIONS = [
   { label: '접종', value: 'VACCINATION' as VisitType },
@@ -125,7 +126,10 @@ export default function VaccinationPage() {
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden">
-      <div className="scrollbar-hide flex-1 overflow-y-auto p-4.25">
+      <div className="scrollbar-hide flex-1 overflow-y-auto px-8 py-6">
+        <div className="mb-3">
+          <BackButton />
+        </div>
         <Calendar
           schedules={schedules}
           scheduleTypes={[

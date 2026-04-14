@@ -84,7 +84,7 @@ export default function OcrImageUploadPage({
 
   return (
     <div className="flex min-h-dvh flex-col bg-white text-[#27312D]">
-      <main className="flex flex-1 flex-col p-8">
+      <main className="flex flex-1 flex-col px-8 py-6">
         <input
           ref={fileInputRef}
           type="file"
@@ -98,7 +98,7 @@ export default function OcrImageUploadPage({
           <h1 className="text-center text-[28px] leading-none sm:text-[28px] md:text-[34px] lg:text-[40px]">
             {title}
           </h1>
-          <div className="-translate-y-1/2 absolute top-1/2 left-[-12]">
+          <div className="-translate-y-1/2 absolute top-1/2 left-0">
             <BackButton />
           </div>
         </div>

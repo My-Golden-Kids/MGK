@@ -8,6 +8,7 @@ import {
 import { type LucideIcon, Pause, Play, Square } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import MoneyBadge from '@/components/health/walk/MoneyBadge';
 import WalkSummaryPanel, {
@@ -537,6 +538,9 @@ export default function WalkPage() {
             sizes="100vw"
             className="h-auto w-full object-cover"
           />
+          <div className="absolute top-6 left-6 z-20">
+            <BackButton />
+          </div>
           <div className="absolute top-6 right-6 z-20">
             <MoneyBadge amount={accountRewardAmount} />
           </div>

@@ -185,8 +185,8 @@ export default function PetDetailPage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#ffffff]">
-      <main className="flex flex-1 flex-col p-5 sm:px-6 sm:pt-4 md:px-8 md:pt-5 lg:px-10 lg:pt-6">
-        <div className="pb-4 sm:pb-5 md:pb-6">
+      <main className="flex flex-1 flex-col px-8 py-6">
+        <div className="">
           <BackButton />
         </div>
 

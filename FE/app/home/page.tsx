@@ -330,7 +330,7 @@ export default function HomePage() {
           ) : null}
         </section>
 
-        <section className="mb-4 flex justify-center">
+        <section className="mb-6 flex justify-center">
           <div className="flex h-[50px] w-full max-w-[260px] overflow-hidden rounded-full border-2 border-[#25C3A8] bg-white">
             <button
               type="button"

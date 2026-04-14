@@ -1,7 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import Modal from '@/components/common/Modal';
 import {
@@ -13,6 +11,8 @@ import type {
   MonthlyExpenseItem,
 } from '@/features/finance/types/financeReport';
 import { formatMoney, formatPercent } from '@/lib/utils/formatNumber';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
 function createEmptyMonthlyData(): MonthlyExpenseItem[] {
   const now = new Date();
@@ -62,11 +62,11 @@ export default function FinanceReportPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto">
-        <div className="relative mx-auto w-full overflow-hidden px-5 py-5 md:px-6 lg:px-7">
-          <section className="relative flex items-center justify-center">
+        <div className="relative mx-auto w-full overflow-hidden px-8 py-6">
+          <section className="relative flex justify-center">
             <Link
               href="/finance"
-              className="absolute left-2 text-[20px] md:text-[24px] lg:text-[28px]"
+              className="absolute left-0 text-[20px] md:text-[24px] lg:text-[28px]"
             >
               뒤로
             </Link>
