@@ -1,8 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import HomePromptBubble from '@/components/home/HomePromptBubble';
 import HomeScheduleBubble from '@/components/home/HomeScheduleBubble';
@@ -20,6 +17,10 @@ import {
   getStoredMedicalPetId,
   storeSelectedPetId,
 } from '@/lib/medical-record';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 type HomeSpendingSummaryResponse = {
   monthlyAmount: number | string | null;
@@ -254,11 +255,24 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#FFFFFF]">
-      <main className="scrollbar-hide relative min-h-0 flex-1 overflow-y-auto p-8">
-        <header>
+      <main className="scrollbar-hide relative min-h-0 flex-1 overflow-y-auto px-8 py-6">
+        <header className="flex h-10 items-center justify-between">
+          <Link
+            href="/home/coupon"
+            className="z-10 flex h-10 w-10 items-center justify-center rounded-full transition-transform hover:scale-105"
+            aria-label="쿠폰 페이지로 이동"
+          >
+            <Image
+              src="/images/home/coupon.png"
+              alt="쿠폰"
+              width={40}
+              height={40}
+              priority
+            />
+          </Link>
           <Link
             href="/settings"
-            className="absolute top-0 right-0 z-10 cursor-pointer p-8 text-[24px] text-black leading-none transition-all hover:text-gray-500"
+            className="z-10 inline-flex h-10 cursor-pointer items-center text-[24px] text-black leading-none transition-all hover:text-gray-500"
           >
             설정
           </Link>
@@ -287,7 +301,7 @@ export default function HomePage() {
           )}
         </section>
 
-        <section className="mb-6">
+        <section className="mb-4">
           <SelectedPetProfile
             pets={pets}
             selectedPetId={selectedPetId}
@@ -316,7 +330,7 @@ export default function HomePage() {
           ) : null}
         </section>
 
-        <section className="mb-6 flex justify-center">
+        <section className="mb-4 flex justify-center">
           <div className="flex h-[50px] w-full max-w-[260px] overflow-hidden rounded-full border-2 border-[#25C3A8] bg-white">
             <button
               type="button"
@@ -337,7 +351,7 @@ export default function HomePage() {
 
         {isSpendingLoading ? (
           <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
-            <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
+            <div className="flex min-h-[170px] flex-col items-center justify-center text-center">
               <p className="font-extrabold text-[20px] text-[rgb(13,168,146)] leading-tight">
                 소비 데이터를 불러오는 중이에요.
               </p>
@@ -375,7 +389,7 @@ export default function HomePage() {
           </section>
         ) : (
           <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
-            <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
+            <div className="flex min-h-[170px] flex-col items-center justify-center text-center">
               <p className="mb-5 font-extrabold text-[#0DA892] text-[20px] leading-tight">
                 {spendingErrorMessage ?? '아직 등록된 소비 데이터가 없어요!'}
               </p>

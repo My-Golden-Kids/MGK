@@ -67,7 +67,7 @@ export default function Modal({
 
   return (
     <div
-      className="absolute inset-0 z-1000 flex animate-overlay-in items-center justify-center bg-black/40 p-4"
+      className="-translate-x-1/2 fixed inset-y-0 left-1/2 z-1000 flex h-dvh w-full max-w-[420px] animate-overlay-in items-center justify-center bg-black/40 p-4 md:max-w-[500px] lg:max-w-[640px]"
       onClick={(e) => {
         if (closeOnOverlay && e.target === e.currentTarget) onClose?.();
       }}

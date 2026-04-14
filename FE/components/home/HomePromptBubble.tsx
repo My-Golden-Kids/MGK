@@ -12,13 +12,13 @@ export default function HomePromptBubble({
   showAnswerButtons = false,
   onYesClick,
   onNoClick,
-  yesLabel = "O",
-  noLabel = "X",
+  yesLabel = 'O',
+  noLabel = 'X',
 }: HomePromptBubbleProps) {
   return (
     <section className="w-full">
       <div
-        className={`mx-20 overflow-hidden bg-[#0000004D] ${showAnswerButtons ? "border border-[#B2B2B2]" : ""} rounded-[24px] md:rounded-[28px] lg:rounded-[32px]`}
+        className={`mx-8 overflow-hidden bg-[#0000004D] ${showAnswerButtons ? 'border border-[#B2B2B2]' : ''} rounded-[24px] md:mx-10 md:rounded-[28px] lg:mx-12 lg:rounded-[32px]`}
       >
         {/* 텍스트 영역 */}
         <div className="px-6 py-5 md:px-7 md:py-6 lg:px-8 lg:py-7">
