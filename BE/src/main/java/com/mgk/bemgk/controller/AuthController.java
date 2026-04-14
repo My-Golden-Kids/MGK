@@ -1,6 +1,5 @@
 package com.mgk.bemgk.controller;
 
-import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +21,7 @@ import com.mgk.bemgk.dto.auth.SignupRequest;
 import com.mgk.bemgk.dto.auth.SignupResponse;
 import com.mgk.bemgk.service.AuthService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController

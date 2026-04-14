@@ -7,5 +7,5 @@ import lombok.Getter;
 @Builder
 public class OtpResponse {
 
-    private String token;
+	private String token;
 }
