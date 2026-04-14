@@ -34,8 +34,8 @@ export async function POST(request: Request) {
 
     const link =
       type === 'reset'
-        ? `${process.env.NEXTAUTH_URL}/login/changepasswd?token=${token}`
-        : `${process.env.NEXTAUTH_URL}/login/verify?token=${token}`;
+        ? `${process.env.AUTH_URL}/login/changepasswd?token=${token}`
+        : `${process.env.AUTH_URL}/login/verify?token=${token}`;
 
     const isReset = type === 'reset';
 
