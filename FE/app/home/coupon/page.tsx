@@ -66,7 +66,7 @@ export default function CouponPage() {
         <header className="px-6 pt-5 md:px-7 lg:px-8">
           <div className="relative flex items-center justify-center">
             <Link
-              href="/product"
+              href="/home"
               className="absolute left-0 font-medium text-[24px] md:text-[28px] lg:text-[32px]"
             >
               뒤로
