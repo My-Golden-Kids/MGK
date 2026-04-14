@@ -1,6 +1,6 @@
 'use server';
 
-import { auth, signOut } from '@/app/api/auth/[...nextauth]/route';
+import { auth, signOut } from '@/auth';
 import { changePasswordWithCurrentSchema } from '@/lib/validator';
 import { getToken } from 'next-auth/jwt';
 import { headers } from 'next/headers';
