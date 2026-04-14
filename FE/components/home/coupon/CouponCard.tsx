@@ -47,11 +47,11 @@ export default function CouponCard({
       </div>
 
       <div
-        className={`flex w-fit shrink-0 items-center justify-center px-11 text-center md:px-13 lg:px-15 ${
+        className={`flex w-fit shrink-0 items-center justify-center px-8 text-center md:px-10 lg:px-12 ${
           isUsed ? 'bg-[#A9A9A9]' : 'bg-[var(--color-main-green)]'
         }`}
       >
-        <span className="whitespace-pre-line text-[30px] text-white leading-[1.5] md:text-[34px] lg:text-[38px]">
+        <span className="whitespace-pre-line text-[30px] text-white leading-[1.5] tracking-widest md:text-[34px] lg:text-[38px]">
           {badgeText}
         </span>
       </div>
