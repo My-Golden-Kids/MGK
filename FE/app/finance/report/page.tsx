@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import Modal from '@/components/common/Modal';
 import {
@@ -11,8 +13,6 @@ import type {
   MonthlyExpenseItem,
 } from '@/features/finance/types/financeReport';
 import { formatMoney, formatPercent } from '@/lib/utils/formatNumber';
-import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
 
 function createEmptyMonthlyData(): MonthlyExpenseItem[] {
   const now = new Date();
@@ -51,6 +51,7 @@ export default function FinanceReportPage() {
   const totalPetCost = report?.totalPetCost ?? 0;
   const retirementPercent = report?.retirementPercent ?? 0;
   const averageExpense = report?.averageExpense ?? 0;
+  const recommendedProduct = report?.recommendedProduct;
 
   const safeMonthlyData =
     monthlyData.length > 0 ? monthlyData : createEmptyMonthlyData();
@@ -146,25 +147,29 @@ export default function FinanceReportPage() {
           </section>
 
           <section className="mt-3 grid grid-cols-2 gap-3 md:mt-3.5 md:gap-3.5 lg:mt-4 lg:gap-4">
-            <article className="flex h-[270px] flex-col rounded-[12px] border border-[#C4C4C4] bg-white p-3 md:h-[310px] md:rounded-[16px] md:p-4 lg:h-[350px] lg:rounded-[20px] lg:p-5">
-              <h3 className="font-bold text-[20px] leading-[1.25] md:text-[24px] lg:text-[28px]">
-                의료비 지출{' '}
-                <span className="text-[var(--color-hana-pink)]">25%</span>
-                <br />
-                미리 대비해요
-              </h3>
+            {recommendedProduct && (
+              <article className="mt-3 rounded-[12px] border border-[#C4C4C4] bg-white p-3">
+                <h2 className="font-bold text-[20px]">
+                  지금 가장 잘 맞는 상품은
+                  <br />
+                  <span className="text-[var(--color-hana-pink)]">
+                    {recommendedProduct.productName}
+                  </span>
+                  이에요
+                </h2>
 
-              <div className="mt-3 flex flex-1 items-center justify-center md:mt-4 lg:mt-5">
-                <div className="relative h-[110px] w-[110px] rounded-full bg-[#EDEDED] bg-[conic-gradient(#4BC0BE_0deg_90deg,#EDEDED_90deg_360deg)] md:h-[130px] md:w-[130px] lg:h-[150px] lg:w-[150px]" />
-              </div>
+                <p className="mt-3 whitespace-pre-line text-[#555] text-[14px]">
+                  {recommendedProduct.personalizedReport}
+                </p>
 
-              <Link
-                href="/product/1"
-                className="mt-5 block w-full text-center text-[18px] md:mt-6 md:text-[22px] lg:mt-7 lg:text-[26px]"
-              >
-                펫보험 알아보기 &gt;
-              </Link>
-            </article>
+                <Link
+                  href={`/product/${recommendedProduct.productId}`}
+                  className="mt-5 block text-[18px]"
+                >
+                  상품 보러가기 &gt;
+                </Link>
+              </article>
+            )}
 
             <article className="flex h-[270px] flex-col rounded-[12px] border border-[#C4C4C4] bg-white p-3 md:h-[310px] md:rounded-[16px] md:p-4 lg:h-[350px] lg:rounded-[20px] lg:p-5">
               <h3 className="font-bold text-[20px] leading-[1.25] md:text-[24px] lg:text-[28px]">

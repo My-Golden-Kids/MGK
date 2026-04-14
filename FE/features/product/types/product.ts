@@ -1,8 +1,33 @@
-export type ProductType = 'INSURANCE' | 'SAVINGS' | 'CARD';
-
 export type BenefitPeriod = 'MONTH' | 'YEAR';
 
 export type SourceType = 'ACCOUNT_BOOK' | 'ACCOUNT';
+
+export type ProductType =
+  | 'INSURANCE'
+  | 'SAVINGS'
+  | 'CARD'
+  | 'SUBSCRIPTION'
+  | 'PET_FOREST';
+
+export type PersonalizedProductReport = {
+  productId: number;
+  productName: string;
+  productType: ProductType;
+  recommendationType: ProductType;
+  description: string;
+  url: string;
+  isActive: boolean;
+  eligible: boolean;
+  recommendedForFinanceReport: boolean;
+  recommendationReason: string;
+  personalizedReport: string;
+  averageMonthlyExpense: number;
+  hospitalExpense: number;
+  foodExpense: number;
+  hospitalVisitCount: number;
+  estimatedMonthlyBenefit: number;
+  estimatedAnnualBenefit: number;
+};
 
 export type Product = {
   id: number;

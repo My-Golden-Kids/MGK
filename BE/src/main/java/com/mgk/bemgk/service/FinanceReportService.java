@@ -2,6 +2,7 @@ package com.mgk.bemgk.service;
 
 import com.mgk.bemgk.dto.finance.FinanceMonthlyExpenseChartResponse;
 import com.mgk.bemgk.dto.finance.FinanceReportResponse;
+import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
 import com.mgk.bemgk.entity.Pet;
 import com.mgk.bemgk.repository.AccountBookRepository;
 import com.mgk.bemgk.repository.AccountRepository;
@@ -32,6 +33,7 @@ public class FinanceReportService {
 	private final PetRepository petRepository;
 	private final AccountBookRepository accountBookRepository;
 	private final AccountRepository accountRepository;
+	private final ProductService productService;
 
 	public FinanceReportResponse getRetirementReport(Long userId) {
 		List<Pet> pets = petRepository.findByUser_Id(userId);
@@ -40,6 +42,7 @@ public class FinanceReportService {
 		BigDecimal monthlyAverageExpense = calculateMonthlyAverageExpense(userId, pets);
 		BigDecimal totalAsset = defaultAmount(accountRepository.sumMoneyAmountByUserId(userId));
 		BigDecimal futurePetCost = calculateFuturePetCost(monthlyAverageExpense, alivePets);
+		ProductPersonalizedReportResponse recommendedProduct = productService.getFeaturedPersonalizedProduct(userId);
 
 		BigDecimal retirementImpactPercent = BigDecimal.ZERO;
 		if (totalAsset.compareTo(BigDecimal.ZERO) > 0) {
@@ -54,6 +57,7 @@ public class FinanceReportService {
 			.retirementPercent(retirementImpactPercent)
 			.averageExpense(monthlyAverageExpense.setScale(0, RoundingMode.HALF_UP))
 			.totalAsset(totalAsset.setScale(0, RoundingMode.HALF_UP))
+			.recommendedProduct(recommendedProduct)
 			.build();
 	}
 
@@ -238,7 +242,7 @@ public class FinanceReportService {
 	 * 반려묘
 	 * - 20년
 	 */
-	private BigDecimal getLifeExpectancyYears(Pet pet) {
+	public BigDecimal getLifeExpectancyYears(Pet pet) {
 		String species = safeLower(pet.getSpecies());
 		String size = pet.getSize() == null ? "" : pet.getSize().name().toLowerCase();
 

@@ -1,5 +1,6 @@
 package com.mgk.bemgk.dto.finance;
 
+import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
 import java.math.BigDecimal;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,4 +16,6 @@ public class FinanceReportResponse {
 	private BigDecimal averageExpense;
 
 	private BigDecimal totalAsset;
+
+	private ProductPersonalizedReportResponse recommendedProduct;
 }

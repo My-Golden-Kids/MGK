@@ -19,13 +19,13 @@ export default function ProductCategorySection({
         const isSelected = pathname === `/product/${product.id}`;
 
         return (
-          <div key={product.id} className="flex w-1/4 justify-center">
+          <div key={product.id} className="flex w-2/7 justify-center">
             <Link
               href={`/product/${product.id}`}
-              className={`w-fit whitespace-nowrap rounded-[14px] border p-2 text-[16px] leading-none transition md:p-2.5 md:text-[18px] lg:p-3 lg:text-[20px] ${
+              className={`w-fit whitespace-nowrap rounded-[14px] border p-2 text-[18px] leading-none transition md:p-2.5 md:text-[22px] lg:p-3 lg:text-[26px] ${
                 isSelected
-                  ? 'border-[var(--color-mint-green)] bg-white font-bold'
-                  : 'border-[#CCCCCC] bg-white font-normal'
+                  ? 'border-2 border-[var(--color-mint-green)] bg-white font-bold'
+                  : 'border border-[#CCCCCC] bg-white font-normal'
               }`}
             >
               {product.name}

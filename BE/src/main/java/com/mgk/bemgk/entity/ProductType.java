@@ -4,5 +4,7 @@ package com.mgk.bemgk.entity;
 public enum ProductType {
     INSURANCE,
     SAVINGS,
-    CARD
+    CARD,
+    SUBSCRIPTION,
+    PET_FOREST
 }
