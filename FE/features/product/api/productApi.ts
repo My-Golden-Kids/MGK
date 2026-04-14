@@ -1,17 +1,8 @@
+import { serverFetch } from '@/lib/auth.action';
 import type { Product } from '../types/product';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SPRING_API_URL;
-
-if (!BASE_URL) {
-  throw new Error('NEXT_PUBLIC_SPRING_API_URL 환경변수가 설정되지 않았습니다.');
-}
-
 export async function getProducts(): Promise<Product[]> {
-  const url = `${BASE_URL}/api/products`;
-
-  const res = await fetch(url, {
-    cache: 'no-store',
-  });
+  const res = await serverFetch('/api/products', { cache: 'no-store' });
 
   if (!res.ok) {
     const errorText = await res.text();
@@ -24,9 +15,7 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export async function getProductDetail(productId: string): Promise<Product> {
-  const url = `${BASE_URL}/api/products/${productId}`;
-
-  const res = await fetch(url, {
+  const res = await serverFetch(`/api/products/${productId}`, {
     cache: 'no-store',
   });
 
