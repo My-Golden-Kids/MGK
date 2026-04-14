@@ -6,7 +6,7 @@ import { Suspense, useEffect, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 import {
   EMPTY_MEDICAL_RECORD_FORM,
   getStoredMedicalPetId,

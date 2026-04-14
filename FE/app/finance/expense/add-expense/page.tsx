@@ -9,7 +9,7 @@ import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
 import Modal from '@/components/common/Modal';
 import { TypeSelect } from '@/components/common/TypeSelect';
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 import {
   EXPENSE_RECEIPT_IMAGE_STORAGE_KEY,
   EXPENSE_RECEIPT_OCR_STORAGE_KEY,

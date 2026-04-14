@@ -1,11 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { logout } from '@/lib/auth.action';
 import { useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
 import { handleDeleteAccount } from '@/features/settings/api/settingApi';
+import { logout } from '@/lib/server-fetch';
 
 export default function DeleteAccountPage() {
   const router = useRouter();

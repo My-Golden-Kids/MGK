@@ -3,7 +3,7 @@ import type {
   ChangePasswordResult,
   DeleteAccountResult,
 } from '@/features/settings/types/settings';
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 import { changePasswordWithCurrentSchema } from '@/lib/validator';
 
 export async function handleChangePassword(
@@ -63,4 +63,3 @@ export async function handleDeleteAccount(
 
   return { ok: true };
 }
-

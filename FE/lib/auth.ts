@@ -1,163 +1,198 @@
-import { getSession, signOut } from 'next-auth/react';
-import { changePasswordSchema } from '@/lib/validator';
+import NextAuth, { type User } from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
 
-const BASE_URL =
-  process.env.SPRING_API_URL ?? process.env.NEXT_PUBLIC_SPRING_API_URL ?? '';
-
-// ─── 클라이언트 컴포넌트용 fetch ──────────────────────────────────────────────
-
-let pendingSession: Promise<Awaited<ReturnType<typeof getSession>>> | null =
-  null;
-
-function getSessionOnce() {
-  if (!pendingSession) {
-    pendingSession = getSession().finally(() => {
-      pendingSession = null;
-    });
+function getTokenExpiry(accessToken: string): number {
+  try {
+    const payload = JSON.parse(atob(accessToken.split('.')[1]));
+    return payload.exp * 1000 - 60_000;
+  } catch {
+    return Date.now() + 3_600_000 - 60_000;
   }
-  return pendingSession;
 }
 
-export async function clientFetch(path: string, init?: RequestInit) {
-  const session = await getSessionOnce();
+async function readErrorBody(res: Response) {
+  const contentType = res.headers.get('content-type') ?? '';
 
-  if (session?.error === 'RefreshTokenError') {
-    await signOut({ callbackUrl: '/login' });
-    return new Response(null, { status: 401 });
-  }
-
-  const isFormData = init?.body instanceof FormData;
-
-  return fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      // FormData일 때는 Content-Type 생략 → 브라우저가 multipart boundary 자동 설정
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-      ...init?.headers,
-      Authorization: `Bearer ${session?.accessToken ?? ''}`,
-    },
-  });
-}
-
-// ─── 회원가입 ────────────────────────────────────────────────────────────────
-
-interface SignupParams {
-  email: string;
-  password: string;
-  accountNum: string;
-}
-
-interface SignupResult {
-  ok: boolean;
-  errorMessage?: string;
-}
-
-export async function signup({
-  email,
-  password,
-  accountNum,
-}: SignupParams): Promise<SignupResult> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SPRING_API_URL}/api/auth/signup`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, accountNum }),
-    },
-  );
-
-  if (!res.ok) {
-    return {
-      ok: false,
-      errorMessage: '회원가입에 실패했어요. 다시 시도해주세요.',
-    };
-  }
-
-  return { ok: true };
-}
-
-// ─── OTP 전송 ────────────────────────────────────────────────────────────────
-
-interface SendOtpParams {
-  email: string;
-  type: 'login' | 'reset';
-}
-
-interface SendOtpResult {
-  ok: boolean;
-  errorMessage?: string;
-}
-
-export async function sendOtp({
-  email,
-  type,
-}: SendOtpParams): Promise<SendOtpResult> {
-  const res = await fetch('/api/auth/send-otp', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, type }),
-  });
-
-  if (!res.ok) {
-    return {
-      ok: false,
-      errorMessage: '이메일 발송에 실패했어요. 다시 시도해주세요.',
-    };
-  }
-
-  return { ok: true };
-}
-
-// ─── 비밀번호 변경 (매직링크 방식) ────────────────────────────────────────────
-
-interface ResetPasswordByTokenParams {
-  token: string;
-  newPassword: string;
-  passwordConfirm: string;
-}
-
-interface ResetPasswordByTokenResult {
-  ok: boolean;
-  fieldErrors?: Partial<Record<'newPassword' | 'passwordConfirm', string>>;
-  errorMessage?: string;
-}
-
-export async function resetPasswordByToken({
-  token,
-  newPassword,
-  passwordConfirm,
-}: ResetPasswordByTokenParams): Promise<ResetPasswordByTokenResult> {
-  const parsed = changePasswordSchema.safeParse({
-    newPassword,
-    passwordConfirm,
-  });
-
-  if (!parsed.success) {
-    const fieldErrors: ResetPasswordByTokenResult['fieldErrors'] = {};
-    for (const issue of parsed.error.issues) {
-      const field = issue.path[0] as keyof typeof fieldErrors;
-      if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+  try {
+    if (contentType.includes('application/json')) {
+      return await res.json();
     }
-    return { ok: false, fieldErrors };
+
+    const text = await res.text();
+    return text || null;
+  } catch {
+    return null;
   }
-
-  if (!token) {
-    return { ok: false, errorMessage: '유효하지 않은 링크입니다.' };
-  }
-
-  const res = await fetch('/api/auth/reset-password', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, newPassword }),
-  });
-
-  if (!res.ok) {
-    return {
-      ok: false,
-      errorMessage: '링크가 만료되었거나 유효하지 않습니다.',
-    };
-  }
-
-  return { ok: true };
 }
 
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  providers: [
+    // 이메일/비밀번호 로그인
+    Credentials({
+      id: 'email-password',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+
+        try {
+          // Spring AuthController: POST /api/auth/login
+          // Request:  { email: string, password: string }
+          // Response: { accessToken, refreshToken, userId, email, name }
+          const res = await fetch(
+            `${process.env.SPRING_API_URL}/api/auth/login`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: credentials.email,
+                password: credentials.password,
+              }),
+            },
+          );
+
+          if (!res.ok) {
+            const errorBody = await readErrorBody(res);
+            console.error('[auth][email-password] authorize failed', {
+              status: res.status,
+              statusText: res.statusText,
+              email: credentials.email,
+              body: errorBody,
+            });
+
+            return null;
+          }
+
+          const data = await res.json();
+
+          return {
+            id: String(data.userId),
+            email: data.email,
+            name: data.name,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+          };
+        } catch (error) {
+          console.error('[auth][email-password] authorize exception', {
+            email: credentials.email,
+            error,
+          });
+          return null;
+        }
+      },
+    }),
+
+    // 매직링크 토큰 검증
+    Credentials({
+      id: 'magic-link',
+      credentials: {
+        token: { label: 'Token', type: 'text' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.token) return null;
+
+        try {
+          // Spring AuthController: POST /api/auth/verify
+          // BE: @RequestBody String token → raw text/plain 으로 전송해야 함
+          // Request:  raw string (UUID token)
+          // Response: { accessToken, refreshToken, userId, email, name }
+          const res = await fetch(
+            `${process.env.SPRING_API_URL}/api/auth/verify`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              body: credentials.token as string,
+            },
+          );
+
+          if (!res.ok) {
+            const errorBody = await readErrorBody(res);
+            console.error('[auth][magic-link] authorize failed', {
+              status: res.status,
+              statusText: res.statusText,
+              body: errorBody,
+            });
+            return null;
+          }
+
+          const data = await res.json();
+
+          return {
+            id: String(data.userId),
+            email: data.email,
+            name: data.name,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+          };
+        } catch (error) {
+          console.error('[auth][magic-link] authorize exception', { error });
+          return null;
+        }
+      },
+    }),
+  ],
+  session: { strategy: 'jwt' },
+  callbacks: {
+    async jwt({ token, user }) {
+      // 로그인 직후에만 user가 존재 → Spring 토큰을 JWT에 저장
+      if (user) {
+        const u = user as User;
+        token.accessToken = u.accessToken;
+        token.refreshToken = u.refreshToken;
+        token.userId = String(u.id);
+        token.name = u.name ?? null;
+        // accessToken 만료 시각 저장 (security.yml access-expiration: 3600000ms = 1h)
+        // 60초 여유를 두고 만료 처리
+        token.accessTokenExpiry = getTokenExpiry(token.accessToken as string);
+        return token;
+      }
+
+      // accessToken 아직 유효하면 refresh 건너뜀
+      if (Date.now() < ((token.accessTokenExpiry as number) ?? 0)) {
+        return token;
+      }
+
+      // Spring AuthController: POST /api/auth/refresh
+      // Request:  { refreshToken: string }
+      // Response: { accessToken: string }
+      try {
+        const res = await fetch(
+          `${process.env.SPRING_API_URL}/api/auth/refresh`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken: token.refreshToken }),
+          },
+        );
+
+        if (!res.ok) throw new Error('refresh failed');
+
+        const { accessToken, refreshToken } = await res.json();
+        token.accessToken = accessToken;
+        token.refreshToken = refreshToken;
+        token.accessTokenExpiry = getTokenExpiry(accessToken as string);
+      } catch {
+        // refresh 실패 → 세션 무효화 (다음 auth() 호출 시 null 반환)
+        return { ...token, error: 'RefreshTokenError' as const };
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      session.accessToken = token.accessToken as string;
+      session.user = {
+        ...session.user,
+        id: token.userId,
+        name: (token.name as string) ?? null,
+      };
+      if (token.error === 'RefreshTokenError') {
+        // 클라이언트에서 useSession()으로 에러 감지 후 로그아웃 처리 가능
+        session.error = 'RefreshTokenError';
+      }
+      return session;
+    },
+  },
+  secret: process.env.AUTH_SECRET,
+});

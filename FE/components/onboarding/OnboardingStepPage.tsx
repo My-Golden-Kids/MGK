@@ -21,7 +21,7 @@ import {
   SKIP_PHOTO_CHAT_GUIDE_MESSAGE,
 } from '@/components/onboarding/onboardingSteps';
 import { uploadPetImage } from '@/features/settings/api/petSettingsApi';
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 import { cancelTtsPlayback, playTts } from '@/lib/tts';
 
 type OnboardingStepPageProps = {

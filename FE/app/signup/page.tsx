@@ -1,15 +1,15 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+import { useEffect, useRef, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import Modal from '@/components/common/Modal';
 import CheckboxButton from '@/components/signup/CheckboxButton';
 import InputField from '@/components/signup/InputField';
-import { signup } from '@/lib/auth';
+import { signup } from '@/lib/client-fetch';
 import { cn } from '@/lib/utils';
 import { type SignupValues, validateSignupField } from '@/lib/validator';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
 import { STEPS, TERMS } from './constants';
 
 export default function Page() {
@@ -179,9 +179,7 @@ export default function Page() {
       >
         {activeTerm && (
           <div>
-            <h2 className="mb-4 text-center font-bold text-[34px]">
-              이용약관
-            </h2>
+            <h2 className="mb-4 text-center font-bold text-[34px]">이용약관</h2>
             <div
               className={cn(
                 'overflow-y-scroll rounded-[5px] bg-gray-100 p-4',

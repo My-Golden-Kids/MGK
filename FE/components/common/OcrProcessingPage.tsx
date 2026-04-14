@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import PetProfileImage from '@/components/home/pet/PetProfileImage';
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 import { dataUrlToFile, type OcrMedicalRecord } from '@/lib/medical-record';
 
 type OcrProcessingPageProps = {

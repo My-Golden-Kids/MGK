@@ -1,5 +1,14 @@
 'use client';
 
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Search,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import Modal from '@/components/common/Modal';
@@ -11,16 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { clientFetch } from '@/lib/auth';
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Search,
-} from 'lucide-react';
-import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { clientFetch } from '@/lib/client-fetch';
 
 type ExpenseGroup = {
   id: string;

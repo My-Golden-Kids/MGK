@@ -17,7 +17,7 @@ import {
   parseCalendarIntent,
 } from '@/features/home/talk/calendarApi';
 import { fetchPet, fetchPets } from '@/features/settings/api/petSettingsApi';
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 import { getStoredMedicalPetId } from '@/lib/medical-record';
 import { cancelTtsPlayback, playTts } from '@/lib/tts';
 

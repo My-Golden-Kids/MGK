@@ -1,4 +1,4 @@
-import { serverFetch } from '@/lib/auth.action';
+import { serverFetch } from '@/lib/server-fetch';
 import type { PersonalizedProductReport, Product } from '../types/product';
 
 export async function getProducts(): Promise<Product[]> {

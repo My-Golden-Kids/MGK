@@ -1,4 +1,4 @@
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 
 export interface PetCandidate {
   id: number;

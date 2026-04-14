@@ -1,4 +1,4 @@
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 import type {
   CreateScheduleRequest,
   ScheduleCalendarEntry,

@@ -10,11 +10,11 @@ import PetSettingCard from '@/components/settings/PetSettingCard';
 import { deletePet, fetchPets } from '@/features/settings/api/petSettingsApi';
 import type { PetSummary } from '@/features/settings/types/petSettings';
 import { getStoredAlarmEnabled, storeAlarmEnabled } from '@/lib/alarm-setting';
-import { logout } from '@/lib/auth.action';
 import {
   SELECTED_PET_ID_STORAGE_KEY,
   storeSelectedPetId,
 } from '@/lib/medical-record';
+import { logout } from '@/lib/server-fetch';
 
 type MenuRowProps = {
   label: string;

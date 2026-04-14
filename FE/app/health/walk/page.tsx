@@ -15,7 +15,7 @@ import WalkSummaryPanel, {
   type WalkHistoryRecord,
 } from '@/components/health/walk/WalkSummaryPanel';
 import PetProfileImage from '@/components/home/pet/PetProfileImage';
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 import { getStoredMedicalPetId } from '@/lib/medical-record';
 
 const STEP_REWARD_UNIT = 3000;

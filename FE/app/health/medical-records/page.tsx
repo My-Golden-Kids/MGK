@@ -1,16 +1,16 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { TypeSelect } from '@/components/common/TypeSelect';
 import MedicalRecordItem from '@/components/health/medical/MedicalRecordItem';
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 import {
   groupMedicalRecordsByDate,
   type MedicalRecordItemData,
 } from '@/lib/medical-record';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 const tabs = ['진료', '접종'] as const;
 type MedicalRecordTab = (typeof tabs)[number];

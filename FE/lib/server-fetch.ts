@@ -1,9 +1,9 @@
 'use server';
 
-import { auth, signOut } from '@/auth';
-import { changePasswordWithCurrentSchema } from '@/lib/validator';
-import { getToken } from 'next-auth/jwt';
 import { headers } from 'next/headers';
+import { getToken } from 'next-auth/jwt';
+import { auth, signOut } from '@/lib/auth';
+import { changePasswordWithCurrentSchema } from '@/lib/validator';
 
 const BASE_URL =
   process.env.SPRING_API_URL ?? process.env.NEXT_PUBLIC_SPRING_API_URL ?? '';

@@ -1,4 +1,4 @@
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 
 // ──────────────────────────────────────────
 // Constants
@@ -47,9 +47,7 @@ function hashAlarm(todayStr: string, alarm: AlarmResponse): string {
   const raw = JSON.stringify({
     date: todayStr,
     walkHour: alarm.mostFrequentWalkHour,
-    events: alarm.todayEvents
-      .map((e) => `${e.petId}:${e.eventType}`)
-      .sort(),
+    events: alarm.todayEvents.map((e) => `${e.petId}:${e.eventType}`).sort(),
   });
 
   // djb2

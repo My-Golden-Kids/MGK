@@ -16,7 +16,7 @@ import {
 } from '@/features/home/homeApi';
 import { fetchPets } from '@/features/settings/api/petSettingsApi';
 import { getStoredAlarmEnabled } from '@/lib/alarm-setting';
-import { clientFetch } from '@/lib/auth';
+import { clientFetch } from '@/lib/client-fetch';
 import {
   getStoredMedicalPetId,
   storeSelectedPetId,
@@ -397,7 +397,8 @@ export default function HomePage() {
               <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
                 <div className="flex min-h-[170px] flex-col items-center justify-center text-center">
                   <p className="mb-5 font-extrabold text-[#0DA892] text-[20px] leading-tight">
-                    {spendingErrorMessage ?? '아직 등록된 소비 데이터가 없어요!'}
+                    {spendingErrorMessage ??
+                      '아직 등록된 소비 데이터가 없어요!'}
                   </p>
 
                   <button
