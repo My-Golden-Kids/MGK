@@ -62,7 +62,7 @@ public class PetService {
             } catch (IllegalArgumentException ignored) {
             }
         }
-        pet.update(request.name(), request.age(), request.species(), petSize, request.imageUrl());
+        pet.update(request.name(), request.age(), request.species(), petSize, request.imageUrl(), request.isDeath());
         return PetResponse.from(pet);
     }
 
@@ -111,6 +111,8 @@ public class PetService {
                 .size(petSize)
                 .walkCount(null)
                 .walkTime(null)
+                .death(Boolean.TRUE.equals(request.isDeath()))
+                .deathDate(Boolean.TRUE.equals(request.isDeath()) ? LocalDateTime.now() : null)
                 .lastWalkAt(null)
                 .eatMeal(null)
                 .build();
@@ -122,6 +124,7 @@ public class PetService {
     public WalkResponse saveWalk(Long petId, SaveWalkRequest request) {
         Long userId = currentUserService.getCurrentUserId();
         Pet pet = findOwnedPet(petId, userId);
+        assertAlive(pet);
         LocalDateTime walkedAt = resolveWalkedAt(request);
         String source = resolveSource(request);
         PetWalkRecord walkRecord = getOrCreateWalkRecord(pet, walkedAt, source, request.getStatus());
@@ -167,6 +170,7 @@ public class PetService {
     public LiveWalkResponse getLiveWalk(Long petId) {
         Long userId = currentUserService.getCurrentUserId();
         Pet pet = findOwnedPet(petId, userId);
+        assertAlive(pet);
 
         LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
@@ -202,6 +206,12 @@ public class PetService {
     private Pet findOwnedPet(Long petId, Long userId) {
         return petRepository.findByIdAndUser_Id(petId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("반려동물을 찾을 수 없습니다."));
+    }
+
+    private void assertAlive(Pet pet) {
+        if (pet.isDead()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "사망한 반려동물은 이 기능을 사용할 수 없습니다.");
+        }
     }
 
     private LocalDateTime resolveWalkedAt(SaveWalkRequest request) {

@@ -1,5 +1,8 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import Modal from '@/components/common/Modal';
@@ -12,9 +15,6 @@ import {
   SELECTED_PET_ID_STORAGE_KEY,
   storeSelectedPetId,
 } from '@/lib/medical-record';
-import { useRouter } from 'next/navigation';
-import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
 
 type MenuRowProps = {
   label: string;
@@ -100,9 +100,7 @@ function AlarmToggle({
       </span>
       <span
         className={`absolute top-1 h-7 w-7 rounded-full bg-white shadow-sm transition-all sm:h-8 sm:w-8 md:top-1.5 md:h-9 md:w-9 lg:h-10 lg:w-10 ${
-          enabled
-            ? 'right-1 sm:right-1.5 md:right-1.5'
-            : 'left-1 sm:left-1.5'
+          enabled ? 'right-1 sm:right-1.5 md:right-1.5' : 'left-1 sm:left-1.5'
         }`}
       />
     </button>
@@ -293,7 +291,7 @@ export default function SettingsPage() {
           <BackButton />
         </div>
 
-        <section className="space-y-4 md:space-y-5 lg:space-y-6 px-5">
+        <section className="space-y-4 px-5 md:space-y-5 lg:space-y-6">
           <div className="space-y-2">
             {pets.map((pet) => (
               <PetSettingCard
@@ -305,6 +303,7 @@ export default function SettingsPage() {
                     ? (SPECIES_LABEL[pet.species] ?? pet.species)
                     : '-'
                 }
+                isDeath={pet.isDeath}
                 onEdit={() => handleEditPet(pet.id)}
                 onDelete={() => handleOpenDeletePetModal(pet)}
               />

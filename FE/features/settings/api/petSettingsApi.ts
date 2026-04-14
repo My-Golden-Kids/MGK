@@ -18,6 +18,8 @@ type PetApiResponse = {
   species?: string | null;
   imageUrl?: string | null;
   size?: string | null;
+  isDeath?: boolean | null;
+  death?: boolean | null;
 };
 
 type StaticUploadUrlResponse = {
@@ -68,6 +70,7 @@ function parsePetSummary(data: PetApiResponse): PetSummary {
     species: (data.species as PetType) ?? null,
     imageUrl: data.imageUrl ?? null,
     size: (data.size as PetSize) ?? null,
+    isDeath: data.isDeath ?? data.death ?? false,
   };
 }
 

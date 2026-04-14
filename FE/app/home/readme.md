@@ -1,837 +1,724 @@
-# MGK 프로젝트 상세 분석 보고서
-
-작성일: 2026-04-10  
-분석 범위: `README.md`, `FE`, `BE`의 1차 소스 코드와 설정 파일 전반  
-제외 범위: `node_modules`, `.next`, `build`, `bin`, `ios`, `capacitor-web`, `.gradle`, `secrets` 같은 생성물/의존성/비공개 바이너리 디렉터리
-
-## 1. 전체 요약
-
-이 저장소는 반려동물 생활 관리 앱 `MGK`의 프론트엔드와 백엔드를 함께 담고 있다.
-
-- 프론트엔드(`FE`): Next.js 16 App Router, React 19, NextAuth v5 beta, Tailwind CSS v4, Capacitor iOS 브리지
-- 백엔드(`BE`): Spring Boot 4, Spring Security, Spring Data JPA, MySQL, JWT, Google Vision OCR, Spring AI Gemini
-
-앱이 풀고자 하는 문제는 크게 4개다.
-
-1. 반려동물 온보딩과 로그인
-2. 의료 기록과 예방접종 일정 관리
-3. 산책 기록과 리워드 적립
-4. 지출 기록과 금융 상품 연결
-
-다만 현재 구현은 완성형 제품이라기보다 “실제 백엔드에 붙은 기능”과 “목업/데모 UI”가 섞여 있는 상태다.
-
-- 실제로 백엔드와 왕복하는 영역
-  - 회원가입/로그인/토큰 갱신/비밀번호 재설정
-  - 홈 재진입 온보딩의 반려동물 생성
-  - 설정 화면의 반려동물 목록 조회/상세 조회/생성/수정
-  - 의료 영수증 OCR
-  - 의료 기록 저장/조회
-  - 예방접종 캘린더/요약 조회 및 일정 추가
-  - 지출 내역 등록/조회/삭제
-  - 산책 실시간 동기화/기록 저장/리워드 합산
-  - 상품 목록/상세 조회
-  - 음성 대화 API
-- 아직 목업 성격이 강한 영역
-  - 금융 메인 대시보드와 리포트 화면
-  - 금융 리포트 백엔드 계산층은 생겼지만 공개 API/FE 연결은 아직 없다.
-  - 설정의 알람 토글
-  - 일부 네비게이션/버튼 라우팅
-
-## 2. 저장소 구조
-
-### 루트
-
-- `README.md`: 브랜치 운영 방식과 FE/BE 별 초기 실행 안내
-- `FE`: Next.js 앱
-- `BE`: Spring Boot API 서버
-
-### FE 구조
-
-- `app`: App Router 페이지와 Next server route
-- `components`: 공통 컴포넌트와 도메인 UI
-- `features`: 도메인별 API 래퍼와 타입
-- `lib`: 인증, 검증, OCR 데이터 변환 유틸
-- `public`: 정적 이미지
-- `capacitor.config.ts`: Capacitor 네이티브 연결 설정
-- `proxy.ts`: 라우트 보호용 프록시
-
-### BE 구조
-
-- `controller`: REST 엔드포인트
-- `service`: 비즈니스 로직
-- `repository`: JPA Repository
-- `entity`: DB 모델
-- `dto`: 요청/응답 모델
-- `config`: 보안, CORS, OCR, AI, JPA Auditing, 부팅 시 정리 로직
-- `src/main/resources`: 애플리케이션 설정과 시드 데이터
-
-## 3. 전체 동작 구조
-
-### 3.1 사용자 흐름
-
-1. 사용자는 `/`에서 캐릭터 화면을 보고 `/onboarding`으로 들어간다.
-2. 첫 진입 온보딩의 앞부분은 서비스 소개 흐름이고, `health-guide` 단계에서 `/login`으로 이동한다.
-3. 로그인은 NextAuth `Credentials` provider를 통해 Spring `/api/auth/login`에 위임된다.
-4. 로그인 후 `/home`, `/finance`, `/health`는 Next proxy에서 토큰이 없는 경우 차단된다.
-5. 홈 화면의 말풍선은 사용자를 `/onboarding/7`로 다시 보내 반려동물 이름/사진 등록 흐름을 이어간다.
-6. 온보딩 마지막 단계의 “시작하기”는 인증된 `clientFetch('/api/pets')`를 호출해 반려동물 이름과 이미지 URL을 실제 DB에 저장한 뒤 `/home`으로 이동한다.
-7. 이후 건강, 가계부, 상품, 대화 기능이 각각 Spring API와 연결된다.
-
-### 3.2 프론트-백엔드 연결 방식
-
-- 인증이 필요한 일반 API 호출
-  - `clientFetch()`가 `next-auth` 세션에서 `accessToken`을 꺼내 `Authorization: Bearer ...`로 전달
-- 서버 컴포넌트/서버 액션 호출
-  - `serverFetch()`가 `auth()`로 세션을 읽어 동일하게 토큰 전달
-- 이메일 OTP 발송/비밀번호 재설정 링크 생성
-  - FE의 `app/api/auth/*` route가 Resend와 Spring Auth API를 중개
-- 이미지 업로드
-  - 반려동물 사진과 의료 이미지 파일 저장은 FE의 Next route가 `public/images/...` 아래에 로컬 저장
-  - `FE/.gitignore`가 `public/images/pet/*`, `public/images/health/records/*`를 제외하므로 런타임 업로드 이미지는 저장소에 커밋되지 않는 로컬 산출물이다.
-- OCR
-  - 실제 OCR 인식은 FE가 Spring `/api/medical-records/ocr`로 파일을 보내 Google Vision에서 수행
-
-## 4. 프론트엔드 상세 분석
-
-### 4.1 전역 셸과 스타일
-
-- `app/layout.tsx`
-  - Pretendard Variable 로컬 폰트를 로드한다.
-  - 화면 폭을 모바일 폭 기준(`420px`, `500px`, `640px`)으로 강하게 제한한다.
-  - 전체 앱을 세로 모바일 뷰처럼 고정해놓은 구조다.
-- `app/providers.tsx`
-  - `SessionProvider`만 제공한다.
-- `app/globals.css`
-  - Tailwind v4와 shadcn 스타일 토큰을 함께 쓴다.
-  - 브랜드 컬러(`main-green`, `mint-green`, `hana-pink`, `main-yellow`)를 CSS variable로 선언한다.
-  - 온보딩용 ripple, dissolve, modal animation이 정의되어 있다.
-
-### 4.2 라우트 보호
-
-- `proxy.ts`
-  - 보호 경로: `/finance`, `/home`, `/health`
-  - 공개 경로: `/`, `/login`, `/signup`, `/onboarding`, `/api/auth`
-  - 개발 환경에서는 `NODE_ENV === development`일 때 인증 우회를 허용한다.
-  - 토큰은 `next-auth/jwt`의 `getToken()`으로 읽는다.
-
-주의점:
-
-- `/settings`는 프론트 프록시 보호 경로에 포함되지 않는다.
-- `/product`도 비보호다. 상품은 공개 조회로 의도된 것으로 보이지만 `/settings`는 보호 누락에 가깝다.
-
-### 4.3 인증 구조
-
-- `app/api/auth/[...nextauth]/route.ts`
-  - `email-password` provider
-    - Spring `/api/auth/login` 호출
-  - `magic-link` provider
-    - Spring `/api/auth/verify` 호출
-  - 세션 전략
-    - JWT 기반
-  - 토큰 갱신
-    - access token 만료를 FE에서 1시간으로 가정하고 `/api/auth/refresh` 호출
-  - refresh 실패
-    - 세션에 `RefreshTokenError`를 심고 클라이언트는 강제 로그아웃 처리
-
-- `lib/auth.ts`
-  - `clientFetch()`는 세션 access token을 자동 첨부한다.
-  - `signup()`, `sendOtp()`, `resetPasswordByToken()` 같은 인증 보조 함수가 있다.
-
-- `lib/auth.action.ts`
-  - 서버 액션에서 비밀번호 변경을 처리한다.
-
-### 4.4 로그인/회원가입/비밀번호 복구
-
-- `/login`
-  - 이메일/비밀번호 로그인
-  - 성공 시 `/home`
-- `/login/findpasswd`
-  - 이메일 입력 후 FE route `/api/auth/send-otp`
-  - 해당 route가 Spring OTP 생성 + Resend 이메일 발송을 처리
-- `/login/verify`
-  - magic link token을 읽어 NextAuth `magic-link` provider 로그인
-- `/login/changepasswd`
-  - 메일 링크 token으로 비밀번호 재설정
-- `/signup`
-  - 다단계 입력 UI
-  - 마지막 단계에서 이용약관 모달 확인
-  - 성공 시 Spring `/api/auth/signup` 후 즉시 자동 로그인
-
-검증 규칙:
-
-- 비밀번호 최소 8자
-- 영문 포함
-- 특수문자 `^ ! * -` 중 하나 포함
-- 비밀번호 확인 일치
-- 현재 비밀번호와 새 비밀번호 동일 금지
-
-### 4.5 온보딩
-
-- `/`
-  - 애니메이션된 캐릭터 랜딩
-  - 클릭 후 `/onboarding`
-- `/onboarding/[step]`
-  - 총 11단계지만 실제 역할은 두 갈래다.
-  - 1~6단계는 서비스 소개 중심이고, `health-guide` 단계의 확인 버튼은 `/login`으로 보낸다.
-  - 7~11단계는 홈 화면에서 재진입하는 반려동물 등록 흐름이다.
-  - `react-speech-recognition`으로 반려동물 이름을 음성 입력
-  - Web Speech TTS로 말풍선 내용을 읽어준다.
-  - 반려동물 사진은 `/api/pet-upload`를 통해 FE `public/images/pet`에 저장한다.
-  - 상태는 query string(`petName`, `petImage`, `retryPetName`, `photoSkipped`)으로 다음 단계에 넘긴다.
-  - `sessionStorage`에 “온보딩 내부 진입”과 “TTS unlocked” 상태를 저장한다.
-  - 마지막 `handleStartClick()`은 `POST /api/pets`로 `{ name, imageUrl }`를 전송한다.
-
-특징:
-
-- 온보딩은 이제 “로그인 전 소개”와 “로그인 후 반려동물 생성”이 섞인 구조다.
-- 반려동물 생성 자체는 실제 DB 저장과 연결됐다.
-- 다만 생성 시 저장되는 값은 이름과 이미지뿐이라 `species`, `age`, `size`, 식사 상태, 산책 누적값은 모두 `null`로 시작한다.
-- 같은 `POST /api/pets` 엔드포인트를 설정 화면에서는 `age`, `species`, `size`까지 채운 풀 입력 생성에도 재사용한다.
-- 저장 성공 후 `/home`으로 돌아가지만, 홈 화면 자체는 아직 `GET /api/pets`를 쓰지 않아서 새 반려동물이 바로 화면에 보이지는 않는다.
-
-### 4.6 홈
-
-- `/home`
-  - 상단 설정 이동
-  - 온보딩 재진입 유도 버블
-  - 반려동물 캐러셀
-  - 대화 이동 버튼
-  - 지출 요약 카드
-
-현재 상태:
-
-- 홈은 `GET /api/pets`로 현재 사용자 반려동물 목록을 조회해 캐러셀과 선택 pet 이름을 표시한다.
-- 선택된 pet id는 `selected-pet-id`로 로컬 저장되어 의료 기록/대화 화면과 공유된다.
-- 소비 요약 카드는 더 이상 FE 하드코딩이나 FE 규칙 기반 계산이 아니라 `GET /api/account-books/home-summary?year=&month=`를 호출한다.
-- Spring `FinanceService.getHomeSpendingSummary()`가 이번 달 지출 합계, 최대 지출 카테고리, 보험/적금/구독 추천 문구를 계산해서 내려준다.
-- FE는 응답의 `monthlyAmount`, `primaryCategory`, `summary`, `savingsHint`를 카드에 매핑만 한다.
-
-### 4.7 홈 대화
-
-- `/home/talk`
-  - 음성 입력 시작/정지
-  - 특정 키워드 감지 시 가계부 이동 확인 UI 노출
-  - 일반 질문은 `/api/talk`에 POST
-
-주의점:
-
-- 이 페이지만 `clientFetch()`가 아니라 `const API_BASE_URL = 'http://localhost:8080'`를 직접 사용한다.
-- 환경 변수 기반이 아니므로 배포/모바일 환경에서 깨질 가능성이 높다.
-
-### 4.8 건강
-
-#### 건강 메인 `/health`
-
-- 세 기능 진입 버튼만 제공
-  - 산책
-  - 예방접종
-  - 병원기록
-
-#### 의료 기록 `/health/medical-records`
-
-실제 구현이 많이 진행된 화면이다.
+# MGK 프로젝트 최신 상세 분석 보고서
+
+작성일: 2026-04-14
+분석 기준: 현재 워크스페이스의 `FE`, `BE` 소스 코드
+중점 범위: 홈 화면, 홈 대화, 설정 반려동물 관리, 재정 홈 카드, 금융 리포트, 관련 API/서비스/저장소
+
+## 1. 전체 결론
+
+이 프로젝트는 반려동물 관리 앱 `MGK`의 Next.js 프론트엔드와 Spring Boot 백엔드를 한 저장소에서 함께 관리한다.
+
+- `FE`: Next.js 16.2.1 App Router, React 19.2.4, NextAuth v5 beta, Tailwind CSS v4, Biome, Capacitor iOS 브리지
+- `BE`: Spring Boot 4.0.3, Java 21, Spring Security, Spring Data JPA, MySQL, JWT, Google Vision OCR, Spring AI Gemini, AWS S3 presigned upload
+
+최신 상태에서 가장 중요한 변화는 다음과 같다.
+
+- 홈 반려동물 캐러셀은 현재 사용자 pet 목록을 `GET /api/pets`로 조회하고, 선택된 pet의 이미지와 이름을 실제 데이터로 렌더링한다.
+- 홈에서 선택한 pet id는 `selected-pet-id`로 `localStorage`와 `sessionStorage`에 저장되고, `/home/talk`가 이 값을 읽어 선택 pet 이미지와 이름을 다시 조회한다.
+- 홈 대화 화면은 음성 모드와 직접입력 텍스트 모드를 모두 지원한다. “직접입력” 버튼은 더 이상 빈 동작이 아니라 `/home/talk?mode=text`로 진입한다.
+- 홈 소비 요약 카드는 더 이상 FE에서 카테고리 합산과 혜택 문구를 계산하지 않는다. FE는 `GET /api/account-books/home-summary` 응답을 받아 금액 포맷팅과 UI 매핑만 한다.
+- 홈 소비 카드의 최대 카테고리 판정, 보험/적금/구독 문구, 보험 연간 한도 반영은 `BE/src/main/java/com/mgk/bemgk/service/FinanceService.java`로 이동했다.
+- 설정 화면에는 반려동물 삭제 UI와 삭제 확인 모달이 있고, `DELETE /api/pets/{petId}`가 백엔드에 구현되어 있다.
+- 설정 반려동물 상세 화면에는 사망 체크 버튼이 추가됐다. 체크 후 저장하면 pet record의 `isDeath`가 true로 바뀌고, 설정 목록에서는 pet 이름 옆에 흰 꽃 이미지가 표시된다.
+- 사망 처리는 삭제가 아니라 `pets.death` 상태 전환이다. `death`는 nullable이 아니고 기본값은 false가 되도록 DB seed 보정과 엔티티 기본값이 정리됐다.
+- 사망 pet은 설정 목록/상세 조회에서는 계속 관리 가능하지만, 홈/대화의 active pet 후보에서는 제외되고 산책 저장, 새 의료기록 등록, 새 예방접종 일정, 알림/요약/대화 대상 같은 active 기능에서 서버가 차단한다.
+- 금융 리포트는 이제 백엔드 controller와 FE API 호출이 존재한다. `/finance/report`는 `GET /api/finance/report`, `GET /api/finance/report/monthly-expenses`를 호출한다.
+- FE proxy는 공개 경로와 `/api/auth`를 제외한 거의 모든 앱 경로를 로그인 필요 경로로 본다. 이전처럼 `/settings`만 보호 누락된 구조는 아니다.
+
+다만 아직 제품 안정성 측면의 리스크도 남아 있다.
+
+- Spring Security 설정은 여전히 `anyRequest().permitAll()`이고, 일부 금융 API는 인증이 없으면 첫 번째 사용자를 fallback으로 사용한다.
+- 금융 리포트 계산은 이름상 “pet expense”로 보이지만 현재 repository 쿼리는 `AccountBook.pet is not null` 조건이 아니라 사용자 전체 지출을 집계한다.
+- `AccountBook` builder는 `Pet pet` 파라미터를 받지만 `this.pet = pet`를 하지 않고, 공개 지출 생성 요청에도 `petId`가 없다.
+- 온보딩으로 만든 pet은 `age`, `species`, `size`가 `null`일 수 있는데, 금융 리포트 계산 일부는 `pet.getAge()`를 null guard 없이 사용한다.
+- 상품 추천 계산 로직은 `ProductService`에 있으나 controller로 노출되지 않는다. 홈 소비 카드는 이 추천 API가 아니라 `FinanceService` 내부 규칙과 `ProductRepository` 직접 조회를 사용한다.
+
+## 2. 최신 엔드투엔드 연결 현황
+
+실제로 연결된 흐름은 다음과 같다.
+
+- 로그인/회원가입/매직링크/토큰 갱신/비밀번호 변경/로그아웃/회원탈퇴
+- 온보딩 7~11단계에서 반려동물 이름과 이미지 저장
+- 설정 화면의 반려동물 목록 조회, 상세 조회, 생성, 수정, 삭제
+- 설정 화면의 반려동물 사망 체크 저장과 사망 pet 꽃 표시
+- 홈 화면의 현재 사용자 pet 목록 조회, 캐러셀 이미지 표시, 선택 pet 이름 표시
+- 홈 선택 pet id 저장과 `/home/talk`의 선택 pet 이미지/이름 재조회
+- 홈 알림 말풍선: 설정 알람 토글, 산책 빈도, 오늘 캘린더 일정 반영
+- 홈 소비 요약 카드: 이번 달 지출 합계, 최대 지출 카테고리, 추천 상품 라벨, 혜택 문구 백엔드 계산
+- 홈 대화: 음성 인식, 텍스트 입력, 화면 이동 명령, 일정 추가 명령, 산책/접종/의료 기록 질의, Gemini fallback 답변
+- 가계부 대시보드, 월별 지출 목록, 지출 등록, 지출 삭제
+- 금융 리포트 요약 수치와 최근 12개월 지출 차트 API 연결
+- 의료 영수증 OCR, 의료 기록 저장/조회
+- 예방접종 캘린더 조회, 일정 추가, 요약 조회
+- 산책 실시간 동기화, 완료 기록 저장, 리워드 합산
+- 상품 목록/상세 조회
+- S3 presigned URL 기반 pet 이미지 업로드
+
+아직 부분 연결 또는 고정 UI 성격이 남은 영역은 다음과 같다.
+
+- `/finance/report` 하단의 “의료비 지출 25%”, “산책 상위 10%”, 뱃지 공유 UI는 여전히 고정 문구와 고정 그래픽 비중이 크다.
+- `/finance` 하단의 “펫 케어 구독하고 지출을 10% 낮춰요”는 실제 추천 API 결과가 아니다.
+- 상품 추천 DTO와 계산 로직은 있지만 `ProductController`에서 추천 API로 노출되지 않는다.
+- 의료 기록 이미지 업로드는 아직 FE route `/api/medical-record-upload`를 통해 로컬 `public/images/health/records`에 저장한다. pet 이미지는 S3 presigned 업로드로 이동했지만 의료 이미지는 아직 로컬 방식이 남아 있다.
+
+## 3. FE 구조와 동작
+
+### 3.1 인증과 API 호출
+
+- `FE/proxy.ts`
+  - 공개 경로: `/`, `/login`, `/login/findpasswd`, `/signup`, `/onboarding`, `/onboarding/1`~`/onboarding/6`
+  - 공개 prefix: `/api/auth`
+  - `/login/changepasswd?token=...`은 예외적으로 허용
+  - 위 목록을 제외한 경로는 `next-auth/jwt`의 토큰이 없으면 `/login`으로 redirect
+- `FE/lib/auth.ts`
+  - `clientFetch()`가 `getSession()`으로 access token을 읽고 `Authorization: Bearer ...`를 자동 첨부
+  - 세션에 `RefreshTokenError`가 있으면 로그아웃 후 401 응답 처리
+- `FE/lib/auth.action.ts`
+  - `serverFetch()`가 서버 액션에서 `auth()`로 세션을 읽고 Spring API를 호출
+  - `logout()`은 NextAuth beta 이슈를 피하기 위해 JWT에서 refresh token을 직접 읽고 Spring `/api/auth/logout`을 먼저 호출
+
+### 3.2 홈 화면 `FE/app/home/page.tsx`
+
+홈 화면의 주요 state는 다음과 같다.
+
+- `pets`: `fetchPets()` 결과로 받은 현재 사용자 반려동물 목록
+- `selectedPetId`: 캐러셀에서 선택된 pet id
+- `spendingData`: 백엔드 홈 소비 요약 응답을 UI 카드 데이터로 매핑한 값
+- `isAlarmEnabled`: `settings-alarm-enabled` localStorage 값
+- `scheduleBubbles`: `/api/alarm` 기반 산책/일정 알림 말풍선 목록
+
+반려동물 로딩 흐름은 다음과 같다.
+
+1. 마운트 시 `fetchPets()`가 `GET /api/pets` 호출
+2. 응답 중 `isDeath !== true`인 pet만 홈 active pet으로 남긴다
+3. 응답의 `id`, `name`, `imageUrl`만 `SelectedPetProfile`에 전달
+4. 저장된 `selected-pet-id`가 현재 active pet 목록에 있으면 그 pet 선택
+5. 저장값이 없거나 현재 active 목록에 없으면 첫 번째 active pet 선택
+6. 선택이 바뀌면 `storeSelectedPetId(selectedPetId)`로 localStorage/sessionStorage 동기화
+
+홈 UI 동작은 다음과 같다.
+
+- 설정 링크는 `/settings`로 이동
+- 등록 pet이 없고 알람이 켜져 있으면 온보딩 재진입 유도 버블 노출
+- 등록 pet이 있으면 `HomeScheduleBubble`이 산책/오늘 일정 알림을 순서대로 노출
+- 사망 처리된 pet은 홈 캐러셀과 대화 진입 active 후보에서 제외
+- 캐러셀 중앙 pet 클릭 또는 “말하기” 버튼 클릭 시 `/home/talk`
+- “직접입력” 버튼 클릭 시 `/home/talk?mode=text`
+- 소비 카드의 “리포트 보러가기”는 `/finance/report`
+- 소비 데이터가 없거나 204 응답이면 “아직 등록된 소비 데이터가 없어요!” fallback과 “지출 등록하기” 버튼 표시
+- 소비 데이터 로드 실패면 “소비 데이터를 불러오지 못했어요.” 표시
+
+홈 소비 카드에서 FE에 남은 계산은 다음뿐이다.
+
+- `monthlyAmount`를 숫자 또는 문자열에서 `N원` 문자열로 포맷
+- `primaryCategory`, `summary`, `savingsHint`를 백엔드 응답에서 그대로 UI 데이터로 매핑
+
+FE에서 제거된 계산은 다음과 같다.
+
+- `Food`, `Hospital`, `Etc` 합계 계산
+- 최대 카테고리 판정
+- `보험`, `적금`, `구독` 라벨 결정
+- 병원 결제 횟수 계산
+- 보험 한도/혜택 금액 계산
+- 적금 이율 문구 계산
+- `/api/products` 추가 조회
 
-흐름:
-
-1. `/add-image`
-   - 이미지 파일을 Data URL로 읽어 `sessionStorage`에 저장
-2. `/processing`
-   - 저장된 Data URL을 `File`로 변환해 Spring `/api/medical-records/ocr` 호출
-   - OCR 결과를 `sessionStorage`에 저장
-3. `/add-record`
-   - OCR 결과를 폼 초깃값으로 채움
-   - 필요하면 수정 후 저장
-   - 이미지가 있으면 FE `/api/medical-record-upload`로 업로드
-   - 이후 Spring `/api/medical-records`로 레코드 저장
-4. `/health/medical-records`
-   - petId + type(CHECKUP/VACCINATION) 기준 조회
-
-저장 키:
-
-- `medical-record-image-data-url`
-- `medical-record-ocr-result`
-- `selected-pet-id`
-
-#### 예방접종 `/health/vaccinations`
-
-- Spring `/api/vaccinations/schedules`
-  - 월별 캘린더 점 표시
-- Spring `/api/vaccinations/summary`
-  - 반려동물별 최근 일정 + 접종 히스토리 카드
-- 모달로 일정 추가 가능
-
-구조상 좋은 점:
-
-- 캘린더 이벤트와 의료 기록을 합쳐 “마지막 접종 / 다음 접종” 뷰를 만든다.
-
-#### 산책 `/health/walk`
-
-가장 네이티브 연동이 강한 화면이다.
-
-- Capacitor plugin `MGKHealth`를 호출한다.
-- 지원 함수
-  - `getTodaySteps`
-  - `startWalk`
-  - `pauseWalk`
-  - `stopWalk`
-  - `addWalkUpdateListener`
-- live update를 `/api/pets/{petId}/walk`로 `PATCH`
-- 현재 세션 상태는 `/api/pets/{petId}/walk/live`
-- 완료된 기록은 `/api/pets/{petId}/walk-records`
-- 3000걸음마다 리워드 1 단위로 계산한다.
-
-특징:
-
-- `NEXT_PUBLIC_MGK_HEALTH_TEST_FALLBACK=true`면 네이티브 브리지 실패 시 테스트 데이터로 동작 가능
-- 기본 petId는 저장값이 없으면 1번 반려동물이다.
-
-### 4.9 금융
-
-#### `/finance`
-
-- 완전한 대시보드형 디자인 화면이지만 데이터는 전부 목업이다.
-- 계좌번호, 잔액, 요약 카드, 파이차트, 혜택 문구 모두 하드코딩이다.
-
-#### `/finance/expense`
-
-- 실제 백엔드 연결 화면
-- 월별 지출 조회: `GET /api/account-books?year=&month=`
-- 검색, 그룹핑, 삭제 지원
-- 항목 삭제: `DELETE /api/account-books/{id}`
-
-#### `/finance/expense/add-image` -> `/processing` -> `/add-expense`
-
-의료 기록과 같은 OCR 파이프라인을 사용한다.
+### 3.3 홈 반려동물 캐러셀 `FE/components/home/SelectedPetProfile.tsx`
 
-- OCR은 동일하게 Spring `/api/medical-records/ocr`를 호출한다.
-- 단, 결과를 `mapOcrResultToExpenseDraft()`로 지출 초안으로 변환한다.
-- 병원 키워드면 `Hospital`, 음식 키워드면 `Food`, 그 외 `Etc`
-
-#### `/finance/report`
-
-- 프론트 화면의 리포트, 그래프, 상품 연결, 뱃지 모달은 여전히 목업 데이터다.
-- 다만 백엔드에는 별도의 `FinanceReportService` 계산 계층이 생겼다.
-- 현재는 이 계산 결과를 노출하는 controller가 없고, FE도 해당 값을 호출하지 않는다.
+- `PetProfileImage`를 사용해 pet 이미지를 원형 프로필로 렌더링
+- 선택 pet을 중앙에 두고 좌우 pet을 scale/translate/z-index로 배치
+- pointer drag로 이전/다음 pet 이동
+- 중앙 pet 클릭 시 `onSelectedClick(pet.id)` 호출
+- 중앙이 아닌 pet 클릭 시 해당 pet 선택
+- pet이 하나도 없으면 기본 프로필 이미지를 보여주고 클릭 시 `onSelectedClick?.(0)` 호출
 
-### 4.10 상품
+### 3.4 홈 알림 API `FE/features/home/homeApi.ts`
 
-- `/product`
-  - Spring `/api/products` 조회 후 첫 상품 상세로 redirect
-- `/product/[productId]`
-  - Spring `/api/products/{id}` 조회
-- 상단 카테고리 섹션
-  - 상품 목록을 탭처럼 보여준다.
-
-현재 상태:
-
-- “상품 목록/상세 조회”는 실제 연결
-- “개인화 추천 결과”는 FE에서 아직 쓰지 않는다.
-
-### 4.11 설정
-
-- `/settings`
-  - 반려동물 목록, 알림 토글, 비밀번호 변경, 로그아웃, 탈퇴
-  - 진입 시 `fetchPets()`가 `GET /api/pets`를 호출해 현재 사용자 반려동물 목록을 받아온다.
-  - 각 카드의 수정 버튼은 `/settings/pets/{petId}`로 이동한다.
-  - `+ 반려동물 추가하기`는 `/settings/pets/0`으로 이동시키며, 여기서 `0`은 신규 생성 모드 sentinel 값이다.
-- `/settings/changePassword`
-  - 실제 API 연결
-- `/settings/deleteAccount`
-  - 실제 API 연결
-- `/settings/pets/[petId]`
-  - `petId === 0`이면 신규 생성, 아니면 기존 반려동물 수정 모드다.
-  - 수정 모드에서는 `fetchPet()`이 `GET /api/pets/{petId}`를 호출해 폼을 prefill한다.
-  - 이미지 선택 시 즉시 FE `/api/pet-upload`로 업로드하고 미리보기를 갱신한다.
-  - 저장 시 `createPet()` 또는 `updatePet()`이 각각 `POST /api/pets`, `PATCH /api/pets/{petId}`를 호출한다.
-  - 프론트 폼 값은 `name`, `age`, `species`, `size`, `imageUrl`이다.
-
-현재 상태:
-
-- 반려동물 목록과 상세/생성/수정은 이제 실제 API와 연결됐다.
-- 알림 토글은 로컬 state만 변경
-- 반려동물 삭제 기능은 아직 없다.
-- 에러 표시는 최소 수준이고, 저장 함수도 성공 여부 판정 전에 `router.back()`을 호출하는 구조라 UX가 거칠다.
-
-### 4.12 프론트의 로컬 저장 전략
-
-- `sessionStorage`
-  - OCR 이미지/결과
-  - 온보딩 내부 상태
-  - TTS 활성화 여부
-- `localStorage + sessionStorage`
-  - 선택된 pet id
-
-장점:
-
-- 새로고침 없는 단일 플로우에서는 간단하다.
-
-제약:
-
-- 큰 이미지 Data URL 저장은 브라우저 스토리지 한계를 쉽게 넘길 수 있다.
-- pet 선택 상태가 전역 서버 상태가 아니라 로컬 저장이라 기기/세션 동기화가 없다.
-
-## 5. 백엔드 상세 분석
-
-### 5.1 런타임과 설정
-
-- 포트: `8080`
-- DB: MySQL (`docker-compose.yml` 기준 `localhost:3330`)
-- JPA
-  - `ddl-auto: update`
-  - `defer-datasource-initialization: true`
-  - `sql.init.mode: always`
-- 파일 업로드 제한: 10MB
-- OCR: Google Vision credentials 파일 경로 사용
-- AI: Gemini chat model 사용
-
-### 5.2 보안 구조
-
-- `SecurityConfig`
-  - CSRF 비활성화
-  - Stateless session
-  - JWT filter 주입
-  - 하지만 `authorizeHttpRequests(auth -> auth.anyRequest().permitAll())`
-
-즉, Spring Security 레벨에서 URL 차단을 거의 하지 않는다.  
-실제 보호는 다음 두 방식이 섞여 있다.
-
-1. 일부 컨트롤러가 `SecurityContextHolder`를 직접 확인해 401 반환
-2. 일부 서비스가 `CurrentUserService.getCurrentUserIdOrDefault()`로 현재 사용자 또는 “첫 번째 사용자”를 사용
-
-이 설계는 현재 프로젝트에서 가장 중요한 구조적 리스크다.
-
-### 5.3 JWT 인증
-
-- `JwtProvider`
-  - access token: `userId` + `email`
-  - refresh token: `userId`
-- `JwtAuthenticationFilter`
-  - `Authorization: Bearer ...`를 읽어 principal에 `Long userId`를 넣는다.
-
-### 5.4 Auth 도메인
-
-`/api/auth`
-
-- `POST /login`
-- `POST /signup`
-- `POST /send-otp`
-- `POST /refresh`
-- `POST /verify`
-- `POST /reset-password`
-- `POST /change-password`
-- `POST /delete-account`
-
-동작:
-
-- 회원가입
-  - 중복 이메일 체크
-  - 기본 이름 `김돌멩`
-  - 계좌 자동 생성
-  - 초기 account book 한 건 생성
-- 로그인
-  - soft delete 계정 차단
-- OTP
-  - `Verification` 엔티티에 15분 토큰 저장
-- 비밀번호 재설정/매직링크 검증
-  - `Verification` 토큰 기반
-- 탈퇴
-  - hard delete가 아니라 `deleted_at` 업데이트
-
-### 5.5 금융 도메인
-
-`/api/account-books`
-
-- `GET`: 월별 지출 요약 + 항목 목록
-- `GET /home-summary`: 홈 소비 요약 카드용 월별 지출 + 상품 힌트 계산
-- `POST`: 지출 생성
-- `DELETE /{id}`: 지출 삭제
-
-엔티티:
-
-- `Account`
-  - 계좌번호, 예금, 리워드, 총액
-- `AccountBook`
-  - 지출 제목, 금액, 카테고리, 메모, 일시
-  - 선택적 `pet` 연관관계가 추가되어 특정 반려동물 지출을 구분하려는 방향으로 확장 중
-
-비즈니스 규칙:
-
-- 월별 합계와 오늘 합계를 별도로 계산
-- 회원가입 시 생성되는 `"첫 계좌연결"` 항목은 월 지출 합계에서 제외
-- 홈 소비 요약은 `Hospital`, `Etc`, `Food` 합계 중 최대 카테고리를 고른다.
-- 최대 카테고리가 `Hospital`이면 `보험`, `Etc`이면 `적금`, `Food`이면 `구독`을 `primaryCategory`로 반환한다.
-- `Hospital` 힌트는 이번 달 병원 결제 횟수와 보험 상품의 `benefitAmount`, `benefitLimitCount`를 사용해 “하나 펫 보험 가입하면, N만원 할인 가능”을 만든다.
-- `Etc` 힌트는 적금 상품의 `benefitRate`를 템플릿에 넣어 이자 혜택 문구를 만든다.
-- `Food` 힌트는 “하나 펫 구독 가입하면, 1.5만원 절약 가능” 고정 템플릿을 사용한다.
-
-추가 구현 중인 내부 리포트 계층:
-
-- `FinanceReportService.getRetirementReport(userId)`
-  - 사용자 반려동물 목록
-  - `AccountBook.pet is not null` 조건의 반려동물 지출 합계/첫 지출일/최근 1년 지출
-  - 계좌 총자산(`Account.moneyAmount`) 합계
-  - 반려동물 종/크기/나이를 기준으로 한 기대수명 및 연간 의료비 추정
-  - 위 값을 합쳐 `retirementPercent`, `totalPetCost`, `averageExpense`, `totalAsset`을 계산
-- 응답 DTO `FinanceReportResponse`
-  - `retirementPercent`
-  - `totalPetCost`
-  - `averageExpense`
-  - `totalAsset`
-  - `remainingLife`
-- 단, 이 리포트 계층은 아직 공개 API로 노출되지 않았고 `remainingLife` 필드도 실제 빌드 시 채워지지 않는다.
-
-### 5.6 반려동물/산책 도메인
-
-`/api/pets`
+`fetchScheduleBubbles(todayStr, currentHour)`는 다음 방식으로 동작한다.
+
+- `clientFetch('/api/alarm')` 호출
+- 응답의 `mostFrequentWalkHour`가 현재 시각과 같으면 “산책할 시간이에요!” 버블 생성
+- 응답의 `todayEvents`를 `VACCINATION`, `CHECKUP` 라벨로 변환해 “{petName}의 {label} 일정이 오늘이에요!” 버블 생성
+- `home-alert-store` localStorage에 알림 hash와 dismissed 목록 저장
+- 날짜나 알림 내용이 바뀌면 hash가 달라져 dismissed 목록이 리셋된다
+
+### 3.5 홈 대화 `FE/app/home/talk/page.tsx`
+
+대화 화면은 음성 모드와 텍스트 모드를 하나의 페이지에서 처리한다.
+
+- 기본 진입 `/home/talk`: 중앙 pet 이미지를 누르면 음성 인식 시작/정지
+- 직접입력 진입 `/home/talk?mode=text`: 하단 textarea와 전송 버튼 노출
+- 선택 pet 조회: `getStoredMedicalPetId()`로 id를 읽고 `fetchPet(petId)`와 `fetchPets()`를 병렬 호출
+- 저장된 pet이 사망 처리됐거나 응답의 `isDeath`가 true이면 첫 번째 생존 pet으로 fallback하고, 생존 pet이 없으면 기본값으로 처리한다
+- 일정 intent 파싱용 pet 후보 목록도 `isDeath !== true`인 pet만 남긴다
+- 선택 pet 이름: 안내 문구에 사용. 예: `{selectedPetName}를 한 번 눌러\n말씀해보세요.`
+- 선택 pet 이미지: `OnboardingBackground`의 `centerImageUrl`로 전달
+- 조회 실패 fallback: 이름은 `별송이`, 이미지는 기본 이미지
+- TTS: `playTts()`가 `/api/tts`를 먼저 시도하고 실패하면 브라우저 Web Speech TTS로 fallback
+
+대화 명령 처리 흐름은 다음과 같다.
+
+- 음성 transcript 또는 텍스트 입력을 최대 60자 요청 문장으로 정리
+- 화면 이동 intent 감지 시 확인 버튼 표시
+- 이동 대상 예: `/finance`, `/finance/report`, `/finance/expense/add-image`, `/health`, `/health/walk`, `/health/vaccinations`, `/health/medical-records`, `/product`, `/settings`, `/home`
+- 일정 추가 intent 감지 시 `parseCalendarIntent()`가 날짜, pet, 일정 타입을 파싱
+- 일정 타입은 `VACCINATION` 또는 `CHECKUP`
+- “오늘”, “내일”, “모레”, “N월 N일”을 파싱하며 지난 월일은 다음 해로 보정
+- 일정 추가 확인에서 “네”를 누르면 `POST /api/vaccinations/schedules`
+- 일반 질문은 `clientFetch('/api/talk')`로 `transcript`, `petId`를 전송
+
+중요한 최신 정정 사항:
+
+- 대화 API 호출은 더 이상 `http://localhost:8080` 하드코딩이 아니다.
+- `clientFetch('/api/talk')`를 사용하므로 `SPRING_API_URL` 또는 `NEXT_PUBLIC_SPRING_API_URL` 설정을 따른다.
+
+### 3.6 설정 화면과 반려동물 삭제/사망 표시
+
+`FE/app/settings/page.tsx` 최신 동작:
+
+- 마운트 시 `fetchPets()`로 현재 사용자 반려동물 목록 조회
+- 각 pet은 `PetSettingCard`에서 이름, 나이, 종류, 수정 버튼, 삭제 버튼으로 표시
+- `pet.isDeath`가 true이면 이름 옆에 `/images/settings/flower.jpg` 추모 꽃 이미지를 표시
+- 수정 버튼은 `/settings/pets/{petId}`로 이동
+- 추가 버튼은 `/settings/pets/0`으로 이동
+- 알람 토글은 `settings-alarm-enabled`를 localStorage에 저장하고 홈 말풍선에 영향을 준다
+- 로그아웃은 모달 확인 후 `logout()` 서버 액션 실행
+- 삭제 버튼은 삭제 확인 모달을 열고 “네”를 누르면 `deletePet(petId)` 호출
+
+삭제 성공 후 FE 처리:
+
+- 삭제된 pet을 `pets` state에서 제거
+- 삭제된 pet이 `selected-pet-id`에 저장되어 있으면 다음 pet id로 교체
+- 다음 pet이 없으면 `selected-pet-id`를 localStorage와 sessionStorage에서 제거
+- 모달 닫기
+
+`FE/components/settings/PetSettingCard.tsx`:
+
+- 공통 `Button` 컴포넌트를 사용해 “수정”, “삭제” 버튼 렌더링
+- 삭제 버튼은 빨간색 계열 UI
+- `isDeath` prop이 true이면 pet 이름 옆에 흰 꽃 이미지를 렌더링
+
+`FE/app/settings/pets/[petId]/page.tsx`:
+
+- `petId === '0'`이면 신규 생성 모드
+- 그 외는 `fetchPet(Number(petId))`로 상세 조회 후 이름/나이/종류/크기/이미지/사망 여부를 prefill
+- 이미지 선택 시 `uploadPetImage(file)`로 즉시 S3 presigned upload 실행
+- 업로드 성공 시 반환된 public URL을 `savedImageUrl`로 보관하고 `selectedImageFile`은 비워 중복 업로드를 피한다
+- 나이 입력 오른쪽에 `AddDeath.jpg` 시안과 유사한 “사망” 체크 버튼을 표시한다
+- 저장 시 `createPet()` 또는 `updatePet()`에 `isDeath`를 함께 보낸다
+- 저장이 성공할 때만 `/settings`로 이동하고, 실패하면 상세 화면에 에러를 남긴다
+
+### 3.7 pet 이미지 업로드
+
+최신 pet 이미지 업로드 경로:
+
+1. FE `uploadPetImage(file)`가 `GET /apis/files/upload-url/static?fileName=&contentType=` 호출
+2. BE `FilesController.getStaticUploadUrl()`가 public bucket용 presigned PUT URL과 public URL 반환
+3. FE가 presigned URL로 `PUT` 업로드
+4. FE가 `publicUrl`을 `imageUrl`로 저장
+
+주의:
+
+- 기존 FE route `/api/pet-upload`는 아직 파일로 남아 있지만 현재 온보딩/설정 pet 업로드 흐름은 `uploadPetImage()`를 사용한다.
+- 의료 기록 이미지는 아직 `/api/medical-record-upload` 로컬 저장 흐름을 사용한다.
+
+## 4. BE 구조와 동작
+
+### 4.1 인증과 사용자 식별
+
+`SecurityConfig`:
+
+- CSRF 비활성화
+- stateless session
+- JWT filter 등록
+- 하지만 URL 권한은 `auth.anyRequest().permitAll()`
+
+`CurrentUserService`:
+
+- `getCurrentUserId()`: 인증 principal이 `Long`이면 반환, 아니면 401
+- `getCurrentUserIdOrDefault()`: 인증 principal이 없으면 DB의 첫 번째 user id 반환
+
+현재 구조의 의미:
+
+- FE proxy는 대부분의 화면 접근을 막지만, Spring API 자체는 전역적으로 permitAll이다.
+- `getCurrentUserId()`를 쓰는 서비스는 직접 API 호출에도 401을 낸다.
+- `getCurrentUserIdOrDefault()`를 쓰는 금융 controller 경로는 인증 없이 직접 호출될 경우 첫 번째 사용자 데이터로 동작할 수 있다.
+
+### 4.2 반려동물 API
+
+`PetController` 엔드포인트:
 
 - `POST /api/pets`
 - `GET /api/pets`
 - `GET /api/pets/{petId}`
 - `PATCH /api/pets/{petId}`
+- `DELETE /api/pets/{petId}`
 - `PATCH /api/pets/{petId}/walk`
 - `GET /api/pets/{petId}/walk/live`
 - `GET /api/pets/{petId}/walk-records`
 
-엔티티:
+`PetService` 핵심:
 
-- `Pet`
-  - 이름, 종, 이미지, 나이, 크기, 누적 걸음수, 누적 산책 시간
-  - `user` 소유자와 연결되며, 최근 변경으로 종/나이/크기 같은 일부 컬럼은 nullable 상태를 허용한다.
-- `PetWalkRecord`
-  - 소스, 현재 걸음수, 산책시간, 거리, 보상, 완료 여부, 상태, 시작/종료 시각
+- 조회/수정/삭제/산책 API는 `getCurrentUserId()`와 `findByIdAndUser_Id()`로 소유권 확인
+- 목록 조회는 `petRepository.findByUser_Id(userId)`
+- 생성은 `CreatePetRequest`의 `name`, `imageUrl`, `age`, `species`, `size`, `isDeath`를 사용
+- 온보딩 생성은 `name`, `imageUrl`만 보내므로 `age`, `species`, `size`가 null일 수 있다
+- 설정 생성/수정은 나이/종류/크기까지 채워 보낸다
+- `PetResponse`는 `isDeath`, `deathDate`를 함께 내려 FE가 사망 표시와 active 필터링에 사용한다
+- `Pet.death`는 nullable이 아닌 boolean 상태값이며 기본값은 false다
+- `Pet.update()`는 `isDeath`가 true로 바뀌는 순간 `deathDate`를 현재 시각으로 기록하고, false로 되돌리면 `deathDate`를 null로 초기화한다
+- `size` enum은 현재 한글 값 `소형`, `중형`, `대형`
+- 생성 시 잘못된 `size`는 `400 Bad Request`
+- 수정 시 잘못된 `size`는 조용히 무시된다
+- 산책 저장과 실시간 산책 조회는 사망 pet이면 `409 Conflict`로 차단한다
 
-반려동물 생성/조회/수정 방식:
+삭제 로직:
 
-- `CreatePetRequest`
-  - `name`, `imageUrl`, `age`, `species`, `size`
-  - 온보딩은 이 중 `name`, `imageUrl`만 보내고, 설정 화면은 나머지 필드까지 채워 보낸다.
-- `UpdatePetRequest`
-  - `name`, `age`, `species`, `size`, `imageUrl`
-  - 전부 optional이라 PATCH 성격으로 동작한다.
-- `PetService.createPet()`
-  - 현재 인증 사용자(`getCurrentUserId`)를 조회한다.
-  - `size` 문자열을 `PetSize.valueOf()`로 enum 변환한다.
-  - 잘못된 `size` 값은 `400 Bad Request`로 처리한다.
-  - `Pet`를 생성해 저장한다.
-  - 설정 화면을 거치면 `species`, `age`, `size`도 함께 저장되고, 온보딩 생성일 때만 이 값들이 `null`로 남는다.
-- `PetService.getPet()`
-  - `findOwnedPet()`로 소유권을 확인한 뒤 단건 조회한다.
-- `PetService.updatePet()`
-  - `findOwnedPet()`로 소유권을 확인한다.
-  - 엔티티 메서드 `pet.update(...)`를 호출하고 트랜잭션 dirty checking으로 반영한다.
-  - `size` 파싱 실패 시 예외를 던지지 않고 값을 무시한다.
-- `Pet.update()`
-  - `name`은 null/blank가 아닐 때만 trim 후 반영한다.
-  - `age`, `species`, `size`, `image`는 null이 아닐 때만 갱신한다.
-- `PetResponse`
-  - `id`, `name`, `imageUrl`, `age`, `species`, `size`를 반환한다.
-- `PetService.getPets()`
-  - 더 이상 전체 목록이 아니라 `petRepository.findByUser_Id(userId)`로 현재 사용자 반려동물만 반환한다.
-- `findOwnedPet()`
-  - 산책 저장/조회 시 `findByIdAndUser_Id`로 소유권을 확인한다.
+1. 현재 사용자 소유 pet 조회
+2. `AccountBook.pet` FK를 null로 정리
+3. 해당 pet의 산책 기록 삭제
+4. 해당 pet의 의료 문서 삭제
+5. 해당 pet의 캘린더 일정 삭제
+6. pet 삭제
 
-산책 저장 방식:
+삭제에서 중요한 점:
 
-- `CORE_MOTION_*` source
-  - 실시간 live session 취급
-  - 완료 전에는 진행 상황만 덮어쓴다.
-  - 완료 시에만 누적 걸음/리워드 반영
-- 그 외 source
-  - 즉시 완료 산책으로 처리
+- 해당 pet과 연결된 `AccountBook` 지출은 삭제하지 않고 pet 연결만 끊는다.
+- 산책 기록, 의료 문서, 캘린더 일정은 실제 삭제된다.
 
-### 5.7 의료 기록/OCR 도메인
+사망 처리에서 중요한 점:
 
-`/api/medical-records`
+- 사망은 `DELETE`가 아니라 `PATCH /api/pets/{petId}`의 `isDeath` 상태 업데이트다.
+- pet record 자체와 기존 기록은 유지된다.
+- 설정 목록과 상세 페이지에서는 계속 조회/수정할 수 있다.
+- 홈/대화/알림/일정 생성/산책 저장/새 의료기록 등록 같은 active 기능에서는 제외하거나 서버에서 거절한다.
 
-- `POST /ocr`
-- `POST /`
-- `GET /`
+### 4.3 홈 소비 요약 API
 
-엔티티:
+`FinanceController`:
 
-- `MedicalDocument`
-  - pet, petName, date, type, hospitalName, details, totalAmount, imageUrl
+- `GET /api/account-books/home-summary?year=&month=`
+- 인증 사용자 id는 `currentUserService.getCurrentUserIdOrDefault()`
+- `FinanceService.getHomeSpendingSummary(userId, year, month)`가 값을 반환하면 200
+- 해당 월에 홈 카드 대상 지출이 없으면 204 No Content
 
-OCR 처리:
+`HomeSpendingSummaryResponse`:
 
-- Google Vision `DOCUMENT_TEXT_DETECTION`
-- 정규식과 키워드로 다음 항목을 추출
-  - 날짜
-  - 시간
-  - 문서 유형(`VACCINATION` 또는 `CHECKUP`)
-  - 반려동물 이름
-  - 병원명
-  - 진료 내역
-  - 총금액
+- `monthlyAmount`
+- `primaryCategory`
+- `summary`
+- `savingsHint`
 
-특징:
+`FinanceService.getHomeSpendingSummary()` 계산 순서:
 
-- 의료 영수증 OCR을 지출 OCR에도 재사용하고 있다.
-- 프론트는 이 결과를 의료 기록 초안 또는 지출 초안으로 각각 변환한다.
+1. `YearMonth.of(year, month)` 생성
+2. 해당 월의 사용자 지출 조회
+3. `"첫 계좌연결"` 제목의 초기 항목 제외
+4. `Hospital`, `Etc`, `Food` 합계를 계산
+5. 우선순위 `Hospital > Etc > Food` 기준으로 최대 카테고리 선택
+6. 최대 카테고리 합계가 0이면 `Optional.empty()` 반환
+7. 월 지출 합계는 대상 월 지출 전체 합계로 계산
+8. `Hospital -> 보험`, `Etc -> 적금`, `Food -> 구독`으로 `primaryCategory` 결정
+9. `summary`는 `"이 가장 잘 맞아요"`
+10. `savingsHint`는 카테고리에 따라 분기
 
-### 5.8 예방접종/캘린더 도메인
+홈 카드 혜택 문구:
 
-`/api/vaccinations`
+- 병원 최대
+  - 활성 보험 상품 `ProductType.INSURANCE` 조회
+  - 이번 달 병원 결제 횟수 계산
+  - 해당 연도 1월부터 전월까지 병원 결제 횟수 계산
+  - 상품의 `benefitLimitCount` 또는 기본 20회에서 이전 사용 횟수를 뺀 남은 한도 계산
+  - 이번 달 병원 횟수와 남은 한도 중 작은 값만 보장 횟수로 인정
+  - 상품의 `benefitAmount` 또는 기본 100,000원을 곱하고 만원 단위로 변환
+  - 문구: `하나 펫 보험 가입하면, N만원 할인 가능`
+- 기타 최대
+  - 활성 적금 상품 `ProductType.SAVINGS` 조회
+  - `benefitRate`가 있으면 문구: `하나 펫 적금 가입하면, 연 N% 이자 가능`
+  - 없으면 문구: `하나 펫 적금 가입하면, 이자 혜택 확인 가능`
+- 식비 최대
+  - 문구: `하나 펫 구독 가입하면, 1.5만원 절약 가능`
 
-- `GET /schedules`
-- `POST /schedules`
-- `GET /summary`
+이 로직의 최신 의미:
 
-엔티티:
+- FE에서 중복 계산하던 로직은 제거됐다.
+- 홈 소비 카드의 비즈니스 규칙은 Spring `FinanceService`가 단일 출처다.
+- `ProductService.getActiveProductRecommendations()`는 이 카드에서 사용되지 않는다.
 
-- `CalendarEvent`
-  - pet, name, date, memo, eventType
+### 4.4 가계부 월별 조회와 대시보드
 
-요약 로직:
+`FinanceController`:
 
-- 반려동물별 가장 가까운 미래 일정 추출
-- `MedicalDocument(type=VACCINATION)`를 details 기준으로 그룹핑
-- 미래 캘린더 이벤트와 문서명 유사 매칭
-- 결과적으로 “마지막 접종 / 다음 접종 / 이력” 카드 생성
+- `GET /api/account-books/dashboard`: 계좌명, 계좌번호, 잔액
+- `GET /api/account-books?year=&month=`: 월별 지출 합계, 오늘 지출, 항목 목록
+- `POST /api/account-books`: 지출 생성
+- `DELETE /api/account-books/{accountBookId}`: 지출 삭제
 
-### 5.9 상품 도메인
+`FinanceService`:
 
-`/api/products`
+- 월별 조회에서도 `"첫 계좌연결"` 항목 제외
+- 오늘 지출은 요청한 year/month가 오늘의 year/month와 같을 때만 계산
+- 삭제 시 지출의 `user.id`와 요청 사용자 id를 비교
 
-- `GET /`
-- `GET /{productId}`
+주의:
 
-엔티티:
+- 이 controller도 `getCurrentUserIdOrDefault()`를 사용하므로 직접 API 호출 시 인증 fallback 리스크가 있다.
+- `CreateAccountBookRequest`에는 `petId`가 없어서 공개 지출 등록 경로로는 지출과 pet을 연결하지 않는다.
 
-- `Product`
-  - 상품 타입, 설명, URL, 혜택률/금액, 한도, 대상 카테고리, 소스 타입, 활성 여부
+### 4.5 금융 리포트
 
-추가 구현:
+`FinanceReportController`:
 
-- `ProductService.getActiveProductRecommendations()`
-  - 카드형/적금형/보험형 혜택 추정 로직이 이미 구현됨
-  - 그러나 현재 컨트롤러에서 노출되지 않고 FE도 사용하지 않는다.
+- `GET /api/finance/report`
+- `GET /api/finance/report/monthly-expenses`
+- 이 controller는 `Authentication`을 직접 검사하고 인증이 없으면 401을 던진다.
 
-### 5.10 대화 도메인
+`FE/features/finance/api/financeReportApi.ts`:
 
-`/api/talk`
+- `getFinanceRetirementReport()`가 `/api/finance/report` 호출
+- 실패 시 0 값 report 반환
+- `getMonthlyExpenseChart()`가 `/api/finance/report/monthly-expenses` 호출
+- 실패 시 최근 12개월 0원 chart 반환
+
+`FE/app/finance/report/page.tsx`:
+
+- 총 예상 pet 비용, 노후자금 영향 비율, 월 평균 지출은 API 응답 기반
+- 최근 12개월 막대그래프도 API 응답 기반
+- 하단 카드의 `의료비 지출 25%`, `산책 상위 10%`, 뱃지 모달은 아직 정적 UI 성격이 강하다
+
+`FinanceReportService` 계산:
+
+- 현재 사용자 pet 목록 조회
+- 사망 처리되지 않은 pet만 future cost 대상
+- 계좌 총자산은 `accountRepository.sumMoneyAmountByUserId(userId)`
+- 월 평균 지출은 첫 지출 월부터 현재 월까지, 최대 최근 12개월을 관찰
+- 월별 지출을 해당 월의 active pet 수로 나눠 평균을 조정
+- pet의 종/크기/나이를 기준으로 기대수명과 연 의료비를 추정
+- 향후 생존 연차별 생활비와 의료비를 합산해 `totalPetCost` 계산
+- `retirementPercent = totalPetCost / totalAsset * 100`
+- 월별 차트는 최근 12개월의 월별 지출 합계 반환
+
+금융 리포트의 주요 리스크:
+
+- repository 메서드 이름은 `sumMonthlyPetExpenseByUserId`, `findFirstPetSpendDateByUserId`처럼 pet expense를 암시하지만 쿼리는 현재 `a.user.id = :userId`만 보고 pet 조건을 걸지 않는다.
+- 따라서 현재 리포트는 “반려동물 지출”이 아니라 “사용자 전체 가계부 지출”에 가까운 값을 계산한다.
+- `AccountBook` builder는 `Pet pet`을 인자로 받지만 생성자 내부에서 `this.pet = pet`를 하지 않는다.
+- 공개 지출 생성 요청에는 `petId`가 없어 애초에 pet 연결 지출을 만들 수 없다.
+- 온보딩 pet은 `age`가 null일 수 있는데 `getProjectedYears()`에서 `BigDecimal.valueOf(pet.getAge())`를 사용하므로 null이면 예외 가능성이 있다.
+
+### 4.6 알림 API
+
+`AlarmController`:
+
+- `GET /api/alarm`
+
+`AlarmService`:
+
+- `getCurrentUserId()`로 인증 사용자 확인
+- 완료된 산책 기록의 시간대별 빈도를 계산
+- 사망 처리된 pet의 산책 기록은 빈도 계산에서 제외
+- 가장 자주 산책한 시간대를 `mostFrequentWalkHour`로 반환
+- 오늘 날짜의 캘린더 이벤트를 `todayEvents`로 반환
+- 사망 처리된 pet의 오늘 캘린더 이벤트는 알림 응답에서 제외
+- 빈도 tie-break는 빈도 내림차순, 시간 오름차순
+
+FE 홈은 이 값을 사용해 산책 알림과 오늘 일정 알림을 만든다.
+
+### 4.7 홈 대화 API
+
+`TalkController`:
 
 - `POST /api/talk`
+- 요청: `transcript`, 선택적 `petId`
+- 응답: `message`
 
-동작:
+`TalkService`:
 
-- Gemini chat model에 system prompt와 transcript를 전달
-- 최대 3회 재시도
-- 실패 시 fallback 메시지 반환
+- transcript 공백 제거 후 intent 판단
+- 산책 질의면 오늘 완료 산책 기록을 조회해 답변
+- 예방접종 질의면 해당 pet의 최신 접종 의료 문서 조회
+- 병원/검진/진료 질의면 해당 pet의 최신 의료 문서 조회
+- 위 세 분기와 맞지 않으면 Gemini chat model 호출
+- Gemini 호출은 최대 3회 재시도하고 실패하면 fallback 문구 반환
+- pet 조회는 `currentUserService.getCurrentUserId()`와 `petRepository.findByIdAndUser_Id()`를 사용해 소유권을 확인
+- 선택 pet이 사망 처리됐으면 대화 대상 pet으로 사용하지 않는다
+- 선택 pet id가 없을 때 첫 번째 pet을 고르는 fallback도 사망 처리되지 않은 pet만 대상으로 한다
 
-### 5.11 공통/미사용 도메인
+### 4.8 의료 기록과 예방접종
 
-코드상 존재하지만 현재 API 흐름에는 연결되지 않은 것들:
+`MedicalOcrController`:
 
-- `MapLocation`, `MapRepository`
-- `Transaction`, `TransactionRepository`
-- `ProductRecommendationResponse`를 반환하는 추천 계산 로직
-- `FinanceReportService`, `FinanceReportResponse`: 내부 계산 로직은 존재하지만 controller 엔드포인트와 FE 호출 경로가 없다.
+- `POST /api/medical-records/ocr`: Google Vision OCR
+- `POST /api/medical-records`: 의료 기록 저장
+- `GET /api/medical-records?type=`: 현재 사용자 pet들의 의료 기록 조회
 
-즉, 지도/송금/추천 API는 설계 흔적은 있지만 실제 제품 경로에는 아직 연결되지 않았다.
+`MedicalService`:
 
-## 6. 데이터 모델 요약
+- 기록 저장 시 현재 사용자 pet 목록을 조회하고 `petName` fuzzy matching으로 대상 pet 결정
+- 새 의료 기록 저장 대상은 사망 처리되지 않은 pet으로 제한한다
+- 등록 가능한 생존 pet이 없으면 `409 Conflict`를 반환한다
+- 정확 일치, 부분 포함, Levenshtein 거리 2 이하, 첫 번째 pet fallback 순서
+- 목록 조회는 `findByPet_User_Id...` 계열 repository 메서드로 현재 사용자 범위만 반환
+- 기존 의료 기록 목록 조회는 히스토리 보존 성격이므로 사망 pet 기록도 데이터가 남아 있으면 조회될 수 있다
 
-핵심 관계는 다음과 같다.
+`VaccinationController`:
 
-- `User`
-  - `Account`
-  - `AccountBook`
-  - `Pet`
-  - `Verification`
-- `AccountBook`
-  - `Account`
-  - 선택적 `Pet`
-- `Pet`
-  - `PetWalkRecord`
-  - `MedicalDocument`
-  - `CalendarEvent`
-- `Product`
-  - 독립 테이블, 사용자의 금융/지출 데이터와 계산 단계에서만 연결
+- `GET /api/vaccinations/schedules`
+- `POST /api/vaccinations/schedules`
+- `GET /api/vaccinations/summary`
 
-## 7. 실제 연결 관계 요약
+`VaccinationService`:
 
-### 실제 end-to-end 연결됨
+- 일정 조회는 현재 사용자 pet의 캘린더 이벤트만 조회
+- 일정 조회 결과는 사망 처리되지 않은 pet의 이벤트만 그룹핑한다
+- 일정 생성은 요청 `petId`가 현재 사용자 pet인지 검증
+- 일정 생성 대상 pet이 사망 처리됐으면 `409 Conflict`를 반환한다
+- 요약은 의료 문서와 미래 캘린더 이벤트를 결합해 last/next vaccination 정보를 만든다
+- 요약 대상 pet 목록에서도 사망 처리된 pet은 제외한다
 
-- 회원가입/로그인/매직링크/비밀번호 변경/탈퇴
-- 홈 재진입 온보딩(7~11단계)에서 반려동물 이름/이미지 저장
-- 홈 반려동물 캐러셀의 현재 사용자 pet 목록/이미지/이름 조회
-- 홈 소비 요약 카드의 Spring 기반 월별 지출/상품 혜택 힌트 계산
-- 설정 화면의 반려동물 목록 조회
-- 설정 화면의 반려동물 상세 조회/생성/수정
-- 의료 기록 OCR -> 이미지 업로드 -> 의료 기록 저장 -> 목록 조회
-- 의료 영수증 OCR -> 지출 초안 생성 -> 지출 저장 -> 월별 목록 조회/삭제
-- 예방접종 월 캘린더 조회
-- 예방접종 일정 생성
-- 예방접종 요약 카드 조회
-- 산책 실시간 동기화와 기록 조회
-- 상품 목록/상세 조회
-- 음성 대화 응답 생성
+### 4.9 상품과 파일 업로드
 
-### 부분 연결 또는 목업
+`ProductController`:
 
-- 금융 대시보드
-- 금융 리포트 화면과 백엔드 계산층 사이 연결 부재
-- 백엔드 계산층은 존재하지만 FE/API는 아직 미연결
-- 설정 알람 토글
-- 상품 추천 결과 노출
+- `GET /api/products`
+- `GET /api/products/{productId}`
 
-## 8. 환경 변수와 외부 연동
+`ProductService`:
 
-### FE에서 기대하는 값
+- 전체 상품/단일 상품 조회
+- 활성 상품 추천 계산 로직은 존재
+- 추천 계산은 카드/적금/보험 상품별로 예상 혜택을 계산
+- 추천 계산 내부의 생존 pet 판정은 `!pet.isDead()`를 기준으로 사망 pet을 제외한다
+- 하지만 추천 결과를 반환하는 controller endpoint는 아직 없다
 
-- `AUTH_SECRET`
-- `NEXT_PUBLIC_SPRING_API_URL`
-- `SPRING_API_URL`
-- `NEXTAUTH_URL`
-- `RESEND_API_KEY`
-- `RESEND_FROM`
-- `CAPACITOR_SERVER_URL`
-- `NEXT_PUBLIC_MGK_HEALTH_TEST_FALLBACK`
+추천 계산의 주의점:
 
-### BE에서 기대하는 값
+- 보험 추천 계산에서 병원 카테고리 문자열을 `"병원"`으로 사용한다.
+- 현재 `AccountBookCategory` enum 값은 `Hospital`, `Food`, `Etc`이므로 이 추천 로직을 그대로 노출하면 카테고리 매칭이 어긋날 가능성이 있다.
 
-- datasource URL/username/password
-- JWT secret
-- Google GenAI API key
-- Google Vision credentials path
+`FilesController`:
 
-### 외부 서비스
+- `GET /apis/files/upload-url/static`: public bucket 업로드 URL과 public URL 반환
+- `GET /apis/files/upload-url`: private bucket 업로드 URL 반환
+- `GET /apis/files/download-url`: private bucket 다운로드 URL 반환
+- `POST /apis/files/upload-urls`: 여러 파일 presigned URL 발급
+- 이미지 MIME 타입만 허용
+- endpoint 설정이 있으면 path-style URL을 만들고, 없으면 AWS S3 public URL을 만든다
 
-- Resend: 로그인/비밀번호 재설정 메일 발송
-- Google Vision API: OCR
-- Google Gemini: 대화 응답
-- Capacitor Native Plugin: iOS 건강 데이터/산책 이벤트
+## 5. 주요 데이터 모델
 
-## 9. 현재 리스크와 문제점
+핵심 관계:
 
-### 9.1 인증/권한 구조가 불안정함
+- `User`는 `Pet`, `Account`, `AccountBook`, `Verification`과 연결
+- `Pet`은 `PetWalkRecord`, `MedicalDocument`, `CalendarEvent`와 연결
+- `AccountBook`은 `User`, 선택적 `Pet`, 선택적 `Account`와 연결
+- `Product`는 독립 테이블이고 홈 카드/추천 계산 시 조회된다
+- `Pet.death`는 nullable이 아닌 boolean 상태값이며 기본값은 false다
+- `Pet.deathDate`는 사망 체크가 true로 바뀐 시각을 저장하고, 다시 false로 바꾸면 null로 초기화된다
 
-가장 큰 문제는 Spring에서 URL 차단을 하지 않는다는 점이다.
+현재 데이터 모델에서 중요한 불일치:
 
-- `SecurityConfig`는 모든 요청을 `permitAll()` 한다.
-- `CurrentUserService`는 인증이 없으면 첫 번째 사용자를 기본 사용자로 사용한다.
+- `AccountBook.pet` 필드는 존재하지만 일반 지출 생성 API가 pet을 받지 않는다.
+- `AccountBook` builder에 `Pet pet` 인자가 있지만 실제 필드 대입이 빠져 있다.
+- `Pet.age`, `Pet.species`, `Pet.size`는 온보딩 생성 경로에서 null이 될 수 있다.
+- `FinanceReportService`는 pet의 age/species/size를 계산 전제로 사용한다.
 
-이 조합 때문에 다음 위험이 생긴다.
+## 6. 실제 동작 시퀀스
 
-- 인증 없이도 일부 API가 첫 번째 사용자 데이터에 접근할 수 있다.
-- 특히 `FinanceController`는 의도치 않은 기본 사용자 fallback 경로가 있다.
+### 6.1 홈 pet 이미지/이름 표시
 
-### 9.2 의료 기록 API의 사용자 소유권 검증 부족
+1. `/home` 진입
+2. `fetchPets()`가 `GET /api/pets` 호출
+3. BE가 현재 사용자 pet 목록 반환
+4. FE가 `isDeath !== true`인 pet만 active 목록으로 필터링
+5. FE가 `SelectedPetProfile`에 `id`, `name`, `imageUrl` 전달
+6. 저장된 `selected-pet-id`가 active 목록에 있으면 그 pet 선택
+7. 중앙 프로필에는 `imageUrl`, 캐러셀 아래에는 `selectedPet.name` 표시
+8. 선택 변경 시 `selected-pet-id` localStorage/sessionStorage 갱신
 
-- `MedicalService.createMedicalRecord()`는 `petId`가 존재하면 저장한다.
-- 현재 로그인한 사용자의 반려동물인지 검증하지 않는다.
-- `getMedicalRecords()`도 `petId`만 알면 조회 가능하다.
+### 6.2 홈 선택 pet을 `/home/talk`에서 재사용
 
-### 9.3 금융 리포트용 반려동물 지출 데이터가 아직 제대로 쌓이지 않음
+1. 홈에서 pet 선택
+2. `storeSelectedPetId(selectedPetId)` 실행
+3. `/home/talk` 진입
+4. `getStoredMedicalPetId()`가 저장된 id 조회
+5. `fetchPet(petId)`가 `GET /api/pets/{petId}` 호출
+6. `fetchPets()`가 일정 intent 파싱용 pet 후보 목록 조회
+7. `fetchPet()` 결과가 사망 pet이면 첫 번째 생존 pet 또는 기본값으로 fallback 처리
+8. `fetchPets()` 결과 중 사망 pet은 일정 intent 후보에서 제외
+9. 선택 pet 이름은 안내 문구와 답변 context에 사용
+10. 선택 pet 이미지는 `OnboardingBackground.centerImageUrl`로 렌더링
 
-- `FinanceReportService`는 `AccountBook.pet is not null`인 지출만 반려동물 비용으로 간주한다.
-- 하지만 공개 생성 API인 `CreateAccountBookRequest`에는 `petId`가 없고, `FinanceService.create()`도 `AccountBook.pet`을 세팅하지 않는다.
-- 심지어 `AccountBook` 생성자는 `Pet pet` 파라미터를 받지만 본문에서 `this.pet = pet`를 하지 않는다.
+### 6.3 홈 소비 요약 카드
 
-즉, 현재 공개 경로만으로는 반려동물 지출이 거의 누적되지 않으며, 리포트가 노출되더라도 실제보다 0원 혹은 과소 계산될 가능성이 높다.
+1. `/home` 진입
+2. FE가 현재 연/월로 `/api/account-books/home-summary?year=&month=` 호출
+3. BE가 월별 지출을 조회하고 `"첫 계좌연결"` 제외
+4. BE가 `Hospital`, `Etc`, `Food` 중 최대 지출 카테고리 판단
+5. BE가 상품 타입과 지출 횟수를 바탕으로 `savingsHint` 생성
+6. BE가 200과 `HomeSpendingSummaryResponse` 반환
+7. FE가 `monthlyAmount`만 `N원`으로 포맷하고 나머지 문자열은 그대로 표시
+8. 대상 지출이 없으면 BE가 204 반환, FE는 지출 등록 fallback 표시
 
-### 9.4 비밀 값이 저장소에 직접 들어가 있음
+### 6.4 설정 pet 삭제
 
-현재 코드상 다음 파일들에 민감 정보가 평문으로 존재한다.
+1. `/settings` 진입
+2. FE가 `GET /api/pets`로 pet 목록 표시
+3. 사용자가 삭제 버튼 클릭
+4. 삭제 확인 모달 표시
+5. “네” 클릭 시 FE가 `DELETE /api/pets/{petId}` 호출
+6. BE가 소유권 확인
+7. BE가 account book pet 연결 null 처리, 산책/의료/캘린더 관련 데이터 삭제, pet 삭제
+8. FE가 목록 state에서 제거
+9. 삭제 pet이 선택 저장소에 있으면 다음 pet으로 교체하거나 저장소 삭제
+
+### 6.5 설정 pet 사망 처리
+
+1. `/settings/pets/{petId}` 진입
+2. FE가 `GET /api/pets/{petId}`로 기존 `isDeath` 값을 prefill
+3. 사용자가 “사망” 체크 버튼을 켜고 저장
+4. FE가 `PATCH /api/pets/{petId}`에 `isDeath: true` 포함
+5. BE가 pet 소유권을 확인하고 `Pet.update()`로 `death=true`, `deathDate=현재 시각` 저장
+6. FE가 저장 성공 시 `/settings`로 이동
+7. `/settings` 목록의 `PetSettingCard`가 `isDeath`를 보고 pet 이름 옆에 꽃 이미지를 표시
+8. 홈과 대화 화면은 해당 pet을 active 후보에서 제외
+9. BE는 산책 저장/실시간 산책/새 의료기록/새 예방접종 일정/알림/대화/추천 계산에서 사망 pet을 제외하거나 거절
+
+### 6.6 금융 리포트
+
+1. `/finance/report` 진입
+2. FE가 `GET /api/finance/report`와 `GET /api/finance/report/monthly-expenses` 병렬 호출
+3. BE가 현재 사용자 인증 확인
+4. BE가 pet 목록, 계좌 총액, 월별 지출 데이터를 사용해 리포트 계산
+5. FE가 노후자금 영향 비율, 예상 비용, 월 평균 지출, 최근 12개월 차트를 표시
+6. API 실패 시 FE는 0 값 fallback report/chart를 표시
+
+## 7. 현재 리스크와 우선 수정 후보
+
+### 7.1 Spring Security와 default user fallback
+
+가장 큰 구조적 리스크는 Spring Security가 모든 요청을 permit하고 일부 서비스가 default user fallback을 허용하는 점이다.
+
+- `SecurityConfig`: `auth.anyRequest().permitAll()`
+- `FinanceController`: `getCurrentUserIdOrDefault()` 사용
+- 인증 없이 직접 Spring API를 호출하면 일부 금융 API가 첫 번째 사용자 기준으로 동작할 수 있다
+
+우선 조치:
+
+- Spring Security에서 `/api/auth/**` 등 공개 API를 제외하고 인증 필수로 전환
+- `FinanceController`에서 `getCurrentUserIdOrDefault()` 제거
+- 개발용 fallback이 필요하면 profile 또는 명시적 mock 설정으로 격리
+
+### 7.2 금융 리포트의 계산 전제 불일치
+
+현재 금융 리포트는 API 연결은 되었지만 계산 전제가 정리되지 않았다.
+
+- `AccountBook.pet` 연결이 실제 생성 경로에서 설정되지 않는다
+- repository 쿼리는 pet 조건 없이 사용자 전체 지출을 집계한다
+- `FinanceReportService` 이름과 화면 문구는 반려동물 비용을 암시한다
+
+우선 조치:
+
+- 지출 생성 request에 `petId`를 추가할지 결정
+- `AccountBook` builder에 `this.pet = pet` 추가
+- 리포트 쿼리를 전체 지출로 볼지, pet 연결 지출만 볼지 명확히 결정
+- 화면 문구와 계산 쿼리 기준을 일치시킬 것
+
+### 7.3 온보딩 pet null 값과 리포트 예외 가능성
+
+온보딩 pet은 `age`, `species`, `size`가 null일 수 있다.
+
+- `FinanceReportService.getProjectedYears()`는 `pet.getAge()`를 null guard 없이 사용
+- `getLifeExpectancyYears()`는 species/size null에 일부 guard가 있으나 age는 취약하다
+
+우선 조치:
+
+- 리포트 계산에서 age null fallback을 정의
+- 또는 리포트 대상 pet에서 age가 없는 pet을 제외하고 FE에 보완 입력을 유도
+
+### 7.4 설정 pet 저장 UX
+
+현재 설정 상세 저장은 동작하지만 남은 UX 리스크가 있다.
+
+- 이미지 선택 시 즉시 S3에 업로드되므로, 사용자가 저장하지 않고 이탈하면 미사용 업로드 객체가 남을 수 있다
+- 빈 나이는 `Number(age) || 0`으로 0살이 되어 “모름”과 구분되지 않는다
+- 생성과 수정의 `size` 오류 처리 방식이 다르다
+
+우선 조치:
+
+- 저장 확정 전 업로드 객체 정리 정책 또는 임시 업로드 정책 결정
+- age empty를 null로 보내거나 필수값으로 검증
+- 생성/수정의 validation 정책 통일
+
+### 7.5 상품 추천 API 미노출과 카테고리 불일치
+
+`ProductService.getActiveProductRecommendations()`는 구현되어 있지만 FE에서 쓰지 않는다.
+
+- controller endpoint 없음
+- 보험 추천 계산은 `"병원"` 문자열을 사용
+- 현재 지출 카테고리는 enum `Hospital`, `Food`, `Etc`
+
+우선 조치:
+
+- 추천 API 노출 전 카테고리 타입을 enum 기반으로 정리
+- 홈 카드와 상품 추천 로직의 책임 분리 또는 통합 여부 결정
+
+### 7.6 비밀값과 저장소 관리
+
+민감 정보가 설정 파일에 평문으로 존재한다.
 
 - `FE/.env`
 - `BE/src/main/resources/security.yml`
 - `BE/docker-compose.yml`
 
-운영/협업 관점에서 즉시 분리 대상이다.
+우선 조치:
 
-### 9.5 부팅 시 데이터 초기화와 스키마 수정이 공격적임
+- 노출된 키는 폐기/재발급
+- 로컬 예시는 `.env.example`, `security.example.yml`로 분리
+- 실제 값은 환경 변수 또는 secret manager로 주입
 
-- `data.sql`이 실행될 때 `users`, `products`를 truncate 한다.
-- 같은 스크립트가 `pets` 테이블 컬럼 nullability를 직접 변경한다.
-- 기본 사용자 2명과 특정 사용자용 반려동물 3마리를 seed 한다.
-- `pet_walk_records` 데이터를 보정하고 `pet_walk_syncs` 테이블을 drop 한다.
-- `MedicalDocumentCleanupRunner`가 실행 시 테이블 rename/drop/column drop을 수행한다.
+### 7.7 업로드 방식 이원화
 
-즉, 서버 재시작이 단순한 기동이 아니라 데이터 구조를 적극적으로 바꾸는 동작이 된다.
+pet 이미지는 S3 presigned upload로 이동했지만 의료 기록 이미지는 FE 로컬 저장을 사용한다.
 
-### 9.6 프론트 목업 데이터가 많음
+- pet 이미지: `/apis/files/upload-url/static` + S3 public URL
+- 의료 기록 이미지: `/api/medical-record-upload` + `public/images/health/records`
 
-아래 화면들은 실제 제품처럼 보이지만 데이터는 고정값이다.
+우선 조치:
 
-- `/finance`
-- `/finance/report`
+- 의료 기록 이미지도 S3 private/public 정책 중 하나로 통일
+- 기존 FE local upload route의 유지 여부 결정
 
-보정해서 보면:
+## 8. 최신 코드 기준 정정된 과거 문장
 
-- `/home`은 반려동물 목록과 소비 요약 카드가 실제 API에 연결됐다. 특히 소비 요약의 최대 카테고리/혜택 문구 계산은 FE가 아니라 Spring `GET /api/account-books/home-summary`가 담당한다.
-- `/finance/report`도 백엔드 내부 계산 로직은 생겼지만 화면 수치와 그래프는 여전히 하드코딩이다.
-- `/settings`는 더 이상 순수 목업이 아니다. 반려동물 목록은 실제 API를 읽지만, 알람 토글은 여전히 로컬 state다.
-- `/settings/pets/[petId]`도 실제 생성/수정 API에 연결됐지만, 검증/에러 처리와 저장 UX는 아직 거칠다.
+이전 보고서에서 이제 수정되어야 하는 내용은 다음과 같다.
 
-### 9.7 대화 페이지의 하드코딩 URL
+- “홈 소비 카드는 FE 규칙 기반이다”는 더 이상 정확하지 않다. 현재 홈 카드 계산은 BE `FinanceService.getHomeSpendingSummary()`가 담당한다.
+- “홈 직접입력 버튼은 목업이다”는 더 이상 정확하지 않다. 현재 `/home/talk?mode=text`로 이동하고 텍스트 전송이 동작한다.
+- “/home/talk 대화 요청이 localhost 하드코딩이다”는 더 이상 정확하지 않다. 현재 `clientFetch('/api/talk')`를 사용한다.
+- “금융 리포트 백엔드 controller가 없다”는 더 이상 정확하지 않다. 현재 `FinanceReportController`가 있고 FE도 호출한다.
+- “/settings가 FE proxy 보호 대상이 아니다”는 더 이상 정확하지 않다. 현재 proxy는 공개 경로 외 대부분을 보호한다.
+- “반려동물 삭제 기능은 없다”는 더 이상 정확하지 않다. FE 삭제 모달과 BE `DELETE /api/pets/{petId}`가 있다.
+- “사망 pet은 삭제로 처리한다”는 정확하지 않다. 현재 사망은 `pets.death` 상태 업데이트이며 기존 record는 보존된다.
+- “pet 사진 업로드는 FE public 로컬 저장만 사용한다”는 현재 pet 이미지에 대해서는 정확하지 않다. pet 업로드는 S3 presigned upload를 사용한다. 단 의료 기록 이미지는 여전히 FE local route를 사용한다.
 
-- `/home/talk`는 `http://localhost:8080`을 직접 사용한다.
-- 나머지 API는 환경 변수와 `clientFetch()`를 사용하므로 이 페이지만 일관성이 깨진다.
+## 9. 다음 작업 우선순위
 
-### 9.8 프론트 보호 경로 누락
+추천 우선순위는 다음과 같다.
 
-- `/settings`는 프록시 보호 대상이 아니다.
-- 비로그인 사용자도 화면 자체는 열릴 수 있다.
-- 최근 `/settings`와 `/settings/pets/[petId]`가 실제 반려동물 조회/수정 API를 호출하게 되면서, 이 보호 누락의 영향이 이전보다 커졌다.
+1. Spring Security에서 실제 API 인증 정책 적용
+2. `getCurrentUserIdOrDefault()`를 금융 API에서 제거
+3. 금융 리포트가 전체 지출 기준인지 pet 연결 지출 기준인지 결정
+4. `AccountBook.pet` 연결 누락과 `petId` 요청 모델 정리
+5. 리포트 계산에서 pet age null 처리
+6. 설정 pet 나이/size validation 정리
+7. 사망 pet의 과거 기록 노출 정책을 화면별로 명확히 문서화
+8. 상품 추천 API 노출 전 카테고리 타입 불일치 수정
+9. 의료 기록 이미지 업로드도 S3 정책으로 통일
+10. 노출된 secret 폐기와 환경 변수 분리
 
-### 9.9 상품 추천 로직이 죽어 있음
+## 10. 최종 판단
 
-- 백엔드에는 혜택 추정 로직이 이미 있다.
-- 그러나 API로 노출되지 않고 프론트도 사용하지 않는다.
-- 다만 홈 소비 요약 카드의 특수 추천 문구는 별도 범위로 정리되어 `FinanceService.getHomeSpendingSummary()`에서 상품의 `benefitRate`, `benefitAmount`, `benefitLimitCount`를 읽어 계산한다.
+현재 MGK는 홈, 반려동물, 설정, 대화, 가계부, 금융 리포트의 핵심 연결이 이전보다 훨씬 실제 API 중심으로 정리되어 있다. 특히 홈 소비 카드의 비즈니스 계산이 Spring으로 이동했고, FE는 표시 전용 매핑만 하도록 바뀐 점이 중요하다. 또한 사망 pet은 삭제하지 않고 상태로 보존하면서 active 기능에서는 제외하는 방향으로 정리됐다.
 
-### 9.10 온보딩으로 생성한 반려동물과 금융 리포트 계산의 전제가 맞지 않음
-
-- `PetService.createPet()`는 온보딩 저장 시 `species`, `age`, `size`를 `null`로 둔다.
-- 그런데 `FinanceReportService.getProjectedYears()`는 `pet.getAge()`를 바로 `BigDecimal`로 감싼다.
-- 따라서 온보딩으로 만든 반려동물이 금융 리포트 계산 대상에 들어오면 null 처리 없이 예외가 날 가능성이 있다.
-- `FinanceReportResponse`의 `remainingLife` 필드도 선언만 되어 있고 실제 응답에서는 세팅되지 않는다.
-
-### 9.11 반려동물 설정 저장 UX와 검증이 아직 거칠다
-
-- `FE/app/settings/pets/[petId]/page.tsx`는 이미지 선택 직후 한 번 업로드하고, 저장 시 `selectedImageFile`이 남아 있으면 같은 파일을 다시 업로드할 수 있다.
-- 같은 저장 함수가 `result.ok`를 확인하기 전에 `router.back()`을 호출하므로, 저장 실패여도 사용자는 이전 화면으로 먼저 이동한다.
-- 프론트는 나이 입력이 비어 있으면 `Number(age) || 0`으로 `0`을 보내므로 “모름/null”과 “0살”을 구분하지 못한다.
-- 수정 API는 `UpdatePetRequest`에 별도 validation이 없고, 잘못된 `size` 값도 조용히 무시한다. 반면 생성 API는 같은 문제를 `400`으로 처리한다.
-
-## 10. 테스트와 실행 확인
-
-실행 결과:
-
-- FE: `pnpm test`
-  - 성공
-  - 1개 파일, 17개 테스트 통과
-- BE: `./gradlew.bat test`
-  - 실패
-  - 원인: `JAVA_HOME` 미설정으로 Java 실행 불가
-
-즉, 프론트 검증은 일부 수행됐고 백엔드는 환경 부족으로 테스트 실행 자체를 못 했다.
-
-추가 확인:
-
-- FE: `pnpm exec biome check app/home/page.tsx`
-  - 성공
-- BE: `JAVA_HOME=C:\Users\campus2H062\.jdks\corretto-21.0.10 ./gradlew.bat compileJava`
-  - 성공
-  - Gradle wrapper 캐시 접근을 위해 샌드박스 밖 실행 승인이 필요했다.
-
-## 11. 결론
-
-현재 MGK는 “반려동물 관리 + 금융 연결”이라는 큰 방향은 분명하고, 특히 의료 OCR, 예방접종, 산책 기록, 인증 플로우는 실제 코드가 꽤 이어져 있다. 최근 변경으로 반려동물 생성뿐 아니라 설정 화면의 반려동물 목록/상세/생성/수정도 실제 `/api/pets` 계열 API에 연결됐고, 홈 소비 요약 카드도 Spring `FinanceService` 계산 API로 이동했다. 반면 금융 리포트는 여전히 제품용 정합성보다 데모용 UI 비중이 높고, 백엔드 계산층만 먼저 생긴 상태다.
-
-기술적으로 가장 먼저 손봐야 할 것은 기능 추가가 아니라 권한 모델이다.
-
-우선순위를 정리하면 다음과 같다.
-
-1. Spring Security에서 실제 URL 권한 제어 적용
-2. `CurrentUserService`의 default user fallback 제거
-3. 의료 기록/반려동물 조회의 소유권 검증 추가
-4. 저장소 내 평문 비밀값 분리
-5. 반려동물 생성 데이터와 가계부의 `pet` 연결 규칙을 정리해 금융 리포트 계산 전제를 먼저 맞춤
-6. 설정 반려동물 저장 UX와 validation 일관성부터 정리
-7. 금융 메인 목업을 실제 API와 연결하고, 금융 리포트 controller를 노출
-8. 죽어 있는 상품 추천 API를 노출하고 프론트 리포트와 연결
-
-이 기준으로 보면, 이 프로젝트는 “핵심 도메인 로직은 일부 준비되어 있으나 제품 완성도와 운영 안정성은 아직 정리 중인 상태”라고 보는 것이 가장 정확하다.
+다만 운영 안정성 관점에서는 아직 “화면 연결”보다 “권한 모델과 데이터 모델 정합성”을 먼저 잠가야 한다. Spring API 인증 정책, 금융 리포트의 지출 기준, `AccountBook.pet` 연결, null pet 속성 처리, secret 관리가 정리되면 이후 상품 추천과 리포트 고도화를 더 안전하게 진행할 수 있다.

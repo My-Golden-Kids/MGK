@@ -235,14 +235,18 @@ function HomeTalkPageContent() {
         return;
       }
 
-      setSelectedPetId(result.ok && result.pet ? result.pet.id : petId);
-      setSelectedPetName(
-        result.ok ? (result.pet?.name ?? DEFAULT_PET_NAME) : DEFAULT_PET_NAME,
-      );
-      setSelectedPetImageUrl(
-        result.ok ? (result.pet?.imageUrl ?? undefined) : undefined,
-      );
-      setPets(petsResult.ok ? (petsResult.pets ?? []) : []);
+      const activePets = petsResult.ok
+        ? (petsResult.pets ?? []).filter((pet) => !pet.isDeath)
+        : [];
+      const selectedPet =
+        result.ok && result.pet && !result.pet.isDeath
+          ? result.pet
+          : (activePets[0] ?? null);
+
+      setSelectedPetId(selectedPet ? selectedPet.id : 0);
+      setSelectedPetName(selectedPet?.name ?? DEFAULT_PET_NAME);
+      setSelectedPetImageUrl(selectedPet?.imageUrl ?? undefined);
+      setPets(activePets);
     };
 
     void loadSelectedPet();

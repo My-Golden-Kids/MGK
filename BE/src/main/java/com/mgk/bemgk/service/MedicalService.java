@@ -11,8 +11,10 @@ import com.mgk.bemgk.repository.PetRepository;
 import java.util.List;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +28,9 @@ public class MedicalService {
     @Transactional
     public MedicalRecordResponse createMedicalRecord(CreateMedicalRecordRequest request) {
         Long userId = currentUserService.getCurrentUserId();
-        List<Pet> pets = petRepository.findByUser_Id(userId);
+        List<Pet> pets = petRepository.findByUser_Id(userId).stream()
+                .filter(pet -> !pet.isDead())
+                .toList();
         Pet pet = resolvePetByName(pets, request.petName());
 
         MedicalDocument medicalDocument = new MedicalDocument();
@@ -56,7 +60,7 @@ public class MedicalService {
     /** petName 퍼지 매칭: 정확일치 → 부분포함 → Levenshtein ≤ 2 → 첫 번째 펫 순으로 폴백 */
     private Pet resolvePetByName(List<Pet> pets, String petName) {
         if (pets.isEmpty()) {
-            throw new IllegalArgumentException("등록된 반려동물이 없습니다.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "진료 기록을 등록할 수 있는 반려동물이 없습니다.");
         }
         if (petName == null || petName.isBlank()) {
             return pets.get(0);

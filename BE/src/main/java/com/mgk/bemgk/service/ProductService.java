@@ -456,10 +456,7 @@ public class ProductService {
     }
 
     private boolean isAliveToday(Pet pet) {
-        if (!Boolean.TRUE.equals(pet.getDeath())) {
-            return true;
-        }
-        return pet.getDeathDate() != null && !pet.getDeathDate().toLocalDate().isBefore(LocalDate.now());
+        return !pet.isDead();
     }
 
     private boolean isSeniorPet(Pet pet) {

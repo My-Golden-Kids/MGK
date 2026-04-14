@@ -33,6 +33,7 @@ public class AlarmService {
         List<TodayCalendarEventDto> todayEvents = calendarRepository
                 .findByPet_User_IdAndDateOrderByDate(userId, today)
                 .stream()
+                .filter(event -> !event.getPet().isDead())
                 .map(TodayCalendarEventDto::from)
                 .toList();
 
@@ -47,6 +48,7 @@ public class AlarmService {
                 .findAllByPet_User_IdAndCompletedTrue(userId);
 
         Map<Integer, Long> hourCounts = records.stream()
+                .filter(record -> !record.getPet().isDead())
                 .filter(r -> r.getWalkedAt() != null)
                 .collect(Collectors.groupingBy(
                         r -> r.getWalkedAt().getHour(),

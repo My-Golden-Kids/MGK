@@ -8,6 +8,7 @@ public record CreatePetRequest(
         String imageUrl,
         Double age,
         String species,
-        String size
+        String size,
+        Boolean isDeath
 ) {
 }

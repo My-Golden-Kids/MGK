@@ -161,10 +161,15 @@ public class TalkService {
         Long userId = currentUserService.getCurrentUserId();
 
         if (petId != null) {
-            return petRepository.findByIdAndUser_Id(petId, userId).orElse(null);
+            return petRepository.findByIdAndUser_Id(petId, userId)
+                    .filter(pet -> !pet.isDead())
+                    .orElse(null);
         }
 
-        return petRepository.findByUser_Id(userId).stream().findFirst().orElse(null);
+        return petRepository.findByUser_Id(userId).stream()
+                .filter(pet -> !pet.isDead())
+                .findFirst()
+                .orElse(null);
     }
 
     private String buildWalkAnswer(Pet pet, PetWalkRecord record) {

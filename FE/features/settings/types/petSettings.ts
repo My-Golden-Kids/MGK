@@ -8,6 +8,7 @@ export interface PetSummary {
   species: PetType | null;
   imageUrl: string | null;
   size: PetSize | null;
+  isDeath: boolean;
 }
 
 export type PetFormParams = {
@@ -16,6 +17,7 @@ export type PetFormParams = {
   species: PetType;
   size: PetSize;
   imageUrl?: string | null;
+  isDeath?: boolean;
 };
 
 export type UpdatePetParams = PetFormParams & { petId: number };

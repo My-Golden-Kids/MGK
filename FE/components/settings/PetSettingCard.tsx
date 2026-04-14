@@ -1,9 +1,11 @@
+import Image from 'next/image';
 import { Button } from '@/components/common/Button';
 
 export interface PetSettingCardProps {
   name: string;
   age: number | string;
   type: string;
+  isDeath?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }
@@ -12,6 +14,7 @@ export default function PetSettingCard({
   name,
   age,
   type,
+  isDeath = false,
   onEdit,
   onDelete,
 }: PetSettingCardProps) {
@@ -21,9 +24,20 @@ export default function PetSettingCard({
       style={{ borderBottomWidth: 'clamp(1.5px, 0.5vw, 3.5px)' }}
     >
       <div className="flex flex-col gap-3 md:gap-4 lg:gap-6">
-        <h2 className="font-bold text-3xl text-black tracking-tight md:text-4xl lg:text-5xl">
-          {name}
-        </h2>
+        <div className="flex items-center gap-2 md:gap-3 lg:gap-4">
+          <h2 className="font-bold text-3xl text-black tracking-tight md:text-4xl lg:text-5xl">
+            {name}
+          </h2>
+          {isDeath ? (
+            <Image
+              src="/images/settings/flower.jpg"
+              alt="사망한 반려동물 추모 꽃"
+              width={48}
+              height={48}
+              className="h-8 w-8 object-contain md:h-10 md:w-10 lg:h-12 lg:w-12"
+            />
+          ) : null}
+        </div>
         <p className="text-black text-xl md:text-2xl lg:text-3xl">
           나이 ({age}살) / {type}
         </p>

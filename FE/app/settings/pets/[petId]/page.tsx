@@ -1,5 +1,10 @@
 'use client';
 
+import { ImageUp } from 'lucide-react';
+import Image from 'next/image';
+import { useParams, useRouter } from 'next/navigation';
+import type { ChangeEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
@@ -9,11 +14,6 @@ import {
   updatePet,
   uploadPetImage,
 } from '@/features/settings/api/petSettingsApi';
-import { ImageUp } from 'lucide-react';
-import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
-import type { ChangeEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
 
 type PetType = '강아지' | '고양이';
 type PetSize = '소형' | '중형' | '대형';
@@ -82,6 +82,7 @@ export default function PetDetailPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [savedImageUrl, setSavedImageUrl] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [isDeath, setIsDeath] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -97,6 +98,7 @@ export default function PetDetailPage() {
         setType(pet.species ?? '강아지');
         setSize(pet.size ?? '소형');
         setSavedImageUrl(pet.imageUrl);
+        setIsDeath(pet.isDeath);
         if (pet.imageUrl) setPreviewImage(pet.imageUrl);
       }
     });
@@ -141,6 +143,7 @@ export default function PetDetailPage() {
     }
 
     setSavedImageUrl(result.path ?? null);
+    setSelectedImageFile(null);
   };
 
   const handleSave = async () => {
@@ -169,18 +172,21 @@ export default function PetDetailPage() {
       species: type,
       size,
       imageUrl,
+      isDeath,
     };
     const result = isNew
       ? await createPet(formParams)
       : await updatePet({ petId: Number(petId), ...formParams });
 
     setIsLoading(false);
-    router.back();
 
     if (!result.ok) {
       setErrorMessage(result.errorMessage ?? '저장에 실패했어요.');
       setTimeout(() => setErrorMessage(null), 3000);
+      return;
     }
+
+    router.push('/settings');
   };
 
   return (
@@ -252,28 +258,52 @@ export default function PetDetailPage() {
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="pet-age"
-                className="mb-2 block font-bold text-[#222222] text-lg md:text-xl lg:text-2xl"
-              >
-                나이
-              </label>
-              <div className="flex items-end gap-3 border-[#2A2A2A] border-b-2 pb-1.5">
-                <input
-                  id="pet-age"
-                  type="text"
-                  inputMode="numeric"
-                  value={age}
-                  onChange={(event) =>
-                    setAge(event.target.value.replace(/[^0-9]/g, ''))
-                  }
-                  className="w-24 cursor-pointer bg-transparent font-medium text-[#222222] text-[2rem] outline-none placeholder:text-[#B2B2B2] md:w-28 md:text-[2.35rem] lg:text-[2.7rem]"
-                  placeholder="0"
-                />
-                <span className="pb-1 font-medium text-[#9A9A9A] text-[1.7rem] md:text-[2rem] lg:text-[2.2rem]">
-                  살
-                </span>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-10">
+              <div>
+                <label
+                  htmlFor="pet-age"
+                  className="mb-2 block font-bold text-[#222222] text-lg md:text-xl lg:text-2xl"
+                >
+                  나이
+                </label>
+                <div className="flex items-end gap-3 border-[#2A2A2A] border-b-2 pb-1.5">
+                  <input
+                    id="pet-age"
+                    type="text"
+                    inputMode="numeric"
+                    value={age}
+                    onChange={(event) =>
+                      setAge(event.target.value.replace(/[^0-9]/g, ''))
+                    }
+                    className="w-24 cursor-pointer bg-transparent font-medium text-[#222222] text-[2rem] outline-none placeholder:text-[#B2B2B2] md:w-28 md:text-[2.35rem] lg:text-[2.7rem]"
+                    placeholder="0"
+                  />
+                  <span className="pb-1 font-medium text-[#9A9A9A] text-[1.7rem] md:text-[2rem] lg:text-[2.2rem]">
+                    살
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 font-bold text-[#222222] text-lg md:text-xl lg:text-2xl">
+                  사망
+                </p>
+                <label
+                  className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-[8px] border-2 text-2xl text-white transition-all hover:brightness-95 md:h-12 md:w-12 md:rounded-[10px] md:text-3xl lg:h-14 lg:w-14 ${
+                    isDeath
+                      ? 'border-[#00A389] bg-[#00A389]'
+                      : 'border-[#D4D4D4] bg-white'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isDeath}
+                    onChange={(event) => setIsDeath(event.target.checked)}
+                    aria-label="반려동물 사망 여부"
+                    className="sr-only"
+                  />
+                  {isDeath ? '✓' : ''}
+                </label>
               </div>
             </div>
 

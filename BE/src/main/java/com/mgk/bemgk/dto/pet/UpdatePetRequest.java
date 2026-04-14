@@ -5,6 +5,7 @@ public record UpdatePetRequest(
         Double age,
         String species,
         String size,
-        String imageUrl
+        String imageUrl,
+        Boolean isDeath
 ) {
 }

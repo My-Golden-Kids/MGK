@@ -54,8 +54,8 @@ public class Pet extends BaseEntity {
     @Column(name = "walk_time")
     private Integer walkTime;
 
-    @Column
-    private Boolean death;
+    @Column(nullable = false)
+    private Boolean death = false;
 
     @Column(name = "death_date")
     private LocalDateTime deathDate;
@@ -79,18 +79,39 @@ public class Pet extends BaseEntity {
         this.size = size;
         this.walkCount = walkCount;
         this.walkTime = walkTime;
-        this.death = death;
+        this.death = death == null ? false : death;
         this.deathDate = deathDate;
         this.lastWalkAt = lastWalkAt;
         this.eatMeal = eatMeal;
     }
 
-    public void update(String name, Double age, String species, PetSize size, String image) {
+    public void update(String name, Double age, String species, PetSize size, String image, Boolean isDeath) {
         if (name != null && !name.isBlank()) this.name = name.trim();
         if (age != null) this.age = age;
         if (species != null) this.species = species;
         if (size != null) this.size = size;
         if (image != null) this.image = image;
+        if (isDeath != null) updateDeath(isDeath);
+    }
+
+    public boolean isDead() {
+        return Boolean.TRUE.equals(death);
+    }
+
+    private void updateDeath(Boolean isDeath) {
+        boolean nextDeath = Boolean.TRUE.equals(isDeath);
+        boolean wasDead = isDead();
+
+        this.death = nextDeath;
+
+        if (nextDeath && !wasDead) {
+            this.deathDate = LocalDateTime.now();
+            return;
+        }
+
+        if (!nextDeath) {
+            this.deathDate = null;
+        }
     }
 
     public void addWalkRecord(Integer stepCount, Integer walkTimeSeconds, LocalDateTime walkedAt) {

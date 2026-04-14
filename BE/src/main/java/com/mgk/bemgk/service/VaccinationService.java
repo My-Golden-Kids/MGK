@@ -44,6 +44,7 @@ public class VaccinationService {
                 .findByPet_User_IdAndDateBetweenOrderByDate(userId, start, end);
 
         Map<String, List<String>> grouped = events.stream()
+                .filter(e -> !e.getPet().isDead())
                 .collect(Collectors.groupingBy(
                         e -> e.getDate().toString(),
                         LinkedHashMap::new,
@@ -64,6 +65,10 @@ public class VaccinationService {
                 .filter(p -> p.getUser().getId().equals(userId))
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "반려동물을 찾을 수 없습니다."));
 
+        if (pet.isDead()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "사망한 반려동물에는 일정을 추가할 수 없습니다.");
+        }
+
         CalendarEvent event = CalendarEvent.builder()
                 .pet(pet)
                 .name(request.getName())
@@ -80,6 +85,7 @@ public class VaccinationService {
         LocalDate today = LocalDate.now();
 
         return pets.stream()
+                .filter(pet -> !pet.isDead())
                 .map(pet -> buildPetSummary(pet, today))
                 .toList();
     }

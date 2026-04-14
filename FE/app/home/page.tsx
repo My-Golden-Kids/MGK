@@ -1,5 +1,9 @@
 'use client';
 
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import HomePromptBubble from '@/components/home/HomePromptBubble';
 import HomeScheduleBubble from '@/components/home/HomeScheduleBubble';
@@ -17,10 +21,6 @@ import {
   getStoredMedicalPetId,
   storeSelectedPetId,
 } from '@/lib/medical-record';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
 
 type HomeSpendingSummaryResponse = {
   monthlyAmount: number | string | null;
@@ -106,11 +106,13 @@ export default function HomePage() {
         return;
       }
 
-      const nextPets = result.pets.map(({ id, name, imageUrl }) => ({
-        id,
-        name,
-        imageUrl,
-      }));
+      const nextPets = result.pets
+        .filter((pet) => !pet.isDeath)
+        .map(({ id, name, imageUrl }) => ({
+          id,
+          name,
+          imageUrl,
+        }));
 
       setPets(nextPets);
       setIsPetsLoading(false);

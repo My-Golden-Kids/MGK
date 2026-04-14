@@ -1,6 +1,7 @@
 package com.mgk.bemgk.dto.pet;
 
 import com.mgk.bemgk.entity.Pet;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -14,6 +15,8 @@ public class PetResponse {
     private Double age;
     private String species;
     private String size;
+    private Boolean isDeath;
+    private LocalDateTime deathDate;
 
     public static PetResponse from(Pet pet) {
         return PetResponse.builder()
@@ -23,6 +26,8 @@ public class PetResponse {
                 .age(pet.getAge())
                 .species(pet.getSpecies())
                 .size(pet.getSize() != null ? pet.getSize().name() : null)
+                .isDeath(pet.isDead())
+                .deathDate(pet.getDeathDate())
                 .build();
     }
 }
