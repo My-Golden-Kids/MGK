@@ -66,22 +66,22 @@ function InsuranceReport({ report }: { report: PersonalizedProductReport }) {
           />
         }
       >
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-[12px] bg-[#D4F4F0] px-3 py-4 text-center">
-            <p className="font-bold text-[15px] text-black leading-snug">
+        <div className="grid grid-cols-2 gap-3 md:gap-3.5 lg:gap-4">
+          <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
+            <p className="font-semibold text-[16px] md:text-[20px] lg:text-[24px]">
               방문한 횟수
             </p>
-            <p className="mt-5 font-extrabold text-[24px] text-[var(--color-main-green)]">
+            <p className="mt-5 font-extrabold text-[28px] text-[var(--color-main-green)] md:text-[32px] lg:text-[36px]">
               {report.hospitalVisitCount}번
             </p>
           </div>
-          <div className="rounded-[12px] bg-[#D4F4F0] px-3 py-4 text-center">
-            <p className="font-bold text-[15px] text-black leading-snug">
+          <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
+            <p className="font-semibold text-[16px] leading-snug md:text-[20px] lg:text-[24px]">
               보험 가입 시
               <br />
               예상 절감액
             </p>
-            <p className="mt-5 font-extrabold text-[20px] text-[var(--color-main-green)]">
+            <p className="mt-5 font-extrabold text-[16px] text-[var(--color-main-green)] md:text-[20px] lg:text-[24px]">
               연 {formatMoney(report.estimatedAnnualBenefit)}
             </p>
           </div>
@@ -98,19 +98,19 @@ function InsuranceReport({ report }: { report: PersonalizedProductReport }) {
           />
         }
       >
-        <div className="rounded-[12px] bg-[#D4F4F0] px-4 py-4">
-          <p className="font-bold text-[16px] text-black leading-snug">
+        <div className="rounded-[10px] bg-[#D4F4F0] p-3 md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
+          <p className="text-[16px] leading-snug md:text-[20px] lg:text-[24px]">
             <span className="text-[var(--color-main-green)]">
               {report.productName}
             </span>
             은 연{' '}
-            <span className="text-[#FF4D4F]">
+            <span className="font-bold text-[#DB1F26]">
               최대 {formatMoney(report.benefitLimitAmount ?? 0)}
             </span>
             까지 보장 혜택을 받을 수 있어요.
           </p>
         </div>
-        <p className="mt-3 text-[#555555] text-[13px]">
+        <p className="mt-3 mr-3 text-[13px] md:mt-4 md:mr-4 md:p-4 lg:mr-5 lg:p-5">
           보험 가입 시 병원비 부담을 크게 줄일 수 있어요.
         </p>
       </SectionCard>
@@ -130,7 +130,7 @@ function CardReport({ report }: { report: PersonalizedProductReport }) {
         />
       }
     >
-      <div className="rounded-[12px] bg-[#D4F4F0] px-4 py-4">
+      <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
         <p className="font-bold text-[16px] text-black leading-snug">
           <span className="text-[var(--color-main-green)]">
             {report.productName}
@@ -168,7 +168,7 @@ function SavingsReport({ report }: { report: PersonalizedProductReport }) {
       }
     >
       <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-[12px] bg-[#D4F4F0] px-3 py-4 text-center">
+        <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
           <p className="font-bold text-[#FF4D4F] text-[15px] leading-snug">
             연 최대 이자
           </p>
@@ -176,7 +176,7 @@ function SavingsReport({ report }: { report: PersonalizedProductReport }) {
             {formatMoney(report.estimatedAnnualBenefit)}
           </p>
         </div>
-        <div className="rounded-[12px] bg-[#D4F4F0] px-3 py-4 text-center">
+        <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
           <p className="mt-4 font-extrabold text-[#FF4D4F] text-[24px] leading-tight">
             보험
             <br />
@@ -204,7 +204,7 @@ function SubscriptionReport({ report }: { report: PersonalizedProductReport }) {
         />
       }
     >
-      <div className="rounded-[12px] bg-[#D4F4F0] px-4 py-4">
+      <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
         <p className="font-bold text-[16px] text-black leading-snug">
           <span className="text-[var(--color-main-green)]">
             {report.productName}
@@ -313,7 +313,7 @@ export default async function ProductDetailPage({
 
         {report ? (
           <Button
-            className="mt-5 h-auto w-full rounded-[16px] bg-[#00A389] p-2 font-bold text-[28px] text-white hover:bg-[#008f78] md:mt-6 md:p-2.5 md:text-[32px] lg:mt-7 lg:p-3 lg:text-[36px]"
+            className="mt-5 h-auto w-full rounded-[16px] bg-[#00A389] p-2 font-bold text-[22px] text-white hover:bg-[#008f78] md:mt-6 md:p-2.5 md:text-[26px] lg:mt-7 lg:p-3 lg:text-[30px]"
             asChild
           >
             <a href={report.url} target="_blank" rel="noreferrer">
@@ -324,7 +324,7 @@ export default async function ProductDetailPage({
           <Button
             type="button"
             disabled
-            className="mt-5 h-auto w-full rounded-[16px] bg-[#BFC9C8] p-2 font-bold text-[28px] text-white md:mt-6 md:p-2.5 md:text-[32px] lg:mt-7 lg:p-3 lg:text-[36px]"
+            className="mt-5 h-auto w-full rounded-[16px] bg-[#BFC9C8] p-2 font-bold text-[22px] text-white md:mt-6 md:p-2.5 md:text-[26px] lg:mt-7 lg:p-3 lg:text-[30px]"
           >
             가입한 상품
           </Button>
