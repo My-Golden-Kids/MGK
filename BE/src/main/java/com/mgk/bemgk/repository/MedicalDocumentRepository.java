@@ -16,6 +16,10 @@ public interface MedicalDocumentRepository extends JpaRepository<MedicalDocument
 
     List<MedicalDocument> findByPet_IdAndTypeOrderByDateDescCreatedAtDesc(Long petId, MedicalDocumentType type);
 
+    List<MedicalDocument> findByPet_User_IdOrderByDateDescCreatedAtDesc(Long userId);
+
+    List<MedicalDocument> findByPet_User_IdAndTypeOrderByDateDescCreatedAtDesc(Long userId, MedicalDocumentType type);
+
     @Query("""
             select
                 m.pet.id as petId,

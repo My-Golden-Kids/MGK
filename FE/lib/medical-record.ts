@@ -1,3 +1,5 @@
+import { groupBy } from '@/lib/utils';
+
 export type MedicalRecordForm = {
   date: string;
   type: string;
@@ -26,9 +28,28 @@ export type MedicalRecordItemData = {
   petName: string;
   hospitalName: string;
   details: string;
-  totalAmount: number;
+  totalAmount: number | null;
   imageUrl?: string | null;
 };
+
+export type MedicalRecordDateGroup = {
+  date: string;
+  hospitalName: string;
+  records: { petName: string; details: string }[];
+  totalAmount: number;
+};
+
+export function groupMedicalRecordsByDate(
+  records: MedicalRecordItemData[],
+): MedicalRecordDateGroup[] {
+  const grouped = groupBy(records, (r) => r.date);
+  return Array.from(grouped.values()).map((items) => ({
+    date: items[0].date,
+    hospitalName: items[0].hospitalName,
+    records: items.map((r) => ({ petName: r.petName, details: r.details })),
+    totalAmount: items.reduce((sum, r) => sum + (r.totalAmount ?? 0), 0),
+  }));
+}
 
 export const EMPTY_MEDICAL_RECORD_FORM: MedicalRecordForm = {
   date: '',

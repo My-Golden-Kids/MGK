@@ -43,9 +43,8 @@ public class MedicalOcrController {
 
     @GetMapping
     public ResponseEntity<List<MedicalRecordResponse>> getMedicalRecords(
-            @RequestParam("petId") Long petId,
             @RequestParam(value = "type", required = false) MedicalDocumentType type
     ) {
-        return ResponseEntity.ok(medicalService.getMedicalRecords(petId, type));
+        return ResponseEntity.ok(medicalService.getMedicalRecords(type));
     }
 }

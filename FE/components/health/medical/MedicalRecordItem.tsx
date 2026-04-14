@@ -9,7 +9,7 @@ interface MedicalRecordItemProps {
   date: string; // "2026-01-01" 형태로 들어온다고 가정
   hospitalName: string;
   records: MedicalRecord[];
-  totalAmount: number;
+  totalAmount: number | null;
   variant?: "green" | "mint";
 }
 
@@ -57,7 +57,7 @@ export default function MedicalRecordItem({
       </div>
 
       <div className="text-right mt-4">
-        <p className="text-2xl font-bold">{totalAmount.toLocaleString()}원</p>
+        <p className="text-2xl font-bold">{(totalAmount ?? 0).toLocaleString()}원</p>
       </div>
     </div>
   );

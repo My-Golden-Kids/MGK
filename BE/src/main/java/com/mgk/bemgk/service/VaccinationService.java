@@ -13,11 +13,13 @@ import com.mgk.bemgk.repository.CalendarRepository;
 import com.mgk.bemgk.repository.MedicalDocumentRepository;
 import com.mgk.bemgk.repository.PetRepository;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
@@ -99,13 +101,25 @@ public class VaccinationService {
                 .findByPet_IdAndTypeOrderByDateDescCreatedAtDesc(pet.getId(), MedicalDocumentType.VACCINATION);
 
         Map<String, List<MedicalDocument>> grouped = vaccinationDocs.stream()
-                .collect(Collectors.groupingBy(d -> {
-					String details = d.getDetails();
-					return details == null || details.isBlank() ? "기타" : normalizeDocDetails(details);
-					},
-					LinkedHashMap::new,
-					Collectors.toList()
-				));
+                .flatMap(d -> {
+                    String details = d.getDetails();
+                    if (details == null || details.isBlank()) {
+                        return Stream.of(Map.entry("기타", d));
+                    }
+                    List<Map.Entry<String, MedicalDocument>> vaccinationParts = Arrays.stream(details.split("/"))
+                            .map(String::trim)
+                            .filter(part -> !part.isBlank() && part.contains("접종"))
+                            .map(part -> Map.entry(part, d))
+                            .toList();
+                    return vaccinationParts.isEmpty()
+                            ? Stream.of(Map.entry("기타", d))
+                            : vaccinationParts.stream();
+                })
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        LinkedHashMap::new,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toList())
+                ));
 
         List<VaccinationItemResponse> vaccinationItems = grouped.entrySet().stream()
                 .map(entry -> {
@@ -175,17 +189,6 @@ public class VaccinationService {
     private boolean containsMatch(String a, String b) {
         if (a.isEmpty() || b.isEmpty()) return false;
         return a.contains(b) || b.contains(a);
-    }
-
-    /** 메디컬 도큐먼트 details 정규화: '/' 기준으로 분리 후 '접종' 키워드가 있는 앞부분 반환 */
-    private String normalizeDocDetails(String details) {
-        String[] parts = details.split("/");
-        for (String part : parts) {
-            if (part.contains("접종")) {
-                return part.trim();
-            }
-        }
-        return parts[0].trim();
     }
 
     /** 이벤트 이름 정규화: '접종' 키워드 제거 후 trim */

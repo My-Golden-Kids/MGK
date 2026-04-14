@@ -7,7 +7,7 @@ import { TypeSelect } from '@/components/common/TypeSelect';
 import MedicalRecordItem from '@/components/health/medical/MedicalRecordItem';
 import { clientFetch } from '@/lib/auth';
 import {
-  getStoredMedicalPetId,
+  groupMedicalRecordsByDate,
   type MedicalRecordItemData,
 } from '@/lib/medical-record';
 
@@ -35,10 +35,7 @@ export default function MedicalRecordsPage() {
           진료: 'CHECKUP',
           접종: 'VACCINATION',
         };
-        const query = new URLSearchParams({
-          petId: String(getStoredMedicalPetId()),
-          type: typeMap[selectedTab],
-        });
+        const query = new URLSearchParams({ type: typeMap[selectedTab] });
 
         const response = await clientFetch(
           `/api/medical-records?${query.toString()}`,
@@ -98,18 +95,13 @@ export default function MedicalRecordsPage() {
         </section>
 
         <section className="mt-4 space-y-4">
-          {medicalRecords.map((record) => (
+          {groupMedicalRecordsByDate(medicalRecords).map((group) => (
             <MedicalRecordItem
-              key={record.id}
-              date={record.date}
-              hospitalName={record.hospitalName}
-              records={[
-                {
-                  petName: record.petName,
-                  details: record.details,
-                },
-              ]}
-              totalAmount={record.totalAmount}
+              key={group.date}
+              date={group.date}
+              hospitalName={group.hospitalName}
+              records={group.records}
+              totalAmount={group.totalAmount}
               variant={selectedTab === '접종' ? 'mint' : 'green'}
             />
           ))}
