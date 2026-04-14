@@ -27,7 +27,7 @@ public class ProductResponse {
 		return ProductResponse.builder()
 			.id(product.getId())
 			.name(product.getName())
-			.productType(product.getProductType())
+			.productType(ProductTypeResolver.resolve(product))
 			.description(product.getDescription())
 			.benefitRate(product.getBenefitRate())
 			.benefitAmount(product.getBenefitAmount())

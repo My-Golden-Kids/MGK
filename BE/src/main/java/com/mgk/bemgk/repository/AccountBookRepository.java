@@ -100,6 +100,20 @@ public interface AccountBookRepository extends JpaRepository<AccountBook, Long> 
     );
 
     @Query("""
+            select coalesce(sum(a.amount), 0)
+            from AccountBook a
+            where a.user.id = :userId
+              and a.category in :categories
+              and a.spendDate between :startDateTime and :endDateTime
+            """)
+    BigDecimal sumAmountByUserIdAndCategoriesAndSpendDateTimeBetween(
+            @Param("userId") Long userId,
+            @Param("categories") List<AccountBookCategory> categories,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime
+    );
+
+    @Query("""
             select count(a)
             from AccountBook a
             where a.user.id = :userId
