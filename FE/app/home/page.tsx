@@ -1,44 +1,31 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { BottomNavigation } from "@/components/common/BottomNavigation";
-import HomePromptBubble from "@/components/home/HomePromptBubble";
-import HomeScheduleBubble from "@/components/home/HomeScheduleBubble";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { BottomNavigation } from '@/components/common/BottomNavigation';
+import HomePromptBubble from '@/components/home/HomePromptBubble';
+import HomeScheduleBubble from '@/components/home/HomeScheduleBubble';
 import SelectedPetProfile, {
   type Pet,
-} from "@/components/home/SelectedPetProfile";
+} from '@/components/home/SelectedPetProfile';
 import {
   fetchScheduleBubbles,
   type ScheduleBubble,
-} from "@/features/home/homeApi";
-import type { Product } from "@/features/product/types/product";
-import { fetchPets } from "@/features/settings/api/petSettingsApi";
-import { getStoredAlarmEnabled } from "@/lib/alarm-setting";
-import { clientFetch } from "@/lib/auth";
+} from '@/features/home/homeApi';
+import { fetchPets } from '@/features/settings/api/petSettingsApi';
+import { getStoredAlarmEnabled } from '@/lib/alarm-setting';
+import { clientFetch } from '@/lib/auth';
 import {
   getStoredMedicalPetId,
   storeSelectedPetId,
-} from "@/lib/medical-record";
+} from '@/lib/medical-record';
 
-type FinanceExpenseCategory = "Food" | "Hospital" | "Etc";
-
-type FinanceExpenseItem = {
-  id: number;
-  title: string;
-  category: FinanceExpenseCategory;
-  amount: number;
-  memo: string | null;
-  spendDate: string;
-};
-
-type FinanceExpenseSummaryResponse = {
-  year: number;
-  month: number;
-  monthlyExpense: number;
-  todayExpense: number;
-  items: FinanceExpenseItem[];
+type HomeSpendingSummaryResponse = {
+  monthlyAmount: number | string | null;
+  primaryCategory: string;
+  summary: string;
+  savingsHint: string;
 };
 
 type SpendingData = {
@@ -48,126 +35,22 @@ type SpendingData = {
   savingsHint: string;
 };
 
-const CATEGORY_PRIORITY = [
-  "Hospital",
-  "Etc",
-  "Food",
-] as const satisfies readonly FinanceExpenseCategory[];
-
-const CATEGORY_PRODUCT_LABEL: Record<FinanceExpenseCategory, string> = {
-  Hospital: "보험",
-  Etc: "적금",
-  Food: "구독",
-};
-
-const CARD_SUMMARY_SUFFIX = "이 가장 잘 맞아요";
-const DEFAULT_INSURANCE_LIMIT_COUNT = 20;
-const DEFAULT_INSURANCE_BENEFIT_AMOUNT = 100000;
-const DEFAULT_SUBSCRIPTION_SAVINGS_LABEL = "1.5만원";
-const SPENDING_LOAD_ERROR_MESSAGE = "소비 데이터를 불러오지 못했어요.";
+const SPENDING_LOAD_ERROR_MESSAGE = '소비 데이터를 불러오지 못했어요.';
 
 function formatCurrency(value: number) {
-  return `${value.toLocaleString()}원`;
+  const safeValue = Number.isFinite(value) ? value : 0;
+
+  return `${safeValue.toLocaleString()}원`;
 }
 
-function formatNumberText(value: number) {
-  if (!Number.isFinite(value)) {
-    return "0";
-  }
-
-  return Number.isInteger(value) ? `${value}` : value.toFixed(1);
-}
-
-function formatBenefitRateText(value?: number | null) {
-  if (value == null || !Number.isFinite(value)) {
-    return null;
-  }
-
-  return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
-}
-
-function getDominantCategory(
-  items: FinanceExpenseItem[],
-): FinanceExpenseCategory | null {
-  const totals = {
-    Food: 0,
-    Hospital: 0,
-    Etc: 0,
-  } satisfies Record<FinanceExpenseCategory, number>;
-
-  for (const item of items) {
-    totals[item.category] += item.amount;
-  }
-
-  const dominantCategory = CATEGORY_PRIORITY.reduce((currentBest, category) => {
-    if (totals[category] > totals[currentBest]) {
-      return category;
-    }
-
-    return currentBest;
-  }, CATEGORY_PRIORITY[0]);
-
-  return totals[dominantCategory] > 0 ? dominantCategory : null;
-}
-
-function buildSavingsHint(
-  dominantCategory: FinanceExpenseCategory,
-  items: FinanceExpenseItem[],
-  products: Product[],
-) {
-  if (dominantCategory === "Hospital") {
-    const insuranceProduct = products.find(
-      (product) => product.isActive && product.productType === "INSURANCE",
-    );
-    const monthlyHospitalCount = items.filter(
-      (item) => item.category === "Hospital",
-    ).length;
-    const coveredCount = Math.min(
-      monthlyHospitalCount,
-      insuranceProduct?.benefitLimitCount ?? DEFAULT_INSURANCE_LIMIT_COUNT,
-    );
-    const benefitAmountManwon =
-      Number(
-        insuranceProduct?.benefitAmount ?? DEFAULT_INSURANCE_BENEFIT_AMOUNT,
-      ) / 10000;
-    const discountAmount = coveredCount * benefitAmountManwon;
-
-    return `하나 펫 보험 가입하면, ${formatNumberText(discountAmount)}만원 할인 가능`;
-  }
-
-  if (dominantCategory === "Etc") {
-    const savingsProduct = products.find(
-      (product) => product.isActive && product.productType === "SAVINGS",
-    );
-    const benefitRateText = formatBenefitRateText(savingsProduct?.benefitRate);
-
-    return benefitRateText
-      ? `하나 펫 적금 가입하면, 연 ${benefitRateText}% 이자 가능`
-      : "하나 펫 적금 가입하면, 이자 혜택 확인 가능";
-  }
-
-  return `하나 펫 구독 가입하면, ${DEFAULT_SUBSCRIPTION_SAVINGS_LABEL} 절약 가능`;
-}
-
-function buildSpendingData(
-  financeSummary: FinanceExpenseSummaryResponse,
-  products: Product[],
-): SpendingData | null {
-  const dominantCategory = getDominantCategory(financeSummary.items);
-
-  if (!dominantCategory) {
-    return null;
-  }
-
+function mapHomeSpendingSummary(
+  financeSummary: HomeSpendingSummaryResponse,
+): SpendingData {
   return {
-    monthlyAmount: formatCurrency(Number(financeSummary.monthlyExpense ?? 0)),
-    primaryCategory: CATEGORY_PRODUCT_LABEL[dominantCategory],
-    summary: CARD_SUMMARY_SUFFIX,
-    savingsHint: buildSavingsHint(
-      dominantCategory,
-      financeSummary.items,
-      products,
-    ),
+    monthlyAmount: formatCurrency(Number(financeSummary.monthlyAmount ?? 0)),
+    primaryCategory: financeSummary.primaryCategory,
+    summary: financeSummary.summary,
+    savingsHint: financeSummary.savingsHint,
   };
 }
 
@@ -216,7 +99,7 @@ export default function HomePage() {
       if (!result.ok || !result.pets) {
         setPets([]);
         setPetsErrorMessage(
-          result.errorMessage ?? "반려동물 정보를 불러오지 못했어요.",
+          result.errorMessage ?? '반려동물 정보를 불러오지 못했어요.',
         );
         setIsPetsLoading(false);
         return;
@@ -281,11 +164,8 @@ export default function HomePage() {
 
     const buildScheduleBubbles = async () => {
       const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-      const bubbles = await fetchScheduleBubbles(
-        todayStr,
-        now.getHours(),
-      );
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const bubbles = await fetchScheduleBubbles(todayStr, now.getHours());
       if (!isCancelled) {
         setScheduleBubbles(bubbles);
         setScheduleBubbleIndex(0);
@@ -308,14 +188,18 @@ export default function HomePage() {
 
       try {
         const currentMonth = new Date();
-        const [financeResponse, productsResponse] = await Promise.all([
-          clientFetch(
-            `/api/account-books?year=${currentMonth.getFullYear()}&month=${
-              currentMonth.getMonth() + 1
-            }`,
-          ),
-          clientFetch("/api/products"),
-        ]);
+        const financeResponse = await clientFetch(
+          `/api/account-books/home-summary?year=${currentMonth.getFullYear()}&month=${
+            currentMonth.getMonth() + 1
+          }`,
+        );
+
+        if (financeResponse.status === 204) {
+          if (!isCancelled) {
+            setSpendingData(null);
+          }
+          return;
+        }
 
         if (!financeResponse.ok) {
           if (!isCancelled) {
@@ -326,16 +210,13 @@ export default function HomePage() {
         }
 
         const financeSummary =
-          (await financeResponse.json()) as FinanceExpenseSummaryResponse;
-        const products = productsResponse.ok
-          ? ((await productsResponse.json()) as Product[])
-          : [];
+          (await financeResponse.json()) as HomeSpendingSummaryResponse;
 
         if (isCancelled) {
           return;
         }
 
-        setSpendingData(buildSpendingData(financeSummary, products));
+        setSpendingData(mapHomeSpendingSummary(financeSummary));
       } catch {
         if (!isCancelled) {
           setSpendingData(null);
@@ -364,11 +245,11 @@ export default function HomePage() {
   }, [pets, selectedPetId]);
 
   const handleTalkClick = () => {
-    router.push("/home/talk");
+    router.push('/home/talk');
   };
 
   const handleDirectInputClick = () => {
-    router.push("/home/talk?mode=text");
+    router.push('/home/talk?mode=text');
   };
 
   return (
@@ -384,11 +265,11 @@ export default function HomePage() {
         </header>
 
         <section className="">
-          <div className={shouldShowPromptBubble ? "" : "invisible"}>
+          <div className={shouldShowPromptBubble ? '' : 'invisible'}>
             <HomePromptBubble
               message={`주인님! 저에 대해\n더 알려주세요!`}
               showAnswerButtons={true}
-              onYesClick={() => router.push("/onboarding/7")}
+              onYesClick={() => router.push('/onboarding/7')}
               onNoClick={() => setShowBubble(false)}
               yesLabel="O"
               noLabel="X"
@@ -486,7 +367,7 @@ export default function HomePage() {
 
             <button
               type="button"
-              onClick={() => router.push("/finance/report")}
+              onClick={() => router.push('/finance/report')}
               className="flex h-[56px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] font-extrabold text-[20px] text-white transition-all hover:brightness-90"
             >
               리포트 보러가기
@@ -496,12 +377,12 @@ export default function HomePage() {
           <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
             <div className="flex min-h-[176px] flex-col items-center justify-center text-center">
               <p className="mb-5 font-extrabold text-[#0DA892] text-[20px] leading-tight">
-                {spendingErrorMessage ?? "아직 등록된 소비 데이터가 없어요!"}
+                {spendingErrorMessage ?? '아직 등록된 소비 데이터가 없어요!'}
               </p>
 
               <button
                 type="button"
-                onClick={() => router.push("/finance/expense/add-image")}
+                onClick={() => router.push('/finance/expense/add-image')}
                 className="flex h-[56px] w-full max-w-[280px] cursor-pointer items-center justify-center rounded-[12px] bg-[#25C3A8] px-4 font-extrabold text-[20px] text-white transition-all hover:brightness-90"
               >
                 지출 등록하기
