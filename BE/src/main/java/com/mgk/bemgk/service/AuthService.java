@@ -1,5 +1,15 @@
 package com.mgk.bemgk.service;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.mgk.bemgk.auth.JwtProvider;
 import com.mgk.bemgk.dto.auth.AuthResponse;
 import com.mgk.bemgk.dto.auth.ChangePasswordRequest;
@@ -22,15 +32,8 @@ import com.mgk.bemgk.repository.AccountRepository;
 import com.mgk.bemgk.repository.RefreshTokenRepository;
 import com.mgk.bemgk.repository.UserRepository;
 import com.mgk.bemgk.repository.VerificationRepository;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -43,22 +46,22 @@ public class AuthService {
 	private final VerificationRepository verificationRepository;
 	private final RefreshTokenRepository refreshTokenRepository;
 	private final JwtProvider jwtProvider;
-    private final BCryptPasswordEncoder passwordEncoder;
+	private final BCryptPasswordEncoder passwordEncoder;
 	private final AccountBookRepository accountBookRepository;
 
 	@Transactional
-    public SignupResponse signup(SignupRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다.");
-        }
+	public SignupResponse signup(SignupRequest request) {
+		if (userRepository.existsByEmail(request.getEmail())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다.");
+		}
+		User user = userRepository.save(
+			User.builder()
+				.name(DEFAULT_NAME)
+				.email(request.getEmail())
+				.password(passwordEncoder.encode(request.getPassword()))
+				.build());
 
-        User user = userRepository.save(User.builder()
-                .name(DEFAULT_NAME)
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .build());
-
-        Account newAccount = accountRepository.save(
+		Account newAccount = accountRepository.save(
 			Account.builder().user(user).accountNumber(request.getAccountNum())
 				.bankName(DEFAULT_BANK_NAME)
 				.moneyAmount(new BigDecimal("1000000"))
@@ -67,162 +70,160 @@ public class AuthService {
 				.build());
 
 		accountBookRepository.save(AccountBook.builder()
-				.user(user)
-				.account(newAccount)
-				.title("첫 계좌연결")
-				.amount(BigDecimal.ZERO)
-				.spendDate(LocalDateTime.now())
-				.category(AccountBookCategory.Etc)
+			.user(user)
+			.account(newAccount)
+			.title("첫 계좌연결")
+			.amount(BigDecimal.ZERO)
+			.spendDate(LocalDateTime.now())
+			.category(AccountBookCategory.Etc)
 			.build());
 
-        return SignupResponse.builder()
-                .userId(user.getId())
-                .email(user.getEmail())
-                .name(user.getName())
-                .build();
-    }
+		return SignupResponse.builder()
+			.userId(user.getId())
+			.email(user.getEmail())
+			.name(user.getName())
+			.build();
+	}
 
-    @Transactional
-    public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
+	@Transactional
+	public AuthResponse login(LoginRequest request) {
+		User user = userRepository.findByEmail(request.getEmail())
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
 
-        if (user.getDeletedAt() != null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
-        }
+		if (user.getDeletedAt() != null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
+		}
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
-        }
+		if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
+		}
+		refreshTokenRepository.deleteAllByUser(user);
 
-        refreshTokenRepository.deleteAllByUser(user);
-        return buildAuthResponse(user);
-    }
+		return buildAuthResponse(user);
+	}
 
-    @Transactional
-    public OtpResponse getOtpToken(OtpRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 이메일입니다."));
+	@Transactional
+	public OtpResponse getOtpToken(OtpRequest request) {
+		User user = userRepository.findByEmail(request.getEmail())
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 이메일입니다."));
+		String token = UUID.randomUUID().toString();
+		verificationRepository.save(Verification.builder()
+			.user(user)
+			.identifier(request.getEmail())
+			.token(token)
+			.expiresAt(LocalDateTime.now().plusMinutes(15))
+			.build());
 
-        String token = UUID.randomUUID().toString();
+		return OtpResponse.builder()
+			.token(token)
+			.build();
+	}
 
-        verificationRepository.save(Verification.builder()
-                .user(user)
-                .identifier(request.getEmail())
-                .token(token)
-                .expiresAt(LocalDateTime.now().plusMinutes(15))
-                .build());
+	@Transactional
+	public RefreshResponse refreshToken(RefreshRequest request) {
+		if (!jwtProvider.validateToken(request.getRefreshToken())) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다.");
+		}
 
-        return OtpResponse.builder()
-                .token(token)
-                .build();
-    }
+		RefreshToken stored = refreshTokenRepository.findByToken(request.getRefreshToken())
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "존재하지 않는 리프레시 토큰입니다."));
 
-    @Transactional
-    public RefreshResponse refreshToken(RefreshRequest request) {
-        if (!jwtProvider.validateToken(request.getRefreshToken())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다.");
-        }
+		if (stored.isExpired()) {
+			refreshTokenRepository.delete(stored);
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "만료된 리프레시 토큰입니다.");
+		}
 
-        RefreshToken stored = refreshTokenRepository.findByToken(request.getRefreshToken())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "존재하지 않는 리프레시 토큰입니다."));
+		User user = stored.getUser();
+		refreshTokenRepository.delete(stored);
 
-        if (stored.isExpired()) {
-            refreshTokenRepository.delete(stored);
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "만료된 리프레시 토큰입니다.");
-        }
+		String newRefreshToken = jwtProvider.generateRefreshToken(user.getId());
+		refreshTokenRepository.save(RefreshToken.builder()
+			.user(user)
+			.token(newRefreshToken)
+			.expiresAt(jwtProvider.getExpiration(newRefreshToken))
+			.build());
 
-        User user = stored.getUser();
-        refreshTokenRepository.delete(stored);
+		return RefreshResponse.builder()
+			.accessToken(jwtProvider.generateAccessToken(user.getId(), user.getEmail()))
+			.refreshToken(newRefreshToken)
+			.build();
+	}
 
-        String newRefreshToken = jwtProvider.generateRefreshToken(user.getId());
-        refreshTokenRepository.save(RefreshToken.builder()
-                .user(user)
-                .token(newRefreshToken)
-                .expiresAt(jwtProvider.getExpiration(newRefreshToken))
-                .build());
+	@Transactional
+	public void logout(String refreshToken) {
+		refreshTokenRepository.findByToken(refreshToken)
+			.ifPresent(refreshTokenRepository::delete);
+	}
 
-        return RefreshResponse.builder()
-                .accessToken(jwtProvider.generateAccessToken(user.getId(), user.getEmail()))
-                .refreshToken(newRefreshToken)
-                .build();
-    }
+	@Transactional
+	public void deleteAccount(Long userId, DeleteAccountRequest request) {
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 유효하지 않습니다."));
 
-    @Transactional
-    public void logout(String refreshToken) {
-        refreshTokenRepository.findByToken(refreshToken)
-                .ifPresent(refreshTokenRepository::delete);
-    }
+		if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다.");
+		}
 
-    @Transactional
-    public void deleteAccount(Long userId, DeleteAccountRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 유효하지 않습니다."));
+		refreshTokenRepository.deleteAllByUser(user);
+		userRepository.softDeleteByEmail(user.getEmail(), LocalDateTime.now());
+	}
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다.");
-        }
+	@Transactional
+	public AuthResponse verifyMagicLink(String token) {
+		Verification verification = verificationRepository.findByToken(token)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다."));
 
-        refreshTokenRepository.deleteAllByUser(user);
-        userRepository.softDeleteByEmail(user.getEmail(), LocalDateTime.now());
-    }
+		if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
+			throw new ResponseStatusException(HttpStatus.GONE, "만료된 토큰입니다.");
+		}
 
-    @Transactional
-    public AuthResponse verifyMagicLink(String token) {
-        Verification verification = verificationRepository.findByToken(token)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다."));
+		User user = verification.getUser();
+		verificationRepository.deleteByToken(token);
+		return buildAuthResponse(user);
+	}
 
-        if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.GONE, "만료된 토큰입니다.");
-        }
+	@Transactional
+	public void resetPassword(String token, String newPassword) {
+		Verification verification = verificationRepository.findByToken(token)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다."));
 
-        User user = verification.getUser();
-        verificationRepository.deleteByToken(token);
-        return buildAuthResponse(user);
-    }
+		if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
+			throw new ResponseStatusException(HttpStatus.GONE, "만료된 토큰입니다.");
+		}
 
-    @Transactional
-    public void resetPassword(String token, String newPassword) {
-        Verification verification = verificationRepository.findByToken(token)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "유효하지 않은 토큰입니다."));
+		User user = verification.getUser();
+		userRepository.updatePassword(user.getId(), passwordEncoder.encode(newPassword));
+		verificationRepository.deleteByToken(token);
+	}
 
-        if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.GONE, "만료된 토큰입니다.");
-        }
+	@Transactional
+	public void changePassword(Long userId, ChangePasswordRequest request) {
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 유효하지 않습니다."));
 
-        User user = verification.getUser();
-        userRepository.updatePassword(user.getId(), passwordEncoder.encode(newPassword));
-        verificationRepository.deleteByToken(token);
-    }
+		if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다.");
+		}
 
-    @Transactional
-    public void changePassword(Long userId, ChangePasswordRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 유효하지 않습니다."));
+		userRepository.updatePassword(userId, passwordEncoder.encode(request.getNewPassword()));
+	}
 
-        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다.");
-        }
+	private AuthResponse buildAuthResponse(User user) {
+		String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
+		String refreshToken = jwtProvider.generateRefreshToken(user.getId());
 
-        userRepository.updatePassword(userId, passwordEncoder.encode(request.getNewPassword()));
-    }
+		refreshTokenRepository.save(RefreshToken.builder()
+			.user(user)
+			.token(refreshToken)
+			.expiresAt(jwtProvider.getExpiration(refreshToken))
+			.build());
 
-    private AuthResponse buildAuthResponse(User user) {
-        String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
-        String refreshToken = jwtProvider.generateRefreshToken(user.getId());
-
-        refreshTokenRepository.save(RefreshToken.builder()
-                .user(user)
-                .token(refreshToken)
-                .expiresAt(jwtProvider.getExpiration(refreshToken))
-                .build());
-
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .userId(user.getId())
-                .email(user.getEmail())
-                .name(user.getName())
-                .build();
-    }
+		return AuthResponse.builder()
+			.accessToken(accessToken)
+			.refreshToken(refreshToken)
+			.userId(user.getId())
+			.email(user.getEmail())
+			.name(user.getName())
+			.build();
+	}
 }

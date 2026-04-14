@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ChangePasswordRequest {
 
-    @NotBlank(message = "현재 비밀번호를 입력해주세요.")
-    private String currentPassword;
+	@NotBlank(message = "현재 비밀번호를 입력해주세요.")
+	private String currentPassword;
 
-    @NotBlank(message = "새 비밀번호를 입력해주세요.")
-    private String newPassword;
+	@NotBlank(message = "새 비밀번호를 입력해주세요.")
+	private String newPassword;
 }

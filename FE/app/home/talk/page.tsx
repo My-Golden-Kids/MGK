@@ -1,10 +1,5 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState } from 'react';
-import SpeechRecognition, {
-  useSpeechRecognition,
-} from 'react-speech-recognition';
 import BackButton from '@/components/common/BackButton';
 import { Button } from '@/components/common/Button';
 import TalkBubble from '@/components/home/talk/TalkBubble';
@@ -20,6 +15,11 @@ import { fetchPet, fetchPets } from '@/features/settings/api/petSettingsApi';
 import { clientFetch } from '@/lib/auth';
 import { getStoredMedicalPetId } from '@/lib/medical-record';
 import { cancelTtsPlayback, playTts } from '@/lib/tts';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from 'react-speech-recognition';
 
 const DEFAULT_MESSAGE = '무엇이 궁금하신가요?';
 const MAX_REQUEST_TRANSCRIPT_LENGTH = 60;
