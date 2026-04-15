@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
   getPersonalizedProducts,
@@ -9,6 +8,7 @@ import type {
   ProductType,
 } from '@/features/product/types/product';
 import { formatMoney } from '@/lib/utils/formatNumber';
+import Image from 'next/image';
 
 type ProductDetailPageProps = {
   params: Promise<{ productId: string }>;
@@ -317,7 +317,7 @@ export default async function ProductDetailPage({
   const imageSrc = getProductImageSrc(product.productType);
 
   return (
-    <div className="py-6 md:py-7 lg:py-8">
+    <div className="">
       <section className="mx-auto px-6 md:px-8 lg:px-10">
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-[#CCCCCC]" />
