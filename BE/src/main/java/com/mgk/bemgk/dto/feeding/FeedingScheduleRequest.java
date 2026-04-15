@@ -1,5 +1,6 @@
 package com.mgk.bemgk.dto.feeding;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class FeedingScheduleRequest {
 
     @NotNull(message = "첫 급여 시간은 필수입니다.")
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime firstFeedTime;
 
     @NotNull(message = "하루 급여 횟수는 필수입니다.")

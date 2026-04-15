@@ -12,9 +12,13 @@ import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
 import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 import {
   createCalendarEvent,
+  createFeedingAlarm,
+  updateFeedingAlarm,
   type PendingCalendarEvent,
+  type PendingFeedingAlarm,
   type PetCandidate,
   parseCalendarIntent,
+  parseFeedingIntent,
 } from '@/features/home/talk/calendarApi';
 import { fetchPet, fetchPets } from '@/features/settings/api/petSettingsApi';
 import { clientFetch } from '@/lib/client-fetch';
@@ -209,6 +213,8 @@ function HomeTalkPageContent() {
   >(undefined);
   const [pendingCalendarEvent, setPendingCalendarEvent] =
     useState<PendingCalendarEvent | null>(null);
+  const [pendingFeedingAlarm, setPendingFeedingAlarm] =
+    useState<PendingFeedingAlarm | null>(null);
   const isTextMode = searchParams.get('mode') === 'text';
   const {
     transcript,
@@ -324,7 +330,7 @@ function HomeTalkPageContent() {
     }
 
     const calendarIntent = parseCalendarIntent(
-      requestTranscript,
+      transcript,
       pets,
       selectedPetId,
       selectedPetName,
@@ -332,6 +338,19 @@ function HomeTalkPageContent() {
 
     if (calendarIntent) {
       setPendingCalendarEvent(calendarIntent);
+      setShowMoveConfirm(true);
+      setShouldSubmit(false);
+      setAssistantMessage('');
+      return;
+    }
+
+    const feedingIntent = parseFeedingIntent(
+      transcript,
+      pets,
+    );
+
+    if (feedingIntent) {
+      setPendingFeedingAlarm(feedingIntent);
       setShowMoveConfirm(true);
       setShouldSubmit(false);
       setAssistantMessage('');
@@ -435,7 +454,7 @@ function HomeTalkPageContent() {
     }
 
     const calendarIntent = parseCalendarIntent(
-      requestTranscript,
+      textInput,
       pets,
       selectedPetId,
       selectedPetName,
@@ -443,6 +462,18 @@ function HomeTalkPageContent() {
 
     if (calendarIntent) {
       setPendingCalendarEvent(calendarIntent);
+      setShowMoveConfirm(true);
+      setAssistantMessage('');
+      return;
+    }
+
+    const feedingIntent = parseFeedingIntent(
+      textInput,
+      pets,
+    );
+
+    if (feedingIntent) {
+      setPendingFeedingAlarm(feedingIntent);
       setShowMoveConfirm(true);
       setAssistantMessage('');
       return;
@@ -501,7 +532,9 @@ function HomeTalkPageContent() {
 
   const confirmMessage = pendingCalendarEvent
     ? pendingCalendarEvent.confirmMessage
-    : buildConfirmMessage(pendingRoute);
+    : pendingFeedingAlarm
+      ? pendingFeedingAlarm.confirmMessage
+      : buildConfirmMessage(pendingRoute);
   const bubbleMessage = !isClient
     ? DEFAULT_MESSAGE
     : isTextMode
@@ -632,6 +665,48 @@ function HomeTalkPageContent() {
                   return;
                 }
 
+                if (pendingFeedingAlarm) {
+                  setShowMoveConfirm(false);
+                  setIsRequesting(true);
+
+                  if (pendingFeedingAlarm.isUpdate) {
+                    const result = await updateFeedingAlarm(pendingFeedingAlarm);
+                    setPendingFeedingAlarm(null);
+                    setIsRequesting(false);
+                    setAssistantMessage(
+                      result.ok
+                        ? '사료 알람이 변경되었어요.'
+                        : (result.errorMessage ?? '사료 알람 변경에 실패했어요.'),
+                    );
+                  } else {
+                    const result = await createFeedingAlarm(pendingFeedingAlarm);
+                    setIsRequesting(false);
+
+                    if (result.conflictTargets) {
+                      const ct = result.conflictTargets;
+                      const petDisplay =
+                        ct.length === 1
+                          ? `${ct[0]!.petName}`
+                          : `${ct.length}마리`;
+                      setPendingFeedingAlarm({
+                        ...pendingFeedingAlarm,
+                        targets: ct,
+                        confirmMessage: `${petDisplay}의 사료 알람이 이미 있어요. 새로 바꿀까요?`,
+                        isUpdate: true,
+                      });
+                      setShowMoveConfirm(true);
+                    } else {
+                      setPendingFeedingAlarm(null);
+                      setAssistantMessage(
+                        result.ok
+                          ? '사료 알람이 등록되었어요.'
+                          : (result.errorMessage ?? '사료 알람 등록에 실패했어요.'),
+                      );
+                    }
+                  }
+                  return;
+                }
+
                 if (pendingRoute) {
                   router.push(pendingRoute);
                   return;
@@ -643,6 +718,7 @@ function HomeTalkPageContent() {
                 setShowMoveConfirm(false);
                 setPendingRoute(null);
                 setPendingCalendarEvent(null);
+                setPendingFeedingAlarm(null);
                 setAssistantMessage('');
                 if (isTextMode) {
                   setRequestedTranscript('');

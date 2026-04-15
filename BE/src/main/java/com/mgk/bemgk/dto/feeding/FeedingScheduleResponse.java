@@ -1,5 +1,6 @@
 package com.mgk.bemgk.dto.feeding;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.mgk.bemgk.entity.FeedingSchedule;
 import java.time.LocalTime;
 import java.util.List;
@@ -12,10 +13,12 @@ public class FeedingScheduleResponse {
 
     private Long petId;
     private String petName;
+    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime firstFeedTime;
     private Integer mealsPerDay;
     private Integer customAmountG;     // null 이면 기본값 사용 중
     private Integer perMealAmountG;    // 실제 1회 급여량 (custom or 계산값)
+    @JsonFormat(pattern = "HH:mm:ss")
     private List<LocalTime> feedTimes; // 계산된 급여 시간 목록
 
     public static FeedingScheduleResponse of(FeedingSchedule schedule, int perMealAmountG, List<LocalTime> feedTimes) {
