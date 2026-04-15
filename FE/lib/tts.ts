@@ -123,19 +123,64 @@ export async function playTts(text: string, options: PlayTtsOptions = {}) {
       activeObjectUrl = objectUrl;
       activeAudio = audio;
 
-      const playbackCompleted = new Promise<void>((resolve, reject) => {
-        audio.onended = () => {
+      await new Promise<void>((resolve, reject) => {
+        let settled = false;
+
+        const finish = () => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
           resolve();
         };
-        audio.onerror = () => {
-          reject(new Error('Audio playback failed.'));
-        };
-      });
 
-      await audio.play();
-      options.onStart?.();
-      await playbackCompleted;
-      options.onEnd?.();
+        const fail = (error: Error) => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          reject(error);
+        };
+
+        audio.onended = () => {
+          options.onEnd?.();
+          finish();
+        };
+
+        audio.onerror = () => {
+          if (requestController.signal.aborted) {
+            finish();
+            return;
+          }
+
+          fail(new Error('Audio playback failed.'));
+        };
+
+        void audio.play().then(
+          () => {
+            if (requestController.signal.aborted) {
+              finish();
+              return;
+            }
+
+            options.onStart?.();
+          },
+          (error: unknown) => {
+            if (requestController.signal.aborted) {
+              finish();
+              return;
+            }
+
+            fail(
+              error instanceof Error
+                ? error
+                : new Error('Audio playback failed.'),
+            );
+          },
+        );
+      });
       return;
     } catch {
       await playBrowserTts(normalizedText, options);
