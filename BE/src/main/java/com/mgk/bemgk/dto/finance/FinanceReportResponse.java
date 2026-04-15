@@ -17,5 +17,9 @@ public class FinanceReportResponse {
 
 	private BigDecimal totalAsset;
 
+	private FinanceExpenseCategoryResponse dominantCategory;
+
+	private FinanceExpenseCategoryResponse expenseCategory;
+
 	private ProductPersonalizedReportResponse recommendedProduct;
 }

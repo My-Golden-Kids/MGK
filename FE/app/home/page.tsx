@@ -282,30 +282,32 @@ export default function HomePage() {
         </header>
 
         <div className="flex flex-1 flex-col px-8 py-4">
-          {(shouldShowPromptBubble || shouldShowScheduleBubble) && (
-            <section className="px-6">
-              {shouldShowPromptBubble && (
-                <HomePromptBubble
-                  message={`주인님! 저에 대해\n더 알려주세요!`}
-                  showAnswerButtons={true}
-                  onYesClick={() => router.push('/onboarding/7')}
-                  onNoClick={() => setShowBubble(false)}
-                  yesLabel="O"
-                  noLabel="X"
-                />
-              )}
-              {shouldShowScheduleBubble && (
-                <HomeScheduleBubble
-                  messages={scheduleBubbles.map((b) => b.message)}
-                  currentIndex={scheduleBubbleIndex}
-                  onDismiss={() => {
-                    scheduleBubbles[scheduleBubbleIndex]?.onDismiss();
-                    setScheduleBubbleIndex((i) => i + 1);
-                  }}
-                />
-              )}
-            </section>
-          )}
+          <section className="px-6 lg:min-h-[206px]">
+            {(shouldShowPromptBubble || shouldShowScheduleBubble) && (
+              <>
+                {shouldShowPromptBubble && (
+                  <HomePromptBubble
+                    message={`주인님! 저에 대해\n더 알려주세요!`}
+                    showAnswerButtons={true}
+                    onYesClick={() => router.push('/onboarding/7')}
+                    onNoClick={() => setShowBubble(false)}
+                    yesLabel="O"
+                    noLabel="X"
+                  />
+                )}
+                {shouldShowScheduleBubble && (
+                  <HomeScheduleBubble
+                    messages={scheduleBubbles.map((b) => b.message)}
+                    currentIndex={scheduleBubbleIndex}
+                    onDismiss={() => {
+                      scheduleBubbles[scheduleBubbleIndex]?.onDismiss();
+                      setScheduleBubbleIndex((i) => i + 1);
+                    }}
+                  />
+                )}
+              </>
+            )}
+          </section>
 
           <div className="mt-auto flex flex-col gap-4">
             <section>
@@ -315,7 +317,7 @@ export default function HomePage() {
                 onChange={setSelectedPetId}
                 onSelectedClick={handleTalkClick}
               />
-              <div className="min-h-[34px] lg:min-h-[40px]">
+              <div>
                 {selectedPet ? (
                   <p className="text-center font-extrabold text-[28px] text-black leading-none">
                     {selectedPet.name}
@@ -326,7 +328,7 @@ export default function HomePage() {
                   </div>
                 ) : null}
               </div>
-              <div className="min-h-[24px]">
+              <div className={isPetsLoading ? 'min-h-[24px]' : undefined}>
                 {isPetsLoading ? (
                   <p className="text-center font-medium text-[#66706D] text-[16px]">
                     반려동물 정보를 불러오는 중이에요.

@@ -51,7 +51,15 @@ export default function FinanceReportPage() {
   const totalPetCost = report?.totalPetCost ?? 0;
   const retirementPercent = report?.retirementPercent ?? 0;
   const averageExpense = report?.averageExpense ?? 0;
+  const dominantCategory = report?.dominantCategory;
   const recommendedProduct = report?.recommendedProduct;
+  const dominantPercent = dominantCategory?.percent ?? 0;
+  const dominantCategoryText =
+    dominantCategory?.category === 'Hospital'
+      ? '의료비'
+      : dominantCategory?.category === 'Food'
+        ? '식비'
+        : '기타';
 
   const safeMonthlyData =
     monthlyData.length > 0 ? monthlyData : createEmptyMonthlyData();
@@ -148,25 +156,36 @@ export default function FinanceReportPage() {
 
           <section className="mt-3 grid grid-cols-2 gap-3 md:mt-3.5 md:gap-3.5 lg:mt-4 lg:gap-4">
             {recommendedProduct && (
-              <article className="mt-3 rounded-[12px] border border-[#C4C4C4] bg-white p-3">
-                <h2 className="font-bold text-[20px]">
-                  지금 가장 잘 맞는 상품은
-                  <br />
+              <article className="flex h-[270px] flex-col rounded-[12px] border border-[#C4C4C4] bg-white p-3 md:h-[310px] md:rounded-[16px] md:p-4 lg:h-[350px] lg:rounded-[20px] lg:p-5">
+                <h3 className="font-bold text-[20px] leading-[1.25] md:text-[24px] lg:text-[28px]">
+                  '{dominantCategoryText}' 지출{' '}
                   <span className="text-[var(--color-hana-pink)]">
-                    {recommendedProduct.productName}
+                    {dominantPercent.toFixed(0)}%
                   </span>
-                  이에요
-                </h2>
+                  <br />
+                  미리 대비해요
+                </h3>
 
-                <p className="mt-3 whitespace-pre-line text-[#555] text-[14px]">
-                  {recommendedProduct.personalizedReport}
-                </p>
+                <div className="mt-3 flex flex-1 items-center justify-center">
+                  <div
+                    className="relative h-[110px] w-[110px] rounded-full md:h-[130px] md:w-[130px] lg:h-[150px] lg:w-[150px]"
+                    style={{
+                      background: `conic-gradient(#4BC0BE 0deg ${
+                        Math.min(Math.max(dominantPercent, 0), 100) * 3.6
+                      }deg, #EDEDED ${
+                        Math.min(Math.max(dominantPercent, 0), 100) * 3.6
+                      }deg 360deg)`,
+                    }}
+                  />
+                </div>
 
                 <Link
                   href={`/product/${recommendedProduct.productId}`}
-                  className="mt-5 block text-[18px]"
+                  className="m-auto block pt-3 text-[18px] md:text-[22px] lg:text-[26px]"
                 >
-                  상품 보러가기 &gt;
+                  {recommendedProduct.productName === '하나 펫사랑보험'
+                    ? '펫보험 알아보기 >'
+                    : `${recommendedProduct.productName} 알아보기 >`}
                 </Link>
               </article>
             )}
@@ -179,27 +198,27 @@ export default function FinanceReportPage() {
 
               <div className="mt-1 flex flex-1 items-center justify-center md:mt-4 lg:mt-5">
                 <svg
-                  viewBox="0 0 220 220"
-                  className="h-[150px] w-[130px] md:h-[170px] md:w-[150px] lg:h-[190px] lg:w-[170px]"
+                  viewBox="0 0 200 200"
+                  className="h-[160px] w-[140px] md:h-[180px] md:w-[160px] lg:h-[200px] lg:w-[180px]"
                   aria-hidden="true"
                 >
                   <line
-                    x1="15"
-                    y1="80"
-                    x2="205"
-                    y2="80"
+                    x1="0"
+                    y1="60"
+                    x2="200"
+                    y2="60"
                     stroke="var(--color-pastel-blue)"
                     strokeWidth="2.5"
                     strokeDasharray="4 5"
                   />
 
                   <polygon
-                    points="110,40 20,190 200,190"
+                    points="100,20 5,190 195,190"
                     fill="var(--color-main-green)"
                   />
 
                   <polygon
-                    points="110,40 86,80 134,80"
+                    points="100,20 77,59 122,59"
                     fill="var(--color-mint-green)"
                   />
                 </svg>
@@ -208,7 +227,7 @@ export default function FinanceReportPage() {
               <button
                 type="button"
                 onClick={() => setIsBadgeModalOpen(true)}
-                className="mt-5 block w-full text-center text-[18px] md:mt-6 md:text-[22px] lg:mt-7 lg:text-[26px]"
+                className="m-auto block text-[18px] md:text-[22px] lg:text-[26px]"
               >
                 뱃지 받기 &gt;
               </button>
@@ -227,9 +246,11 @@ export default function FinanceReportPage() {
                 <span className="text-[var(--color-hana-pink)]">10%</span>
               </h2>
 
-              <p className="mt-4 text-center font-bold text-[22px] md:mt-5 md:text-[26px] lg:mt-6 lg:text-[30px]">
+              <p className="mt-4 text-center font-semibold text-[22px] md:mt-5 md:text-[26px] lg:mt-6 lg:text-[30px]">
                 우리동네 산책
-                <span className="text-[var(--color-main-green)]">영웅</span>
+                <span className="font-bold text-[var(--color-main-green)]">
+                  영웅
+                </span>
               </p>
 
               <div className="relative mt-6 flex justify-center md:mt-7 lg:mt-8">
@@ -268,7 +289,7 @@ export default function FinanceReportPage() {
                 </div>
               </div>
 
-              <p className="mt-3 text-center font-bold text-[22px] md:mt-4 md:text-[26px] lg:mt-5 lg:text-[30px]">
+              <p className="mt-3 text-center font-semibold text-[22px] md:mt-4 md:text-[26px] lg:mt-5 lg:text-[30px]">
                 당신의 성취를 공유해보세요!
               </p>
 
