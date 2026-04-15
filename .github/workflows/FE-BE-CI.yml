@@ -67,7 +67,6 @@ jobs:
 
       - name: Verify OCR key JSON on EC2
         run: |
-          ssh ec2-user@${{ secrets.WAS_HOST }} "sed -n '1,20p' /home/ec2-user/workspace/MGK/BE/secrets/vision-key.json"
           ssh ec2-user@${{ secrets.WAS_HOST }} "python3 -m json.tool /home/ec2-user/workspace/MGK/BE/secrets/vision-key.json > /dev/null"
 
       - name: Restart services on EC2
