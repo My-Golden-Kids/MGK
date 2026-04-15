@@ -261,14 +261,15 @@ export default function HomePage() {
         <header className="flex h-10 shrink-0 items-center justify-between px-8 py-6">
           <Link
             href="/home/coupon"
-            className="z-10 flex h-10 w-10 items-center justify-center rounded-full transition-transform hover:scale-105"
+            className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full transition-transform hover:scale-105"
             aria-label="쿠폰 페이지로 이동"
           >
             <Image
               src="/images/home/coupon.png"
               alt="쿠폰"
-              width={40}
-              height={40}
+              fill
+              sizes="40px"
+              className="object-contain"
               priority
             />
           </Link>
