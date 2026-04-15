@@ -44,12 +44,17 @@ public class TalkService {
 	private final MedicalDocumentRepository medicalDocumentRepository;
 	private final PetWalkRecordRepository petWalkRecordRepository;
 	private final AverageMedicalCostService averageMedicalCostService;
+	private final FutureMedicalCostService futureMedicalCostService;
 
 	public TalkResponse ask(String transcript, Long petId) {
 		String normalizedTranscript = transcript.replaceAll(" ", "");
 
 		if (averageMedicalCostService.isAverageCostQuery(transcript)) {
 			return answerAverageMedicalCostQuery(petId, transcript);
+		}
+
+		if (futureMedicalCostService.isFutureMedicalCostQuery(transcript)) {
+			return answerFutureMedicalCostQuery(petId);
 		}
 
 		if (isWalkQuery(normalizedTranscript)) {
@@ -102,6 +107,20 @@ public class TalkService {
 			}
 
 			return new TalkResponse("평균 진료비 정보를 찾을 수 없어요.");
+		}
+	}
+
+	private TalkResponse answerFutureMedicalCostQuery(Long petId) {
+		try {
+			return new TalkResponse(futureMedicalCostService.answer(petId));
+		} catch (ResponseStatusException exception) {
+			String reason = exception.getReason();
+
+			if (reason != null && !reason.isBlank()) {
+				return new TalkResponse(reason);
+			}
+
+			return new TalkResponse("미래 병원비 예측 정보를 준비할 수 없어요.");
 		}
 	}
 
