@@ -61,7 +61,7 @@ jobs:
           scp FE/.env ec2-user@${{ secrets.WAS_HOST }}:/home/ec2-user/workspace/MGK/FE/.env
 
           ssh ec2-user@${{ secrets.WAS_HOST }} "mkdir -p /home/ec2-user/workspace/MGK/BE/secrets"
-          printf '%s' "${{ secrets.OCR_KEY_JSON }}" > /tmp/vision-key.json
+          printf '%s' "${{ secrets.OCR_KEY_JSON_B64 }}" | base64 -d > /tmp/vision-key.json
           python3 -m json.tool /tmp/vision-key.json > /dev/null
           scp /tmp/vision-key.json ec2-user@${{ secrets.WAS_HOST }}:/home/ec2-user/workspace/MGK/BE/secrets/vision-key.json
           ssh ec2-user@${{ secrets.WAS_HOST }} "chmod 600 /home/ec2-user/workspace/MGK/BE/secrets/vision-key.json"
