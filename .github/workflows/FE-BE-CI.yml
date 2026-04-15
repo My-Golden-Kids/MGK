@@ -33,12 +33,6 @@ jobs:
           mkdir -p src/main/resources
           printf '%s' "${{ secrets.SECURITY_YML }}" > src/main/resources/security.yml
 
-      - name: Verify injected security.yml
-        working-directory: BE
-        run: |
-          ls -l src/main/resources/security.yml
-          sed -n '1,120p' src/main/resources/security.yml
-
       - name: Build BE jar
         working-directory: BE
         run: |
