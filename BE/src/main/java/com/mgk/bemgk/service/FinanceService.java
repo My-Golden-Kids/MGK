@@ -179,8 +179,22 @@ public class FinanceService {
                     + toCurrencyText(recommendedProduct.getEstimatedMonthlyBenefit()) + " 정도 절약하실 수 있어요.";
             case SAVINGS -> recommendedProduct.getProductName() + "에 가입하시면 매년 약 "
                     + toCurrencyText(recommendedProduct.getEstimatedAnnualBenefit()) + "의 이자를 받아보실 수 있어요.";
-            case PET_FOREST -> "펫포레스트와 함께 마지막 순간을 미리 준비해보세요.";
+            case PET_FOREST -> buildPetForestHomeHint(recommendedProduct.getPersonalizedReport());
         };
+    }
+
+    private String buildPetForestHomeHint(String personalizedReport) {
+        if (personalizedReport != null) {
+            int nameEndIndex = personalizedReport.indexOf("의 마지막 순간");
+            if (nameEndIndex > 0) {
+                String petName = personalizedReport.substring(0, nameEndIndex).trim();
+                if (!petName.isBlank() && !"반려동물".equals(petName)) {
+                    return "우리 " + petName + "와의 마지막 순간을 펫포레스트와 함께 준비해보세요.";
+                }
+            }
+        }
+
+        return "우리 아이와의 마지막 순간을 펫포레스트와 함께 준비해보세요.";
     }
 
     private BigDecimal sumAmount(List<AccountBook> accountBooks) {

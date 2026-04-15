@@ -56,6 +56,26 @@ function mapHomeSpendingSummary(
   };
 }
 
+function renderSavingsHint(text: string) {
+  const matchedAmount = text.match(/(\d[\d,]*(?:\.\d+)?(?:원|만원|%))/);
+
+  if (!matchedAmount || matchedAmount.index == null) {
+    return text;
+  }
+
+  const startIndex = matchedAmount.index;
+  const amountText = matchedAmount[0];
+  const endIndex = startIndex + amountText.length;
+
+  return (
+    <>
+      {text.slice(0, startIndex)}
+      <span className="font-extrabold text-[#DB1F26]">{amountText}</span>
+      {text.slice(endIndex)}
+    </>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [pets, setPets] = useState<Pet[]>([]);
@@ -405,7 +425,7 @@ export default function HomePage() {
                 </p>
 
                 <p className="mb-5 text-[16px] leading-tight md:text-[18px] lg:text-[20px]">
-                  {spendingData.savingsHint}
+                  {renderSavingsHint(spendingData.savingsHint)}
                 </p>
 
                 <button
