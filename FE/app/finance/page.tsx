@@ -349,7 +349,7 @@ export default function FinancePage() {
                 {getPetForestBannerText(recommendedProduct.personalizedReport)}
               </p>
             ) : (
-              <p className="font-bold text-[18px] text-[var(--color-main-green)] md:text-[22px] lg:text-[26px]">
+              <p className="font-bold text-[17px] text-[var(--color-main-green)] md:text-[21px] lg:text-[25px]">
                 <span className="text-[#DB1F26]">
                   {recommendedProduct.productName}
                 </span>
