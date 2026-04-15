@@ -3,6 +3,7 @@ TRUNCATE TABLE account_books;
 TRUNCATE TABLE accounts;
 TRUNCATE TABLE pet_walk_records;
 TRUNCATE TABLE pets;
+TRUNCATE TABLE refresh_tokens;
 TRUNCATE TABLE users;
 TRUNCATE TABLE products;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -172,3 +173,250 @@ INSERT IGNORE INTO pet_walk_records
 SELECT p.id, 'SEED_20260406_1500', '2026-04-06 15:00:00', 6000, 2400, 4.3, 2, TRUE, 'COMPLETED', '2026-04-06 15:00:00', '2026-04-06 15:40:00', '2026-04-06 15:00:00', '2026-04-06 15:40:00'
 FROM pets p JOIN users u ON p.user_id = u.id
 WHERE u.email = 'th2gr22n@gmail.com' AND p.name = '돌';
+
+-- ──────────────────────────────────────────
+-- 테스트 더미 유저 1: seonu.kim.kr@gmail.com
+-- ──────────────────────────────────────────
+
+-- 유저 추가
+INSERT IGNORE INTO users
+(name, email, password, email_verified_at, deleted_at, created_at, updated_at)
+VALUES
+    ('김선우', 'seonu.kim.kr@gmail.com', '$2a$10$yTtoIV74eLKVOpsvCAxQy.LD4/m2EUD4VWoiYn3zTkqg0eAE281XK', NULL, NULL, NOW(), NOW());
+
+-- 펫 6마리 추가 (알람 시작 시간 6~11시, 네끼씩)
+INSERT INTO pets
+(user_id, name, species, image, age, size, walk_count, walk_time, last_walk_at, eat_meal, created_at, updated_at)
+SELECT u.id, '코코', '강아지', NULL, 2, '소형', 0, 0, NULL, 'NO', NOW(), NOW()
+FROM users u
+WHERE u.email = 'seonu.kim.kr@gmail.com'
+  AND NOT EXISTS (SELECT 1 FROM pets WHERE user_id = u.id AND name = '코코');
+
+INSERT INTO pets
+(user_id, name, species, image, age, size, walk_count, walk_time, last_walk_at, eat_meal, created_at, updated_at)
+SELECT u.id, '몽이', '강아지', NULL, 3, '소형', 0, 0, NULL, 'NO', NOW(), NOW()
+FROM users u
+WHERE u.email = 'seonu.kim.kr@gmail.com'
+  AND NOT EXISTS (SELECT 1 FROM pets WHERE user_id = u.id AND name = '몽이');
+
+INSERT INTO pets
+(user_id, name, species, image, age, size, walk_count, walk_time, last_walk_at, eat_meal, created_at, updated_at)
+SELECT u.id, '솜이', '고양이', NULL, 1, '소형', 0, 0, NULL, 'NO', NOW(), NOW()
+FROM users u
+WHERE u.email = 'seonu.kim.kr@gmail.com'
+  AND NOT EXISTS (SELECT 1 FROM pets WHERE user_id = u.id AND name = '솜이');
+
+INSERT INTO pets
+(user_id, name, species, image, age, size, walk_count, walk_time, last_walk_at, eat_meal, created_at, updated_at)
+SELECT u.id, '해피', '강아지', NULL, 4, '중형', 0, 0, NULL, 'NO', NOW(), NOW()
+FROM users u
+WHERE u.email = 'seonu.kim.kr@gmail.com'
+  AND NOT EXISTS (SELECT 1 FROM pets WHERE user_id = u.id AND name = '해피');
+
+INSERT INTO pets
+(user_id, name, species, image, age, size, walk_count, walk_time, last_walk_at, eat_meal, created_at, updated_at)
+SELECT u.id, '두부', '고양이', NULL, 2, '소형', 0, 0, NULL, 'NO', NOW(), NOW()
+FROM users u
+WHERE u.email = 'seonu.kim.kr@gmail.com'
+  AND NOT EXISTS (SELECT 1 FROM pets WHERE user_id = u.id AND name = '두부');
+
+INSERT INTO pets
+(user_id, name, species, image, age, size, walk_count, walk_time, last_walk_at, eat_meal, created_at, updated_at)
+SELECT u.id, '보리', '강아지', NULL, 3, '중형', 0, 0, NULL, 'NO', NOW(), NOW()
+FROM users u
+WHERE u.email = 'seonu.kim.kr@gmail.com'
+  AND NOT EXISTS (SELECT 1 FROM pets WHERE user_id = u.id AND name = '보리');
+
+-- 사료 알람 설정 (네끼, 6시간 간격, 시작 시간 각각 다름)
+INSERT INTO feeding_schedules
+(pet_id, first_feed_time, meals_per_day, custom_amount_g, created_at, updated_at)
+SELECT p.id, '06:00:00', 4, NULL, NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '코코'
+  AND NOT EXISTS (SELECT 1 FROM feeding_schedules fs WHERE fs.pet_id = p.id);
+
+INSERT INTO feeding_schedules
+(pet_id, first_feed_time, meals_per_day, custom_amount_g, created_at, updated_at)
+SELECT p.id, '07:00:00', 4, NULL, NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '몽이'
+  AND NOT EXISTS (SELECT 1 FROM feeding_schedules fs WHERE fs.pet_id = p.id);
+
+INSERT INTO feeding_schedules
+(pet_id, first_feed_time, meals_per_day, custom_amount_g, created_at, updated_at)
+SELECT p.id, '08:00:00', 4, NULL, NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '솜이'
+  AND NOT EXISTS (SELECT 1 FROM feeding_schedules fs WHERE fs.pet_id = p.id);
+
+INSERT INTO feeding_schedules
+(pet_id, first_feed_time, meals_per_day, custom_amount_g, created_at, updated_at)
+SELECT p.id, '09:00:00', 4, NULL, NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '해피'
+  AND NOT EXISTS (SELECT 1 FROM feeding_schedules fs WHERE fs.pet_id = p.id);
+
+INSERT INTO feeding_schedules
+(pet_id, first_feed_time, meals_per_day, custom_amount_g, created_at, updated_at)
+SELECT p.id, '10:00:00', 4, NULL, NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '두부'
+  AND NOT EXISTS (SELECT 1 FROM feeding_schedules fs WHERE fs.pet_id = p.id);
+
+INSERT INTO feeding_schedules
+(pet_id, first_feed_time, meals_per_day, custom_amount_g, created_at, updated_at)
+SELECT p.id, '11:00:00', 4, NULL, NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '보리'
+  AND NOT EXISTS (SELECT 1 FROM feeding_schedules fs WHERE fs.pet_id = p.id);
+
+-- ──────────────────────────────────────────
+-- 캘린더 이벤트 (4월, 접종 4개 + 검진 4개)
+-- Apr 10: 솜이 켄넬코프 접종 + 검진 (같은 날)
+-- Apr 24: 두부 광견병 접종 + 검진 (같은 날)
+-- 나머지는 각각 다른 날
+-- ──────────────────────────────────────────
+
+-- 접종 이벤트 4개
+INSERT INTO calendars
+(pet_id, name, date, memo, event_type, created_at, updated_at)
+SELECT p.id, '광견병 예방접종', '2026-04-05', '광견병 1차 접종', '접종', NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '코코'
+  AND NOT EXISTS (SELECT 1 FROM calendars c WHERE c.pet_id = p.id AND c.name = '광견병 예방접종' AND c.date = '2026-04-05');
+
+INSERT INTO calendars
+(pet_id, name, date, memo, event_type, created_at, updated_at)
+SELECT p.id, '켄넬코프 예방접종', '2026-04-10', '켄넬코프 접종', '접종', NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '솜이'
+  AND NOT EXISTS (SELECT 1 FROM calendars c WHERE c.pet_id = p.id AND c.name = '켄넬코프 예방접종' AND c.date = '2026-04-10');
+
+INSERT INTO calendars
+(pet_id, name, date, memo, event_type, created_at, updated_at)
+SELECT p.id, '종합백신 예방접종', '2026-04-18', '종합백신 접종', '접종', NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '해피'
+  AND NOT EXISTS (SELECT 1 FROM calendars c WHERE c.pet_id = p.id AND c.name = '종합백신 예방접종' AND c.date = '2026-04-18');
+
+INSERT INTO calendars
+(pet_id, name, date, memo, event_type, created_at, updated_at)
+SELECT p.id, '광견병 예방접종', '2026-04-24', '광견병 접종', '접종', NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '두부'
+  AND NOT EXISTS (SELECT 1 FROM calendars c WHERE c.pet_id = p.id AND c.name = '광견병 예방접종' AND c.date = '2026-04-24');
+
+-- 검진 이벤트 4개 (Apr 10 솜이, Apr 24 두부는 접종과 같은 날)
+INSERT INTO calendars
+(pet_id, name, date, memo, event_type, created_at, updated_at)
+SELECT p.id, '정기 건강검진', '2026-04-08', '정기 건강검진', '검진', NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '몽이'
+  AND NOT EXISTS (SELECT 1 FROM calendars c WHERE c.pet_id = p.id AND c.name = '정기 건강검진' AND c.date = '2026-04-08');
+
+INSERT INTO calendars
+(pet_id, name, date, memo, event_type, created_at, updated_at)
+SELECT p.id, '정기 건강검진', '2026-04-10', '접종 당일 검진', '검진', NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '솜이'
+  AND NOT EXISTS (SELECT 1 FROM calendars c WHERE c.pet_id = p.id AND c.name = '정기 건강검진' AND c.date = '2026-04-10');
+
+INSERT INTO calendars
+(pet_id, name, date, memo, event_type, created_at, updated_at)
+SELECT p.id, '정기 건강검진', '2026-04-20', '정기 건강검진', '검진', NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '코코'
+  AND NOT EXISTS (SELECT 1 FROM calendars c WHERE c.pet_id = p.id AND c.name = '정기 건강검진' AND c.date = '2026-04-20');
+
+INSERT INTO calendars
+(pet_id, name, date, memo, event_type, created_at, updated_at)
+SELECT p.id, '정기 건강검진', '2026-04-24', '접종 당일 검진', '검진', NOW(), NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '두부'
+  AND NOT EXISTS (SELECT 1 FROM calendars c WHERE c.pet_id = p.id AND c.name = '정기 건강검진' AND c.date = '2026-04-24');
+
+-- ──────────────────────────────────────────
+-- 메디컬 도큐먼트 시드 데이터 (이미지 없음)
+-- 접종: 기본 진료비 / 해당 예방접종 / 처방약 7일분
+-- 검진: 기본 진료비 / 검사 항목
+-- ──────────────────────────────────────────
+
+-- 코코 광견병 접종 (Apr 5)
+INSERT INTO medical_documents
+(pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
+SELECT p.id, '코코', '2026-04-05', 'VACCINATION', '행복동물병원',
+       '기본 진료비 15,000원 / 광견병 예방접종 30,000원 / 처방약 7일분 21,000원',
+       66000, NULL, NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '코코'
+  AND NOT EXISTS (SELECT 1 FROM medical_documents md WHERE md.pet_id = p.id AND md.date = '2026-04-05' AND md.type = 'VACCINATION');
+
+-- 솜이 켄넬코프 접종 (Apr 10)
+INSERT INTO medical_documents
+(pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
+SELECT p.id, '솜이', '2026-04-10', 'VACCINATION', '행복동물병원',
+       '기본 진료비 15,000원 / 켄넬코프 예방접종 25,000원 / 처방약 7일분 21,000원',
+       61000, NULL, NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '솜이'
+  AND NOT EXISTS (SELECT 1 FROM medical_documents md WHERE md.pet_id = p.id AND md.date = '2026-04-10' AND md.type = 'VACCINATION');
+
+-- 솜이 검진 (Apr 10, 접종 당일)
+INSERT INTO medical_documents
+(pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
+SELECT p.id, '솜이', '2026-04-10', 'CHECKUP', '행복동물병원',
+       '기본 진료비 15,000원 / 청진 및 촉진 검사 10,000원',
+       25000, NULL, NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '솜이'
+  AND NOT EXISTS (SELECT 1 FROM medical_documents md WHERE md.pet_id = p.id AND md.date = '2026-04-10' AND md.type = 'CHECKUP');
+
+-- 몽이 검진 (Apr 8)
+INSERT INTO medical_documents
+(pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
+SELECT p.id, '몽이', '2026-04-08', 'CHECKUP', '사랑동물병원',
+       '기본 진료비 15,000원 / 혈액검사 30,000원',
+       45000, NULL, NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '몽이'
+  AND NOT EXISTS (SELECT 1 FROM medical_documents md WHERE md.pet_id = p.id AND md.date = '2026-04-08' AND md.type = 'CHECKUP');
+
+-- 해피 종합백신 접종 (Apr 18)
+INSERT INTO medical_documents
+(pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
+SELECT p.id, '해피', '2026-04-18', 'VACCINATION', '사랑동물병원',
+       '기본 진료비 15,000원 / 종합백신 예방접종 40,000원 / 처방약 7일분 21,000원',
+       76000, NULL, NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '해피'
+  AND NOT EXISTS (SELECT 1 FROM medical_documents md WHERE md.pet_id = p.id AND md.date = '2026-04-18' AND md.type = 'VACCINATION');
+
+-- 코코 검진 (Apr 20)
+INSERT INTO medical_documents
+(pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
+SELECT p.id, '코코', '2026-04-20', 'CHECKUP', '행복동물병원',
+       '기본 진료비 15,000원 / 정기 건강검진 20,000원',
+       35000, NULL, NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '코코'
+  AND NOT EXISTS (SELECT 1 FROM medical_documents md WHERE md.pet_id = p.id AND md.date = '2026-04-20' AND md.type = 'CHECKUP');
+
+-- 두부 광견병 접종 (Apr 24)
+INSERT INTO medical_documents
+(pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
+SELECT p.id, '두부', '2026-04-24', 'VACCINATION', '사랑동물병원',
+       '기본 진료비 15,000원 / 광견병 예방접종 30,000원 / 처방약 7일분 21,000원',
+       66000, NULL, NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '두부'
+  AND NOT EXISTS (SELECT 1 FROM medical_documents md WHERE md.pet_id = p.id AND md.date = '2026-04-24' AND md.type = 'VACCINATION');
+
+-- 두부 검진 (Apr 24, 접종 당일)
+INSERT INTO medical_documents
+(pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
+SELECT p.id, '두부', '2026-04-24', 'CHECKUP', '사랑동물병원',
+       '기본 진료비 15,000원 / 혈액검사 30,000원',
+       45000, NULL, NOW()
+FROM pets p JOIN users u ON p.user_id = u.id
+WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '두부'
+  AND NOT EXISTS (SELECT 1 FROM medical_documents md WHERE md.pet_id = p.id AND md.date = '2026-04-24' AND md.type = 'CHECKUP');
