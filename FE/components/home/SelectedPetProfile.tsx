@@ -157,7 +157,7 @@ export default function SelectedPetProfile({
 
   if (!isPets.length) {
     return (
-      <section className="w-full">
+      <section className="w-full overflow-visible">
         <div className="flex h-[250px] items-center justify-center md:h-[290px] lg:h-[340px]">
           <PetProfileImage
             onClick={() => onSelectedClick?.(0)}
@@ -171,9 +171,9 @@ export default function SelectedPetProfile({
   if (selectedIndex < 0) return null;
 
   return (
-    <section className="w-full">
+    <section className="w-full overflow-visible">
       <div
-        className="relative mx-auto h-[250px] w-full overflow-hidden md:h-[290px] lg:h-[340px]"
+        className="relative mx-auto h-[250px] w-full overflow-visible md:h-[290px] lg:h-[340px]"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
