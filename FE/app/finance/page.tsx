@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
+import { getFinanceRetirementReport } from '@/features/finance/api/financeReportApi';
+import type { FinanceRetirementReport } from '@/features/finance/types/financeReport';
 import { clientFetch } from '@/lib/client-fetch';
 
 type FinanceDashboardResponse = {
@@ -90,11 +92,56 @@ function getMonthDate(baseDate: Date, offset: number) {
   return new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
 }
 
+// 펫포레스트
+function getPetForestBannerText(personalizedReport: string) {
+  const matchedName = personalizedReport.match(/^(.+?)의 마지막 순간/);
+  const petName = matchedName?.[1]?.trim();
+
+  if (petName && petName !== '반려동물') {
+    return `우리 ${petName}와의 마지막 순간을 펫포레스트와 함께 준비해보세요.`;
+  }
+
+  return '우리 아이와의 마지막 순간을 펫포레스트와 함께 준비해보세요.';
+}
+
+// 보험 카드 적금 구독
+function getGeneralRecommendationText(report: FinanceRetirementReport) {
+  const recommendedProduct = report.recommendedProduct;
+
+  if (!recommendedProduct) {
+    return '';
+  }
+
+  if (recommendedProduct.productType === 'SAVINGS') {
+    return `${parseFloat(
+      ((recommendedProduct.estimatedAnnualBenefit ?? 0) / 10000).toFixed(1),
+    )}`;
+  } else if (
+    recommendedProduct.productType === 'CARD' ||
+    recommendedProduct.productType === 'SUBSCRIPTION'
+  ) {
+    return `${formatCurrency(
+      recommendedProduct.estimatedMonthlyBenefit ?? 0,
+    )}원`;
+  }
+
+  const averageExpense = report.averageExpense ?? 0;
+  const estimatedMonthlyBenefit =
+    recommendedProduct.estimatedMonthlyBenefit ?? 0;
+  const reductionPercent =
+    averageExpense > 0
+      ? Math.round((estimatedMonthlyBenefit / averageExpense) * 100) // 월 평균 지출 대비 얼마나 절약되는지
+      : 0;
+
+  return `${reductionPercent}%`;
+}
+
 export default function FinancePage() {
   const today = useMemo(() => new Date(), []);
   const [dashboard, setDashboard] = useState<FinanceDashboardResponse | null>(
     null,
   );
+  const [report, setReport] = useState<FinanceRetirementReport | null>(null);
   const [currentSummary, setCurrentSummary] =
     useState<FinanceExpenseSummaryResponse | null>(null);
   const [previousSummary, setPreviousSummary] =
@@ -110,6 +157,7 @@ export default function FinancePage() {
           dashboardResponse,
           currentSummaryResponse,
           previousSummaryResponse,
+          financeReportResponse,
         ] = await Promise.all([
           clientFetch('/api/account-books/dashboard'),
           clientFetch(
@@ -122,6 +170,7 @@ export default function FinancePage() {
               previousMonth.getMonth() + 1
             }`,
           ),
+          getFinanceRetirementReport(),
         ]);
 
         if (dashboardResponse.ok) {
@@ -147,8 +196,11 @@ export default function FinancePage() {
         } else {
           setPreviousSummary(null);
         }
+
+        setReport(financeReportResponse);
       } catch {
         setDashboard(null);
+        setReport(null);
         setCurrentSummary(null);
         setPreviousSummary(null);
       }
@@ -172,6 +224,10 @@ export default function FinancePage() {
     previousMonthlyExpense > 0
       ? ((monthlyDiffValue / previousMonthlyExpense) * 100).toFixed(0)
       : '0';
+  const recommendedProduct = report?.recommendedProduct;
+  const recommendationValue = report
+    ? getGeneralRecommendationText(report)
+    : '';
   const summaryCards = [
     {
       label: '오늘 지출',
@@ -286,16 +342,44 @@ export default function FinancePage() {
           </div>
         </section>
 
-        <section className="m-3 text-center md:m-3.5 lg:m-4">
-          <p className="font-bold text-[18px] text-[var(--color-main-green)] md:text-[22px] lg:text-[26px]">
-            펫 케어 구독하고 지출을{' '}
-            <span className="font-extrabold text-[#DB1F26]">10%</span> 낮춰요
-          </p>
-        </section>
+        {recommendedProduct && (
+          <section className="mt-3 text-center md:mt-3.5 lg:mt-4">
+            {recommendedProduct.productType === 'PET_FOREST' ? (
+              <p className="font-bold text-[14px] text-[var(--color-main-green)] md:text-[18px] lg:text-[22px]">
+                {getPetForestBannerText(recommendedProduct.personalizedReport)}
+              </p>
+            ) : (
+              <p className="font-bold text-[18px] text-[var(--color-main-green)] md:text-[22px] lg:text-[26px]">
+                <span className="text-[#DB1F26]">
+                  {recommendedProduct.productName}
+                </span>
+                {recommendedProduct.productType === 'SAVINGS' ? (
+                  <>
+                    을 가입하고 매년{' '}
+                    <span className="text-[#DB1F26]">
+                      {recommendationValue}만원
+                    </span>
+                    을 받아보세요
+                  </>
+                ) : (
+                  <>
+                    을 가입하고 지출을{' '}
+                    <span className="text-[#DB1F26]">
+                      {recommendationValue}
+                    </span>{' '}
+                    {recommendedProduct.productType === 'INSURANCE'
+                      ? '줄여요'
+                      : '낮춰요'}
+                  </>
+                )}
+              </p>
+            )}
+          </section>
+        )}
 
         <Link
           href="/finance/report"
-          className="flex h-fit items-center justify-center rounded-[20px] bg-[var(--color-main-green)] p-3 font-bold text-[18px] text-white md:p-3.5 md:text-[22px] lg:p-4 lg:text-[26px]"
+          className="mt-3 flex h-fit items-center justify-center rounded-[20px] bg-[var(--color-main-green)] p-3 font-bold text-[18px] text-white md:mt-3.5 md:p-3.5 md:text-[22px] lg:mt-4 lg:p-4 lg:text-[26px]"
         >
           리포트 보러가기
         </Link>
