@@ -31,13 +31,24 @@ jobs:
         working-directory: BE
         run: |
           mkdir -p src/main/resources
-          echo "${{ secrets.SECURITY_YML }}" > src/main/resources/security.yml
+          printf '%s' "${{ secrets.SECURITY_YML }}" > src/main/resources/security.yml
+
+      - name: Verify injected security.yml
+        working-directory: BE
+        run: |
+          ls -l src/main/resources/security.yml
+          sed -n '1,120p' src/main/resources/security.yml
 
       - name: Build BE jar
         working-directory: BE
         run: |
           chmod +x ./gradlew
           ./gradlew clean bootJar --no-daemon
+
+      - name: Verify security.yml in jar
+        run: |
+          jar tf BE/build/libs/*.jar | grep security.yml
+          unzip -p BE/build/libs/*.jar BOOT-INF/classes/security.yml | sed -n '1,120p'
 
       - name: Build FE
         working-directory: FE
@@ -46,7 +57,7 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm exec next build --webpack
 
-      - name: Setup SSH check
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh

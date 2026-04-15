@@ -266,7 +266,7 @@ export default function PetDetailPage() {
                 >
                   나이
                 </label>
-                <div className="flex items-end gap-3 border-[#2A2A2A] border-b-2 pb-1.5">
+                <div className="flex items-end gap-3 pb-1.5">
                   <input
                     id="pet-age"
                     type="text"
@@ -275,7 +275,7 @@ export default function PetDetailPage() {
                     onChange={(event) =>
                       setAge(event.target.value.replace(/[^0-9]/g, ''))
                     }
-                    className="w-24 cursor-pointer bg-transparent font-medium text-[#222222] text-[2rem] outline-none placeholder:text-[#B2B2B2] md:w-28 md:text-[2.35rem] lg:text-[2.7rem]"
+                    className="w-24 cursor-pointer border-[#2A2A2A] border-b-2 bg-transparent font-medium text-[#222222] text-[2rem] outline-none placeholder:text-[#B2B2B2] md:w-28 md:text-[2.35rem] lg:text-[2.7rem]"
                     placeholder="0"
                   />
                   <span className="pb-1 font-medium text-[#9A9A9A] text-[1.7rem] md:text-[2rem] lg:text-[2.2rem]">
