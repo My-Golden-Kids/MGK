@@ -24,7 +24,7 @@ export type ScheduleBubble = {
 
 type AlertStore = {
   alarmHash: string;
-  dismissed: string[]; // "walk:{hour}" | "calendar:{petId}:{eventType}"
+  dismissed: string[]; // "walk:{hour}" | "calendar:{petId}:{eventType}" | "feeding:{HH:mm}"
 };
 
 type TodayCalendarEvent = {
@@ -34,10 +34,48 @@ type TodayCalendarEvent = {
   eventType: string;
 };
 
+type FeedingAlarm = {
+  petId: number;
+  petName: string;
+  feedTime: string; // "HH:mm:ss" (LocalTime)
+  amountGram: number | null; // null = species/age 정보 부족으로 계산 불가 → g 표시 생략
+};
+
 type AlarmResponse = {
   mostFrequentWalkHour: number | null;
   todayEvents: TodayCalendarEvent[];
+  feedingAlarms: FeedingAlarm[];
 };
+
+// ──────────────────────────────────────────
+// Feeding alarm helpers
+// ──────────────────────────────────────────
+
+// "HH:mm:ss" → hour(number)
+function feedTimeHour(feedTime: string): number {
+  return parseInt(feedTime.split(':')[0] ?? '0', 10);
+}
+
+// "HH:mm:ss" → "HH:mm"
+function feedTimeLabel(feedTime: string): string {
+  const parts = feedTime.split(':');
+  return `${parts[0]}:${parts[1]}`;
+}
+
+function buildFeedingMessage(pets: FeedingAlarm[]): string {
+  const timeLabel = feedTimeLabel(pets[0]!.feedTime);
+  const petNames = pets.map((p) => p.petName).join(', ');
+
+  const amounts = pets.map((p) => p.amountGram).filter((a) => a !== null);
+  const allSameAmount =
+    amounts.length === pets.length && amounts.every((a) => a === amounts[0]);
+
+  if (allSameAmount && amounts[0] != null) {
+    return `${timeLabel} ${petNames} 밥 줄 시간이에요.\n${amounts[0]}g 주세요`;
+  }
+
+  return `${timeLabel} ${petNames} 밥 줄 시간이에요.`;
+}
 
 // ──────────────────────────────────────────
 // Hash
@@ -48,6 +86,9 @@ function hashAlarm(todayStr: string, alarm: AlarmResponse): string {
     date: todayStr,
     walkHour: alarm.mostFrequentWalkHour,
     events: alarm.todayEvents.map((e) => `${e.petId}:${e.eventType}`).sort(),
+    feeding: (alarm.feedingAlarms ?? [])
+      .map((f) => `${f.petId}:${f.feedTime}`)
+      .sort(),
   });
 
   // djb2
@@ -137,7 +178,33 @@ export async function fetchScheduleBubbles(
         });
       }
     }
-  } catch {}
+
+    // ③ 밥먹기 알림 (현재 시간과 일치하는 급여 시간, feedTime 단위로 그룹화)
+    const feedingAlarms = alarm.feedingAlarms ?? [];
+    const feedingByTime = new Map<string, FeedingAlarm[]>();
+
+    for (const feeding of feedingAlarms) {
+      const hour = feedTimeHour(feeding.feedTime);
+
+      if (hour !== currentHour) continue;
+      const key = feedTimeLabel(feeding.feedTime);
+      const group = feedingByTime.get(key) ?? [];
+      group.push(feeding);
+      feedingByTime.set(key, group);
+    }
+
+    for (const [timeKey, group] of feedingByTime) {
+      const id = `feeding:${timeKey}`;
+      if (!store.dismissed.includes(id)) {
+        bubbles.push({
+          message: buildFeedingMessage(group),
+          onDismiss: () => addDismissed(id),
+        });
+      }
+    }
+  } catch (e) {
+    console.error('[alarm] error:', e);
+  }
 
   return bubbles;
 }

@@ -1,6 +1,7 @@
 package com.mgk.bemgk.service;
 
 import com.mgk.bemgk.dto.alarm.AlarmResponse;
+import com.mgk.bemgk.dto.alarm.FeedingAlarmDto;
 import com.mgk.bemgk.dto.alarm.TodayCalendarEventDto;
 import com.mgk.bemgk.entity.CalendarEvent;
 import com.mgk.bemgk.entity.PetWalkRecord;
@@ -22,6 +23,7 @@ public class AlarmService {
 
     private final PetWalkRecordRepository petWalkRecordRepository;
     private final CalendarRepository calendarRepository;
+    private final FeedingScheduleService feedingScheduleService;
     private final CurrentUserService currentUserService;
 
     public AlarmResponse getAlarms() {
@@ -37,9 +39,12 @@ public class AlarmService {
                 .map(TodayCalendarEventDto::from)
                 .toList();
 
+        List<FeedingAlarmDto> feedingAlarms = feedingScheduleService.getFeedingAlarms(userId);
+
         return AlarmResponse.builder()
                 .mostFrequentWalkHour(mostFrequentWalkHour)
                 .todayEvents(todayEvents)
+                .feedingAlarms(feedingAlarms)
                 .build();
     }
 
