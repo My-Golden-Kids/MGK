@@ -57,7 +57,7 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm exec next build --webpack
 
-      - name: Setup SSH
+      - name: Setup SSH check
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
