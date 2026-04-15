@@ -5,24 +5,20 @@ import com.mgk.bemgk.dto.finance.FinanceDashboardResponse;
 import com.mgk.bemgk.dto.finance.FinanceExpenseItemResponse;
 import com.mgk.bemgk.dto.finance.FinanceExpenseSummaryResponse;
 import com.mgk.bemgk.dto.finance.HomeSpendingSummaryResponse;
+import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
 import com.mgk.bemgk.entity.Account;
 import com.mgk.bemgk.entity.AccountBook;
 import com.mgk.bemgk.entity.AccountBookCategory;
-import com.mgk.bemgk.entity.Product;
-import com.mgk.bemgk.entity.ProductType;
 import com.mgk.bemgk.entity.User;
 import com.mgk.bemgk.repository.AccountBookRepository;
 import com.mgk.bemgk.repository.AccountRepository;
-import com.mgk.bemgk.repository.ProductRepository;
 import com.mgk.bemgk.repository.UserRepository;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,21 +35,12 @@ public class FinanceService {
             AccountBookCategory.Etc,
             AccountBookCategory.Food
     );
-    private static final Map<AccountBookCategory, String> HOME_CATEGORY_PRODUCT_LABEL = Map.of(
-            AccountBookCategory.Hospital, "보험",
-            AccountBookCategory.Etc, "적금",
-            AccountBookCategory.Food, "구독"
-    );
-    private static final String HOME_CARD_SUMMARY_SUFFIX = "이 가장 잘 맞아요";
-    private static final int DEFAULT_INSURANCE_LIMIT_COUNT = 20;
-    private static final BigDecimal DEFAULT_INSURANCE_BENEFIT_AMOUNT = BigDecimal.valueOf(100000);
     private static final BigDecimal MANWON = BigDecimal.valueOf(10000);
-    private static final String DEFAULT_SUBSCRIPTION_SAVINGS_LABEL = "1.5만원";
 
     private final AccountRepository accountRepository;
     private final AccountBookRepository accountBookRepository;
-    private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final ProductService productService;
 
     @Transactional(readOnly = true)
     public FinanceDashboardResponse getDashboard(Long userId) {
@@ -138,12 +125,14 @@ public class FinanceService {
         }
 
         AccountBookCategory category = dominantCategory.get();
+        ProductPersonalizedReportResponse recommendedProduct =
+                productService.getFeaturedPersonalizedProduct(userId);
 
         return Optional.of(HomeSpendingSummaryResponse.builder()
                 .monthlyAmount(sumAmount(monthlyExpenses))
-                .primaryCategory(HOME_CATEGORY_PRODUCT_LABEL.get(category))
-                .summary(HOME_CARD_SUMMARY_SUFFIX)
-                .savingsHint(buildHomeSavingsHint(userId, yearMonth, category, monthlyExpenses))
+                .primaryCategory(toCategoryLabel(category))
+                .summary("에서 가장 많이 사용해요.")
+                .savingsHint(buildHomeRecommendationHint(recommendedProduct))
                 .build());
     }
 
@@ -176,66 +165,22 @@ public class FinanceService {
                 : Optional.empty();
     }
 
-    private String buildHomeSavingsHint(
-            Long userId,
-            YearMonth yearMonth,
-            AccountBookCategory dominantCategory,
-            List<AccountBook> monthlyExpenses
-    ) {
-        return switch (dominantCategory) {
-            case Hospital -> buildInsuranceSavingsHint(userId, yearMonth, monthlyExpenses);
-            case Etc -> buildSavingsProductHint();
-            case Food -> "하나 펫 구독 가입하면, " + DEFAULT_SUBSCRIPTION_SAVINGS_LABEL + " 절약 가능";
-        };
-    }
-
-    private String buildInsuranceSavingsHint(
-            Long userId,
-            YearMonth yearMonth,
-            List<AccountBook> monthlyExpenses
-    ) {
-        Optional<Product> insuranceProduct = productRepository.findFirstByProductTypeAndIsActiveTrue(ProductType.INSURANCE);
-        long monthlyHospitalCount = monthlyExpenses.stream()
-                .filter(accountBook -> accountBook.getCategory() == AccountBookCategory.Hospital)
-                .count();
-        int annualLimitCount = insuranceProduct
-                .map(Product::getBenefitLimitCount)
-                .orElse(DEFAULT_INSURANCE_LIMIT_COUNT);
-        long previousHospitalCount = countHospitalExpensesBeforeMonth(userId, yearMonth);
-        long remainingCoveredCount = Math.max(annualLimitCount - previousHospitalCount, 0);
-        long coveredCount = Math.min(monthlyHospitalCount, remainingCoveredCount);
-        BigDecimal benefitAmount = insuranceProduct
-                .map(Product::getBenefitAmount)
-                .orElse(DEFAULT_INSURANCE_BENEFIT_AMOUNT);
-        BigDecimal discountManwon = benefitAmount
-                .multiply(BigDecimal.valueOf(coveredCount))
-                .divide(MANWON, 1, RoundingMode.DOWN);
-
-        return "하나 펫 보험 가입하면, " + formatDecimalText(discountManwon) + "만원 할인 가능";
-    }
-
-    private String buildSavingsProductHint() {
-        Optional<Product> savingsProduct = productRepository.findFirstByProductTypeAndIsActiveTrue(ProductType.SAVINGS);
-
-        return savingsProduct
-                .map(Product::getBenefitRate)
-                .map(rate -> "하나 펫 적금 가입하면, 연 " + formatDecimalText(rate) + "% 이자 가능")
-                .orElse("하나 펫 적금 가입하면, 이자 혜택 확인 가능");
-    }
-
-    private long countHospitalExpensesBeforeMonth(Long userId, YearMonth yearMonth) {
-        if (yearMonth.getMonthValue() == 1) {
-            return 0;
+    private String buildHomeRecommendationHint(ProductPersonalizedReportResponse recommendedProduct) {
+        if (recommendedProduct == null) {
+            return "추천 상품 정보를 준비 중이에요.";
         }
 
-        Long count = accountBookRepository.countByUserIdAndCategoryAndSpendDateTimeBetween(
-                userId,
-                AccountBookCategory.Hospital,
-                YearMonth.of(yearMonth.getYear(), 1).atDay(1).atStartOfDay(),
-                resolveMonthStart(yearMonth).minusNanos(1)
-        );
-
-        return count == null ? 0 : count;
+        return switch (recommendedProduct.getProductType()) {
+            case INSURANCE -> recommendedProduct.getProductName() + "에 가입하시면 연간 약 "
+                    + toCurrencyText(recommendedProduct.getEstimatedAnnualBenefit()) + " 정도 의료비를 아끼실 수 있어요.";
+            case CARD -> recommendedProduct.getProductName() + "를 이용하시면 매달 약 "
+                    + toCurrencyText(recommendedProduct.getEstimatedMonthlyBenefit()) + " 정도 절약하실 수 있어요.";
+            case SUBSCRIPTION -> "구독 서비스를 이용하시면 매달 약 "
+                    + toCurrencyText(recommendedProduct.getEstimatedMonthlyBenefit()) + " 정도 절약하실 수 있어요.";
+            case SAVINGS -> recommendedProduct.getProductName() + "에 가입하시면 매년 약 "
+                    + toCurrencyText(recommendedProduct.getEstimatedAnnualBenefit()) + "의 이자를 받아보실 수 있어요.";
+            case PET_FOREST -> "펫포레스트와 함께 마지막 순간을 미리 준비해보세요.";
+        };
     }
 
     private BigDecimal sumAmount(List<AccountBook> accountBooks) {
@@ -250,6 +195,31 @@ public class FinanceService {
 
     private LocalDateTime resolveMonthEnd(YearMonth yearMonth) {
         return yearMonth.plusMonths(1).atDay(1).atStartOfDay().minusNanos(1);
+    }
+
+    private String toCategoryLabel(AccountBookCategory category) {
+        return switch (category) {
+            case Hospital -> "의료비";
+            case Food -> "식비";
+            case Etc -> "기타";
+        };
+    }
+
+    private String toManwonText(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return "0원";
+        }
+
+        BigDecimal manwon = amount.divide(MANWON, 1, java.math.RoundingMode.DOWN);
+        return formatDecimalText(manwon) + "만원";
+    }
+
+    private String toCurrencyText(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return "0원";
+        }
+
+        return String.format("%,d원", amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue());
     }
 
     private String formatDecimalText(BigDecimal value) {
