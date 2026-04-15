@@ -218,7 +218,7 @@ export default function FinanceReportPage() {
                   />
 
                   <polygon
-                    points="100,20 77,59 122,59"
+                    points="100,20 78,59 122,59"
                     fill="var(--color-mint-green)"
                   />
                 </svg>
