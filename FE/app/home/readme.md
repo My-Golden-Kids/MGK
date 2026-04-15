@@ -1,8 +1,8 @@
 # MGK 프로젝트 최신 상세 분석 보고서
 
-작성일: 2026-04-14
+작성일: 2026-04-15
 분석 기준: 현재 워크스페이스의 `FE`, `BE` 소스 코드
-중점 범위: 홈 화면, 홈 대화, 설정 반려동물 관리, 재정 홈 카드, 금융 리포트, 관련 API/서비스/저장소
+중점 범위: 홈 화면, 홈 대화, 설정 반려동물 관리, 재정 홈 카드, 금융 리포트, AverageMedicalCost 신규 로직, 관련 API/서비스/저장소
 
 ## 1. 전체 결론
 
@@ -23,6 +23,9 @@
 - 사망 처리는 삭제가 아니라 `pets.death` 상태 전환이다. `death`는 nullable이 아니고 기본값은 false가 되도록 DB seed 보정과 엔티티 기본값이 정리됐다.
 - 사망 pet은 설정 목록/상세 조회에서는 계속 관리 가능하지만, 홈/대화의 active pet 후보에서는 제외되고 산책 저장, 새 의료기록 등록, 새 예방접종 일정, 알림/요약/대화 대상 같은 active 기능에서 서버가 차단한다.
 - 금융 리포트는 이제 백엔드 controller와 FE API 호출이 존재한다. `/finance/report`는 `GET /api/finance/report`, `GET /api/finance/report/monthly-expenses`를 호출한다.
+- `AverageMedicalCost` 관련 신규 백엔드 파일이 프로젝트 패키지 구조에 맞게 정리됐고, 평균 진료비 테이블, seed config, repository, service, controller가 컴파일되는 상태다.
+- 평균 진료비 seed는 42개 row로 확장됐고, `AverageMedicalCostConfig`는 전체 테이블 count가 아니라 `category/item/species/size` 조합별 `saveIfMissing` 방식으로 누락분만 보강한다.
+- 홈 대화 `TalkService`에는 평균 진료비 intent가 추가됐다. “초진 진찰료 알려줘” 같은 STT 결과는 `/api/talk` 안에서 평균진료비 DB 조회로 분기된다.
 - FE proxy는 공개 경로와 `/api/auth`를 제외한 거의 모든 앱 경로를 로그인 필요 경로로 본다. 이전처럼 `/settings`만 보호 누락된 구조는 아니다.
 
 다만 아직 제품 안정성 측면의 리스크도 남아 있다.
@@ -32,6 +35,7 @@
 - `AccountBook` builder는 `Pet pet` 파라미터를 받지만 `this.pet = pet`를 하지 않고, 공개 지출 생성 요청에도 `petId`가 없다.
 - 온보딩으로 만든 pet은 `age`, `species`, `size`가 `null`일 수 있는데, 금융 리포트 계산 일부는 `pet.getAge()`를 null guard 없이 사용한다.
 - 상품 추천 계산 로직은 `ProductService`에 있으나 controller로 노출되지 않는다. 홈 소비 카드는 이 추천 API가 아니라 `FinanceService` 내부 규칙과 `ProductRepository` 직접 조회를 사용한다.
+- 평균 진료비 조회는 현재 인증 사용자 소유권 검증, 사망 pet 제외, STT 문장 정규화, canonical item명 매칭, TalkService 연결까지 반영됐다.
 
 ## 2. 최신 엔드투엔드 연결 현황
 
@@ -46,6 +50,7 @@
 - 홈 알림 말풍선: 설정 알람 토글, 산책 빈도, 오늘 캘린더 일정 반영
 - 홈 소비 요약 카드: 이번 달 지출 합계, 최대 지출 카테고리, 추천 상품 라벨, 혜택 문구 백엔드 계산
 - 홈 대화: 음성 인식, 텍스트 입력, 화면 이동 명령, 일정 추가 명령, 산책/접종/의료 기록 질의, Gemini fallback 답변
+- 평균 진료비 조회: 홈 대화 `/api/talk` STT 분기와 별도 `/api/dashboard/average-cost?petId=&item=` endpoint
 - 가계부 대시보드, 월별 지출 목록, 지출 등록, 지출 삭제
 - 금융 리포트 요약 수치와 최근 12개월 지출 차트 API 연결
 - 의료 영수증 OCR, 의료 기록 저장/조회
@@ -60,6 +65,7 @@
 - `/finance` 하단의 “펫 케어 구독하고 지출을 10% 낮춰요”는 실제 추천 API 결과가 아니다.
 - 상품 추천 DTO와 계산 로직은 있지만 `ProductController`에서 추천 API로 노출되지 않는다.
 - 의료 기록 이미지 업로드는 아직 FE route `/api/medical-record-upload`를 통해 로컬 `public/images/health/records`에 저장한다. pet 이미지는 S3 presigned 업로드로 이동했지만 의료 이미지는 아직 로컬 방식이 남아 있다.
+- 평균 진료비 조회는 홈 대화 STT 명령과 연결됐고 seed 범위도 진찰/상담/입원/백신접종/혈액검사/영상검사/투약·조제 42개 row로 확장됐다. 다만 자연어 별칭 alias는 아직 `초진 진찰료`, `입원비` 중심이다.
 
 ## 3. FE 구조와 동작
 
@@ -171,6 +177,9 @@ FE에서 제거된 계산은 다음과 같다.
 
 - 대화 API 호출은 더 이상 `http://localhost:8080` 하드코딩이 아니다.
 - `clientFetch('/api/talk')`를 사용하므로 `SPRING_API_URL` 또는 `NEXT_PUBLIC_SPRING_API_URL` 설정을 따른다.
+- `AverageMedicalCost` 별도 endpoint는 이 화면에서 직접 호출하지 않는다. 홈 대화는 계속 `/api/talk`만 호출한다.
+- “초진 진찰료 알려줘” 같은 음성은 `/api/talk`로 들어간 뒤 `TalkService`의 평균 진료비 intent에서 먼저 잡혀 `AverageMedicalCostService`로 위임된다.
+- 기존 일정 추가/화면 이동/산책 조회/접종 조회/병원 기록 조회 키워드 로직은 유지됐고, 평균 진료비 질문 분기만 Gemini fallback 전에 추가됐다.
 
 ### 3.6 설정 화면과 반려동물 삭제/사망 표시
 
@@ -476,7 +485,44 @@ FE 홈은 이 값을 사용해 산책 알림과 오늘 일정 알림을 만든�
 - 요약은 의료 문서와 미래 캘린더 이벤트를 결합해 last/next vaccination 정보를 만든다
 - 요약 대상 pet 목록에서도 사망 처리된 pet은 제외한다
 
-### 4.9 상품과 파일 업로드
+### 4.9 AverageMedicalCost 신규 평균 진료비 로직
+
+신규 추가된 파일:
+
+- `BE/src/main/java/com/mgk/bemgk/entity/AverageMedicalCost.java`
+- `BE/src/main/java/com/mgk/bemgk/repository/AverageMedicalCostRepository.java`
+- `BE/src/main/java/com/mgk/bemgk/service/AverageMedicalCostService.java`
+- `BE/src/main/java/com/mgk/bemgk/controller/AverageMedicalCostController.java`
+- `BE/src/main/java/com/mgk/bemgk/config/AverageMedicalCostConfig.java`
+
+현재 구조:
+
+- `average_medical_cost` 테이블에 `category`, `item`, `species`, `size`, `avg_cost` 저장
+- `AverageMedicalCostConfig`가 앱 시작 시 42개 seed row를 확인하고, 없는 조합만 `saveIfMissing(...)`로 삽입
+- 중복 판단 기준은 `category`, `item`, `species`, `size` 네 값의 조합이다.
+- `AverageMedicalCostRepository.existsByCategoryAndItemAndSpeciesAndSize(...)`가 seed 중복 여부를 판단한다.
+- seed 범위는 진찰, 상담, 입원, 백신접종, 혈액검사, 영상검사, 투약·조제다.
+- seed 항목은 `초진 진찰료`, `재진 진찰료`, `상담료`, `입원비`, `종합백신`, `광견병백신`, `켄넬코프백신`, `코로나바이러스백신`, `인플루엔자백신`, `전혈구 검사비`, `혈액화학 검사비`, `전해질 검사비`, `방사선촬영비`, `초음파촬영비`, `CT촬영비`, `MRI촬영비`, `심장사상충 예방비`, `외부기생충 예방비`, `광범위구충 예방비`다.
+- `AverageMedicalCostRepository.findByItem(item)`으로 같은 항목 후보 목록 조회
+- `AverageMedicalCostService`가 현재 로그인 사용자와 pet 소유권을 확인하고, 사망 pet은 조회 대상에서 제외
+- `AverageMedicalCostService.find(petId, item)`이 pet의 species/size를 읽고 후보 중 최적 row 선택
+- 우선순위는 `species+size` 정확 일치, `species+ALL`, `ALL+size`, `ALL+ALL`
+- `AverageMedicalCostService.isAverageCostQuery()`가 STT 문장에 평균 진료비 질문 키워드와 항목 alias가 있는지 검사
+- `초진`, `초진진찰료`, `초진료`, `첫진료`, `첫진찰`은 `초진 진찰료`로 정규화
+- `입원`, `입원료`, `입원비`는 `입원비`로 정규화
+- alias에 없더라도 문장 안에 canonical item명이 그대로 포함되면 `repository.findAll()`의 item 목록에서 매칭한다. 예: `재진 진찰료 알려줘`, `CT촬영비 얼마야`
+- `TalkService.ask()`는 평균 진료비 intent가 감지되면 기존 Gemini fallback 전에 `AverageMedicalCostService.answer()`를 호출
+- `AverageMedicalCostController`는 별도 직접 조회용으로 `POST /api/dashboard/average-cost?petId=&item=` 문자열 응답을 유지
+- 응답 예: `초진 진찰료 평균은 10,332원이에요.`
+
+남은 주의점:
+
+- 현재 정규화 alias는 `초진 진찰료`, `입원비`의 자연어 변형 중심이다. canonical item명을 그대로 말하면 조회되지만, `엑스레이`, `피검사`, `심장사상충약` 같은 생활 표현은 아직 별도 alias가 필요하다.
+- `findByItem(item)` 자체는 여전히 canonical item 완전 일치 조회다. STT 문장 정규화는 service layer가 담당한다.
+- seed 중복 방지는 app layer의 `existsBy...` 검사로 처리된다. DB unique constraint는 아직 없다.
+- 별도 `/api/dashboard/average-cost` endpoint는 문자열 응답을 반환하므로, 추후 FE 전용 화면에서 쓰려면 DTO 응답으로 바꾸는 편이 확장에 유리하다.
+
+### 4.10 상품과 파일 업로드
 
 `ProductController`:
 
@@ -513,6 +559,7 @@ FE 홈은 이 값을 사용해 산책 알림과 오늘 일정 알림을 만든�
 - `Pet`은 `PetWalkRecord`, `MedicalDocument`, `CalendarEvent`와 연결
 - `AccountBook`은 `User`, 선택적 `Pet`, 선택적 `Account`와 연결
 - `Product`는 독립 테이블이고 홈 카드/추천 계산 시 조회된다
+- `AverageMedicalCost`는 `average_medical_cost` 독립 테이블로 설계되어 있고 평균 진료 항목 비용 조회에 사용된다.
 - `Pet.death`는 nullable이 아닌 boolean 상태값이며 기본값은 false다
 - `Pet.deathDate`는 사망 체크가 true로 바뀐 시각을 저장하고, 다시 false로 바꾸면 null로 초기화된다
 
@@ -522,6 +569,7 @@ FE 홈은 이 값을 사용해 산책 알림과 오늘 일정 알림을 만든�
 - `AccountBook` builder에 `Pet pet` 인자가 있지만 실제 필드 대입이 빠져 있다.
 - `Pet.age`, `Pet.species`, `Pet.size`는 온보딩 생성 경로에서 null이 될 수 있다.
 - `FinanceReportService`는 pet의 age/species/size를 계산 전제로 사용한다.
+- `AverageMedicalCost`의 package/import 정합성 문제는 해소됐다. 다만 `category/item/species/size` 조합의 DB unique constraint는 아직 없다.
 
 ## 6. 실제 동작 시퀀스
 
@@ -592,6 +640,40 @@ FE 홈은 이 값을 사용해 산책 알림과 오늘 일정 알림을 만든�
 4. BE가 pet 목록, 계좌 총액, 월별 지출 데이터를 사용해 리포트 계산
 5. FE가 노후자금 영향 비율, 예상 비용, 월 평균 지출, 최근 12개월 차트를 표시
 6. API 실패 시 FE는 0 값 fallback report/chart를 표시
+
+### 6.7 AverageMedicalCost STT 목표 흐름 검수
+
+사용자가 의도한 목표 흐름:
+
+1. 사용자가 `/home/talk`에서 “초진 진찰료 알려줘”라고 말함
+2. 브라우저 STT가 transcript를 생성
+3. FE가 transcript와 `selectedPetId`를 서버에 전송
+4. Controller가 요청을 받음
+5. Service가 transcript에서 진료 항목을 추출하고 pet 종/크기 기준으로 우선순위 매칭
+6. DB의 `average_medical_cost`에서 평균 비용 조회
+7. 서버가 `초진 진찰료 평균은 10,332원이에요.` 같은 응답 반환
+8. FE가 응답 문구를 말풍선에 표시하고 `playTts()`로 TTS 출력
+
+현재 실제 코드 흐름:
+
+1. 사용자가 `/home/talk`에서 말하면 `react-speech-recognition`이 transcript 생성
+2. FE는 일반 질문을 `clientFetch('/api/talk')`로 전송
+3. `TalkController`가 `TalkService.ask(transcript, petId)` 호출
+4. `TalkService`가 평균 진료비 intent를 먼저 검사
+5. `AverageMedicalCostService.isAverageCostQuery()`가 `초진`, `초진진찰료`, `초진 진찰료` 등 alias 또는 canonical item명과 `알려`, `얼마`, `평균`, `비용`, `진찰료` 같은 질문 키워드를 확인
+6. 매칭되면 `AverageMedicalCostService.answer(petId, transcript)`로 위임
+7. service가 현재 로그인 사용자 소유 pet인지 확인하고 사망 pet은 제외
+8. service가 pet species/size를 `DOG`, `CAT`, `SMALL`, `MEDIUM`, `LARGE`, `ALL`로 매핑
+9. DB 후보 중 `species+size`, `species+ALL`, `ALL+size`, `ALL+ALL` 우선순위로 선택
+10. 서버가 `초진 진찰료 평균은 10,332원이에요.` 형식의 메시지를 반환
+11. FE가 말풍선에 표시하고 `playTts()`가 `/api/tts` 또는 브라우저 TTS로 읽어준다
+
+검수 결론:
+
+- 제시한 목표 흐름 자체는 맞다.
+- 현재 구현도 이 흐름에 맞게 `/api/talk` 안에서 평균진료비 intent를 먼저 판별해 `AverageMedicalCostService`로 위임한다.
+- FE의 일정 추가/화면 이동/기존 질문 키워드 로직은 수정하지 않았다.
+- 별도 `/api/dashboard/average-cost` endpoint는 직접 조회용으로 유지된다.
 
 ## 7. 현재 리스크와 우선 수정 후보
 
@@ -689,6 +771,23 @@ pet 이미지는 S3 presigned upload로 이동했지만 의료 기록 이미지�
 - 의료 기록 이미지도 S3 private/public 정책 중 하나로 통일
 - 기존 FE local upload route의 유지 여부 결정
 
+### 7.8 AverageMedicalCost 남은 확장 후보
+
+평균 진료비 신규 코드는 STT 기본 흐름에 연결됐고, seed도 42개 row까지 확장됐다. 다음은 운영/확장 전에 정리하는 편이 좋다.
+
+- 현재 alias map은 code 상수라 생활 표현을 늘릴 때마다 service 수정이 필요하다.
+- `average_medical_cost`에 canonical item만 있고 별도 alias column/table은 없다.
+- canonical item명은 `repository.findAll()`로 보조 매칭하지만, 항목이 많아지면 전체 scan보다 alias/index 구조가 더 안전하다.
+- `/api/dashboard/average-cost`는 문자열 응답이므로 화면형 API로 쓰기에는 DTO가 더 적합하다.
+- seed 중복 방지는 `AverageMedicalCostConfig.saveIfMissing(...)`와 repository `existsByCategoryAndItemAndSpeciesAndSize(...)`로 처리한다. 다만 DB 레벨 unique constraint는 아직 없다.
+
+우선 조치:
+
+- 진료 항목 alias를 DB table 또는 enum-like config로 분리
+- `category/item/species/size` 조합 unique constraint 또는 migration 기반 seed 정책 결정
+- 평균 진료비 직접 조회 API를 `{ item, avgCost, message }` 형태 DTO로 전환할지 결정
+- 항목 추가 시 STT 테스트 문장도 같이 추가
+
 ## 8. 최신 코드 기준 정정된 과거 문장
 
 이전 보고서에서 이제 수정되어야 하는 내용은 다음과 같다.
@@ -701,6 +800,7 @@ pet 이미지는 S3 presigned upload로 이동했지만 의료 기록 이미지�
 - “반려동물 삭제 기능은 없다”는 더 이상 정확하지 않다. FE 삭제 모달과 BE `DELETE /api/pets/{petId}`가 있다.
 - “사망 pet은 삭제로 처리한다”는 정확하지 않다. 현재 사망은 `pets.death` 상태 업데이트이며 기존 record는 보존된다.
 - “pet 사진 업로드는 FE public 로컬 저장만 사용한다”는 현재 pet 이미지에 대해서는 정확하지 않다. pet 업로드는 S3 presigned upload를 사용한다. 단 의료 기록 이미지는 여전히 FE local route를 사용한다.
+- “초진 진찰료 알려줘”가 평균 진료비 DB 조회로 이어지지 않는다는 이전 설명은 더 이상 정확하지 않다. 현재 `/api/talk`의 `TalkService`에서 평균 진료비 intent를 먼저 처리한다.
 
 ## 9. 다음 작업 우선순위
 
@@ -713,12 +813,13 @@ pet 이미지는 S3 presigned upload로 이동했지만 의료 기록 이미지�
 5. 리포트 계산에서 pet age null 처리
 6. 설정 pet 나이/size validation 정리
 7. 사망 pet의 과거 기록 노출 정책을 화면별로 명확히 문서화
-8. 상품 추천 API 노출 전 카테고리 타입 불일치 수정
-9. 의료 기록 이미지 업로드도 S3 정책으로 통일
-10. 노출된 secret 폐기와 환경 변수 분리
+8. AverageMedicalCost alias, DB unique constraint, DTO 응답 확장 정책 정리
+9. 상품 추천 API 노출 전 카테고리 타입 불일치 수정
+10. 의료 기록 이미지 업로드도 S3 정책으로 통일
+11. 노출된 secret 폐기와 환경 변수 분리
 
 ## 10. 최종 판단
 
-현재 MGK는 홈, 반려동물, 설정, 대화, 가계부, 금융 리포트의 핵심 연결이 이전보다 훨씬 실제 API 중심으로 정리되어 있다. 특히 홈 소비 카드의 비즈니스 계산이 Spring으로 이동했고, FE는 표시 전용 매핑만 하도록 바뀐 점이 중요하다. 또한 사망 pet은 삭제하지 않고 상태로 보존하면서 active 기능에서는 제외하는 방향으로 정리됐다.
+현재 MGK는 홈, 반려동물, 설정, 대화, 가계부, 금융 리포트의 핵심 연결이 이전보다 훨씬 실제 API 중심으로 정리되어 있다. 특히 홈 소비 카드의 비즈니스 계산이 Spring으로 이동했고, FE는 표시 전용 매핑만 하도록 바뀐 점이 중요하다. 또한 사망 pet은 삭제하지 않고 상태로 보존하면서 active 기능에서는 제외하는 방향으로 정리됐다. 평균 진료비 조회도 `/api/talk` STT 흐름에 연결되어 “초진 진찰료 알려줘” 같은 질문을 DB 기반 응답으로 처리할 수 있고, seed는 42개 row를 중복 없이 보강하는 구조가 됐다.
 
 다만 운영 안정성 관점에서는 아직 “화면 연결”보다 “권한 모델과 데이터 모델 정합성”을 먼저 잠가야 한다. Spring API 인증 정책, 금융 리포트의 지출 기준, `AccountBook.pet` 연결, null pet 속성 처리, secret 관리가 정리되면 이후 상품 추천과 리포트 고도화를 더 안전하게 진행할 수 있다.

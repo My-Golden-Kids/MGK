@@ -17,6 +17,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Slf4j
@@ -39,9 +40,14 @@ public class TalkService {
     private final PetRepository petRepository;
     private final MedicalDocumentRepository medicalDocumentRepository;
     private final PetWalkRecordRepository petWalkRecordRepository;
+    private final AverageMedicalCostService averageMedicalCostService;
 
     public TalkResponse ask(String transcript, Long petId) {
         String normalizedTranscript = transcript.replaceAll(" ", "");
+
+        if (averageMedicalCostService.isAverageCostQuery(transcript)) {
+            return answerAverageMedicalCostQuery(petId, transcript);
+        }
 
         if (isWalkQuery(normalizedTranscript)) {
             return answerWalkQuery(petId);
@@ -80,6 +86,20 @@ public class TalkService {
         }
 
         return new TalkResponse(FALLBACK_MESSAGE);
+    }
+
+    private TalkResponse answerAverageMedicalCostQuery(Long petId, String transcript) {
+        try {
+            return new TalkResponse(averageMedicalCostService.answer(petId, transcript));
+        } catch (ResponseStatusException exception) {
+            String reason = exception.getReason();
+
+            if (reason != null && !reason.isBlank()) {
+                return new TalkResponse(reason);
+            }
+
+            return new TalkResponse("평균 진료비 정보를 찾을 수 없어요.");
+        }
     }
 
     private boolean isWalkQuery(String transcript) {
