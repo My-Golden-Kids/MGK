@@ -33,4 +33,6 @@ public class ProductPersonalizedReportResponse {
     private Long hospitalVisitCount;
     private BigDecimal estimatedMonthlyBenefit;
     private BigDecimal estimatedAnnualBenefit;
+    private BigDecimal maxMonthlyBenefitAmount;
+    private BigDecimal maxAnnualBenefitAmount;
 }

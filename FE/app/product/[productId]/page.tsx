@@ -53,6 +53,7 @@ function SectionCard({
   );
 }
 
+// 하나 펫사랑보험
 function InsuranceReport({ report }: { report: PersonalizedProductReport }) {
   return (
     <>
@@ -107,7 +108,7 @@ function InsuranceReport({ report }: { report: PersonalizedProductReport }) {
             </span>
             은 연{' '}
             <span className="font-bold text-[#DB1F26]">
-              최대 {formatMoney(report.benefitLimitAmount ?? 0)}
+              최대 {formatMoney(report.maxAnnualBenefitAmount ?? 0)}
             </span>
             까지 보장 혜택을 받을 수 있어요.
           </p>
@@ -125,6 +126,7 @@ function InsuranceReport({ report }: { report: PersonalizedProductReport }) {
   );
 }
 
+// 펫 사랑 카드
 function CardReport({ report }: { report: PersonalizedProductReport }) {
   return (
     <SectionCard
@@ -150,9 +152,9 @@ function CardReport({ report }: { report: PersonalizedProductReport }) {
           <br />
           또한, 연{' '}
           <span className="font-bold text-[#DB1F26]">
-            최대 {formatMoney(report.benefitLimitAmount ?? 0)}
+            최대 {formatMoney(report.maxAnnualBenefitAmount ?? 0)}
           </span>
-          까지 보장 혜택을 받을 수 있어 다양한 지출 부담을 줄일 수 있어요.
+          까지 보상 혜택을 받을 수 있어 다양한 지출 부담을 줄일 수 있어요.
         </p>
       </div>
       <p className="mt-3 mr-3 flex items-start gap-1.5 text-[12px] md:mt-4 md:mr-4 md:gap-1.5 md:text-[16px] lg:mr-5 lg:gap-2 lg:text-[20px]">
@@ -167,6 +169,7 @@ function CardReport({ report }: { report: PersonalizedProductReport }) {
   );
 }
 
+// 펫사랑 적금
 function SavingsReport({ report }: { report: PersonalizedProductReport }) {
   return (
     <SectionCard
@@ -185,7 +188,7 @@ function SavingsReport({ report }: { report: PersonalizedProductReport }) {
             연 최대 이자
           </p>
           <p className="font-extrabold text-[#DB1F26] text-[28px] md:text-[32px] lg:text-[36px]">
-            {formatMoney(report.estimatedAnnualBenefit)}
+            {formatMoney(report.maxAnnualBenefitAmount)}
           </p>
         </div>
         <div className="flex flex-col items-center justify-center rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
@@ -218,6 +221,7 @@ function SavingsReport({ report }: { report: PersonalizedProductReport }) {
   );
 }
 
+// 펫케어
 function SubscriptionReport({ report }: { report: PersonalizedProductReport }) {
   return (
     <SectionCard
@@ -237,10 +241,7 @@ function SubscriptionReport({ report }: { report: PersonalizedProductReport }) {
           </span>{' '}
           구독은 매달{' '}
           <span className="font-bold text-[#DB1F26]">
-            최소{' '}
-            {formatMoney(
-              report.benefitAmount ?? report.estimatedMonthlyBenefit,
-            )}
+            최소 {formatMoney(report.maxMonthlyBenefitAmount)}
           </span>
           의 비용을 절약하고 다양한 혜택을 받을 수 있어요.
         </p>
@@ -257,6 +258,7 @@ function SubscriptionReport({ report }: { report: PersonalizedProductReport }) {
   );
 }
 
+// 펫포레스트
 function ForestReport({ report }: { report: PersonalizedProductReport }) {
   return (
     <SectionCard

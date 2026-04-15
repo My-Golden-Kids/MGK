@@ -34,6 +34,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductService {
 
     private static final BigDecimal THIRTY_MAN_WON = BigDecimal.valueOf(300_000);
+    private static final BigDecimal SIXTY_MAN_WON = BigDecimal.valueOf(600_000);
+    private static final BigDecimal ONE_MILLION_WON = BigDecimal.valueOf(1_000_000);
+    private static final BigDecimal TEN_THOUSAND_WON = BigDecimal.valueOf(10_000);
+    private static final BigDecimal TWENTY_THOUSAND_WON = BigDecimal.valueOf(20_000);
+    private static final BigDecimal FORTY_THOUSAND_WON = BigDecimal.valueOf(40_000);
+    private static final BigDecimal INSURANCE_MAX_ANNUAL_BENEFIT = BigDecimal.valueOf(4_000_000);
     private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
     private static final BigDecimal TWELVE = BigDecimal.valueOf(12);
 
@@ -97,7 +103,7 @@ public class ProductService {
                         userId, categories, monthStart, monthEnd);
 
         BigDecimal estimatedBenefit = calculateRateBenefit(spendingAmount, product.getBenefitRate());
-        estimatedBenefit = capAmount(estimatedBenefit, product.getBenefitLimitAmount());
+        estimatedBenefit = capAmount(estimatedBenefit, resolveCardMonthlyLimit(product));
 
         return buildResponse(product, spendingAmount, null, estimatedBenefit);
     }
@@ -182,6 +188,8 @@ public class ProductService {
                 .hospitalVisitCount(profile.hospitalVisitCount)
                 .estimatedMonthlyBenefit(estimatedMonthlyBenefit.setScale(0, RoundingMode.HALF_UP))
                 .estimatedAnnualBenefit(estimatedAnnualBenefit.setScale(0, RoundingMode.HALF_UP))
+                .maxMonthlyBenefitAmount(resolveMaxMonthlyBenefitAmount(product, resolvedType, profile))
+                .maxAnnualBenefitAmount(resolveMaxAnnualBenefitAmount(product, resolvedType, profile))
                 .build();
     }
 
@@ -302,12 +310,20 @@ public class ProductService {
         BigDecimal estimated = defaultAmount(product.getBenefitAmount())
                 .multiply(BigDecimal.valueOf(coveredCount));
 
-        return capAmount(estimated, resolveAnnualLimitAmount(product));
+        return capAmount(estimated, resolveInsuranceAnnualLimitAmount(product));
     }
 
     private BigDecimal calculateCardMonthlyBenefit(Product product, BigDecimal averageMonthlyExpense) {
-        BigDecimal estimated = calculateRateBenefit(averageMonthlyExpense, product.getBenefitRate());
-        return capAmount(estimated, product.getBenefitLimitAmount());
+        if (averageMonthlyExpense.compareTo(ONE_MILLION_WON) >= 0) {
+            return FORTY_THOUSAND_WON;
+        }
+        if (averageMonthlyExpense.compareTo(SIXTY_MAN_WON) >= 0) {
+            return TWENTY_THOUSAND_WON;
+        }
+        if (averageMonthlyExpense.compareTo(THIRTY_MAN_WON) >= 0) {
+            return TEN_THOUSAND_WON;
+        }
+        return BigDecimal.ZERO;
     }
 
     private BigDecimal calculateSavingsAnnualBenefit(Product product, UserProductProfile profile) {
@@ -336,6 +352,44 @@ public class ProductService {
             return product.getBenefitAmount().multiply(BigDecimal.valueOf(product.getBenefitLimitCount()));
         }
         return null;
+    }
+
+    private BigDecimal resolveInsuranceAnnualLimitAmount(Product product) {
+        return INSURANCE_MAX_ANNUAL_BENEFIT;
+    }
+
+    private BigDecimal resolveCardMonthlyLimit(Product product) {
+        return product.getBenefitLimitAmount() == null ? FORTY_THOUSAND_WON : product.getBenefitLimitAmount();
+    }
+
+    private BigDecimal resolveMaxMonthlyBenefitAmount(
+            Product product,
+            ProductType type,
+            UserProductProfile profile
+    ) {
+        return switch (type) {
+            case INSURANCE, PET_FOREST -> BigDecimal.ZERO;
+            case CARD -> resolveCardMonthlyLimit(product);
+            case SAVINGS -> calculateSavingsAnnualBenefit(product, profile).divide(TWELVE, 2, RoundingMode.DOWN);
+            case SUBSCRIPTION -> defaultAmount(product.getBenefitAmount());
+        };
+    }
+
+    private BigDecimal resolveMaxAnnualBenefitAmount(
+            Product product,
+            ProductType type,
+            UserProductProfile profile
+    ) {
+        return switch (type) {
+            case INSURANCE -> {
+                BigDecimal resolved = resolveInsuranceAnnualLimitAmount(product);
+                yield defaultAmount(resolved);
+            }
+            case CARD -> resolveCardMonthlyLimit(product).multiply(TWELVE);
+            case SAVINGS -> calculateSavingsAnnualBenefit(product, profile);
+            case SUBSCRIPTION -> defaultAmount(product.getBenefitAmount()).multiply(TWELVE);
+            case PET_FOREST -> BigDecimal.ZERO;
+        };
     }
 
     private String buildRecommendationReason(ProductType type, UserProductProfile profile) {

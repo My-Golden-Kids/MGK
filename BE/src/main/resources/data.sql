@@ -91,7 +91,7 @@ VALUES
     ('펫 사랑 카드', 'CARD', '병원 및 쇼핑 혜택을 제공하는 카드 상품', 'https://m.hanacard.co.kr/MKCDCM1010M.web?CD_PD_SEQ=16251', 10.00, NULL, 40000, NULL, 'MONTH', '병원,쇼핑', 'ACCOUNT_BOOK', false, NOW(), NOW()),
     ('펫사랑 적금', 'SAVINGS', '반려동물을 위한 적금 상품', 'https://www.kebhana.com/cont/mall/mall08/mall0801/mall080102/1470991_115157.jsp', 2.80, NULL, 168000, NULL, 'YEAR', NULL, 'ACCOUNT', false, NOW(), NOW()),
     ('펫케어', 'SUBSCRIPTION', '반려동물을 위한 구독형 할인 상품', 'https://www.hanacard.co.kr/OPY30460017N.web?schID=pcd&mID=OPY30460017N.web', NULL, 15000, NULL, NULL, 'MONTH', 'Food', 'ACCOUNT_BOOK', false, NOW(), NOW()),
-    ('펫포레스트', 'PET_FOREST', '반려동물 장례 서비스 상품', 'https://petforest.co.kr/', 20.00, NULL, NULL, NULL, NULL, NULL, 'ACCOUNT', true, NOW(), NOW());
+    ('펫포레스트', 'PET_FOREST', '반려동물 장례 서비스 상품', 'https://petforest.co.kr/', 20.00, NULL, NULL, NULL, NULL, NULL, 'ACCOUNT', false, NOW(), NOW());
 
 -- 산책 기록 테이블 통합: 완료 기록은 pet_walk_records 하나만 사용
 UPDATE pet_walk_records
