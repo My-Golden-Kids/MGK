@@ -49,4 +49,6 @@ export type PersonalizedProductReport = {
   hospitalVisitCount: number;
   estimatedMonthlyBenefit: number;
   estimatedAnnualBenefit: number;
+  maxMonthlyBenefitAmount: number;
+  maxAnnualBenefitAmount: number;
 };
