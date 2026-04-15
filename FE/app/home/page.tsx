@@ -80,12 +80,6 @@ export default function HomePage() {
     !isPetsLoading &&
     pets.length > 0 &&
     scheduleBubbleIndex < scheduleBubbles.length;
-  const shouldReserveBubbleSpace = isAlarmEnabled && isPetsLoading;
-  const shouldRenderBubbleArea =
-    shouldReserveBubbleSpace ||
-    shouldShowPromptBubble ||
-    shouldShowScheduleBubble;
-
   useEffect(() => {
     setIsAlarmEnabled(getStoredAlarmEnabled());
   }, []);
@@ -288,19 +282,8 @@ export default function HomePage() {
         </header>
 
         <div className="flex flex-1 flex-col px-8 py-4">
-          {shouldRenderBubbleArea && (
-            <section className="min-h-[150px] px-6 md:min-h-[178px] lg:min-h-[206px]">
-              {shouldReserveBubbleSpace ? (
-                <div className="overflow-hidden rounded-[24px] border border-[#B2B2B2]/40 bg-[#0000001A] md:rounded-[28px] lg:rounded-[32px]">
-                  <div className="px-6 py-5 md:px-7 md:py-6 lg:px-8 lg:py-7">
-                    <Skeleton className="h-[27px] w-[72%] rounded-[8px] bg-white/35 md:h-[32px] lg:h-[38px]" />
-                    <Skeleton className="mt-2 h-[27px] w-[52%] rounded-[8px] bg-white/35 md:h-[32px] lg:h-[38px]" />
-                  </div>
-                  <div className="border-t border-[#B2B2B2]/40 bg-white/80">
-                    <Skeleton className="h-[54px] w-full rounded-none bg-[#25C3A8]/12 md:h-[62px] lg:h-[70px]" />
-                  </div>
-                </div>
-              ) : null}
+          {(shouldShowPromptBubble || shouldShowScheduleBubble) && (
+            <section className="px-6">
               {shouldShowPromptBubble && (
                 <HomePromptBubble
                   message={`주인님! 저에 대해\n더 알려주세요!`}
