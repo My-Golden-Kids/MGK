@@ -1,15 +1,12 @@
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import HomePromptBubble from '@/components/home/HomePromptBubble';
 import HomeScheduleBubble from '@/components/home/HomeScheduleBubble';
 import SelectedPetProfile, {
   type Pet,
 } from '@/components/home/SelectedPetProfile';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   fetchScheduleBubbles,
   type ScheduleBubble,
@@ -21,6 +18,10 @@ import {
   getStoredMedicalPetId,
   storeSelectedPetId,
 } from '@/lib/medical-record';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 type HomeSpendingSummaryResponse = {
   monthlyAmount: number | string | null;
@@ -79,7 +80,6 @@ export default function HomePage() {
     !isPetsLoading &&
     pets.length > 0 &&
     scheduleBubbleIndex < scheduleBubbles.length;
-
   useEffect(() => {
     setIsAlarmEnabled(getStoredAlarmEnabled());
   }, []);
@@ -258,7 +258,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#FFFFFF]">
       <main className="scrollbar-hide flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <header className="flex h-10 shrink-0 items-center justify-between px-8 py-6">
+        <header className="flex shrink-0 items-center justify-between px-8 pt-4">
           <Link
             href="/home/coupon"
             className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full transition-transform hover:scale-105"
@@ -281,33 +281,33 @@ export default function HomePage() {
           </Link>
         </header>
 
-        <div className="flex flex-1 flex-col px-8 pb-6">
-          <div className="my-auto flex flex-col gap-4 py-4">
-            {(shouldShowPromptBubble || shouldShowScheduleBubble) && (
-              <section className="px-8">
-                {shouldShowPromptBubble && (
-                  <HomePromptBubble
-                    message={`주인님! 저에 대해\n더 알려주세요!`}
-                    showAnswerButtons={true}
-                    onYesClick={() => router.push('/onboarding/7')}
-                    onNoClick={() => setShowBubble(false)}
-                    yesLabel="O"
-                    noLabel="X"
-                  />
-                )}
-                {shouldShowScheduleBubble && (
-                  <HomeScheduleBubble
-                    messages={scheduleBubbles.map((b) => b.message)}
-                    currentIndex={scheduleBubbleIndex}
-                    onDismiss={() => {
-                      scheduleBubbles[scheduleBubbleIndex]?.onDismiss();
-                      setScheduleBubbleIndex((i) => i + 1);
-                    }}
-                  />
-                )}
-              </section>
-            )}
+        <div className="flex flex-1 flex-col px-8 py-4">
+          {(shouldShowPromptBubble || shouldShowScheduleBubble) && (
+            <section className="px-6">
+              {shouldShowPromptBubble && (
+                <HomePromptBubble
+                  message={`주인님! 저에 대해\n더 알려주세요!`}
+                  showAnswerButtons={true}
+                  onYesClick={() => router.push('/onboarding/7')}
+                  onNoClick={() => setShowBubble(false)}
+                  yesLabel="O"
+                  noLabel="X"
+                />
+              )}
+              {shouldShowScheduleBubble && (
+                <HomeScheduleBubble
+                  messages={scheduleBubbles.map((b) => b.message)}
+                  currentIndex={scheduleBubbleIndex}
+                  onDismiss={() => {
+                    scheduleBubbles[scheduleBubbleIndex]?.onDismiss();
+                    setScheduleBubbleIndex((i) => i + 1);
+                  }}
+                />
+              )}
+            </section>
+          )}
 
+          <div className="mt-auto flex flex-col gap-4">
             <section>
               <SelectedPetProfile
                 pets={pets}
@@ -315,26 +315,34 @@ export default function HomePage() {
                 onChange={setSelectedPetId}
                 onSelectedClick={handleTalkClick}
               />
-              {selectedPet ? (
-                <p className="text-center font-extrabold text-[28px] text-black leading-none">
-                  {selectedPet.name}
-                </p>
-              ) : null}
-              {isPetsLoading ? (
-                <p className="text-center font-medium text-[#66706D] text-[16px]">
-                  반려동물 정보를 불러오는 중이에요.
-                </p>
-              ) : null}
-              {!isPetsLoading && petsErrorMessage ? (
-                <p className="mt-4 text-center font-medium text-[16px] text-red-500">
-                  {petsErrorMessage}
-                </p>
-              ) : null}
-              {!isPetsLoading && !petsErrorMessage && pets.length === 0 ? (
-                <p className="text-center font-medium text-[#66706D] text-[16px]">
-                  등록된 반려동물이 없어요. 먼저 반려동물을 추가해 주세요.
-                </p>
-              ) : null}
+              <div className="min-h-[34px] lg:min-h-[40px]">
+                {selectedPet ? (
+                  <p className="text-center font-extrabold text-[28px] text-black leading-none">
+                    {selectedPet.name}
+                  </p>
+                ) : isPetsLoading ? (
+                  <div className="flex justify-center">
+                    <Skeleton className="h-[28px] w-[120px] rounded-[8px]" />
+                  </div>
+                ) : null}
+              </div>
+              <div className="min-h-[24px]">
+                {isPetsLoading ? (
+                  <p className="text-center font-medium text-[#66706D] text-[16px]">
+                    반려동물 정보를 불러오는 중이에요.
+                  </p>
+                ) : null}
+                {!isPetsLoading && petsErrorMessage ? (
+                  <p className="mt-4 text-center font-medium text-[16px] text-red-500">
+                    {petsErrorMessage}
+                  </p>
+                ) : null}
+                {!isPetsLoading && !petsErrorMessage && pets.length === 0 ? (
+                  <p className="text-center font-medium text-[#66706D] text-[16px]">
+                    등록된 반려동물이 없어요. 먼저 반려동물을 추가해 주세요.
+                  </p>
+                ) : null}
+              </div>
             </section>
 
             <section className="flex justify-center">
@@ -357,12 +365,22 @@ export default function HomePage() {
             </section>
 
             {isSpendingLoading ? (
-              <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white py-6">
-                <div className="flex min-h-[170px] flex-col items-center justify-center text-center">
-                  <p className="font-extrabold text-[20px] text-[rgb(13,168,146)] leading-tight">
-                    소비 데이터를 불러오는 중이에요.
-                  </p>
+              <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white px-4 py-5">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <h2 className="font-extrabold text-[#0DA892] text-[20px] leading-tight">
+                    이번달 소비
+                  </h2>
+                  <Skeleton className="h-[28px] w-[108px] rounded-[8px]" />
                 </div>
+
+                <div className="mb-1 flex items-center gap-2">
+                  <Skeleton className="h-[24px] w-[88px] rounded-[8px]" />
+                  <Skeleton className="h-[24px] w-[140px] rounded-[8px]" />
+                </div>
+
+                <Skeleton className="mb-5 h-[24px] w-[200px] rounded-[8px]" />
+
+                <Skeleton className="h-[56px] w-full rounded-[12px] bg-[#25C3A8]/25" />
               </section>
             ) : spendingData ? (
               <section className="rounded-[24px] border-2 border-[#25C3A8] bg-white px-4 py-5">

@@ -46,7 +46,7 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm exec next build --webpack
 
-      - name: Setup SSH
+      - name: Setup SSH check
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
@@ -61,13 +61,13 @@ jobs:
           scp FE/.env ec2-user@${{ secrets.WAS_HOST }}:/home/ec2-user/workspace/MGK/FE/.env
 
           ssh ec2-user@${{ secrets.WAS_HOST }} "mkdir -p /home/ec2-user/workspace/MGK/BE/secrets"
-
-          ssh ec2-user@${{ secrets.WAS_HOST }} "printf '%s' '${{ secrets.OCR_KEY_JSON }}' > /home/ec2-user/workspace/MGK/BE/secrets/vision-key.json"
+          printf '%s' "${{ secrets.OCR_KEY_JSON }}" > /tmp/vision-key.json
+          python3 -m json.tool /tmp/vision-key.json > /dev/null
+          scp /tmp/vision-key.json ec2-user@${{ secrets.WAS_HOST }}:/home/ec2-user/workspace/MGK/BE/secrets/vision-key.json
           ssh ec2-user@${{ secrets.WAS_HOST }} "chmod 600 /home/ec2-user/workspace/MGK/BE/secrets/vision-key.json"
 
       - name: Verify OCR key JSON on EC2
         run: |
-          ssh ec2-user@${{ secrets.WAS_HOST }} "sed -n '1,20p' /home/ec2-user/workspace/MGK/BE/secrets/vision-key.json"
           ssh ec2-user@${{ secrets.WAS_HOST }} "python3 -m json.tool /home/ec2-user/workspace/MGK/BE/secrets/vision-key.json > /dev/null"
 
       - name: Restart services on EC2
