@@ -14,10 +14,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 @Entity
@@ -26,31 +24,31 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class MedicalDocument {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "pet_id", nullable = false)
-    private Pet pet;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "pet_id", nullable = false)
+	private Pet pet;
 
-    @Column(nullable = false, length = 100)
-    private String petName;
+	@Column(nullable = false, length = 100)
+	private String petName;
 
-    private LocalDate date;
+	private LocalDate date;
 
 	@Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    private MedicalDocumentType type;
+	@Column(nullable = false, length = 50)
+	private MedicalDocumentType type;
 
-    @Column(nullable = false, length = 255)
-    private String hospitalName;
+	@Column(nullable = false, length = 255)
+	private String hospitalName;
 
-    @Column(length = 2000)
-    private String details;
+	@Column(length = 2000)
+	private String details;
 
-    private Integer totalAmount;
+	private Integer totalAmount;
 
-    private String imageUrl;
-    private LocalDateTime createdAt = LocalDateTime.now();
+	private String imageUrl;
+	private LocalDateTime createdAt = LocalDateTime.now();
 }

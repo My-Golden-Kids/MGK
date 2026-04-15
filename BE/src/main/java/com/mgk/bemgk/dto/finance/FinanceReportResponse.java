@@ -1,7 +1,9 @@
 package com.mgk.bemgk.dto.finance;
 
-import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
 import java.math.BigDecimal;
+
+import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
+
 import lombok.Builder;
 import lombok.Getter;
 

@@ -1,6 +1,7 @@
 package com.mgk.bemgk.dto.vaccination;
 
 import java.util.List;
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -8,9 +9,9 @@ import lombok.Getter;
 @Builder
 public class VaccinationPetSummaryResponse {
 
-    private Long petId;
-    private String petName;
-    private String petImageUrl;
-    private String latestScheduleLabel;
-    private List<VaccinationItemResponse> vaccinationItems;
+	private Long petId;
+	private String petName;
+	private String petImageUrl;
+	private String latestScheduleLabel;
+	private List<VaccinationItemResponse> vaccinationItems;
 }

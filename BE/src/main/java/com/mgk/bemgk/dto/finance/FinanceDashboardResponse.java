@@ -1,6 +1,7 @@
 package com.mgk.bemgk.dto.finance;
 
 import java.math.BigDecimal;
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -8,7 +9,7 @@ import lombok.Getter;
 @Builder
 public class FinanceDashboardResponse {
 
-    private String bankName;
-    private String accountNumber;
-    private BigDecimal balance;
+	private String bankName;
+	private String accountNumber;
+	private BigDecimal balance;
 }

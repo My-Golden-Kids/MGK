@@ -7,7 +7,7 @@ import lombok.Getter;
 @Builder
 public class VaccinationHistoryItem {
 
-    private String date;
-    private boolean completed;
-    private String memo;
+	private String date;
+	private boolean completed;
+	private String memo;
 }

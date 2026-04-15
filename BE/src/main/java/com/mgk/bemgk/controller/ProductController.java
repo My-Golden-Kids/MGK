@@ -1,13 +1,20 @@
 package com.mgk.bemgk.controller;
 
-import com.mgk.bemgk.dto.product.ProductResponse;
+import java.util.List;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
+import com.mgk.bemgk.dto.product.ProductResponse;
 import com.mgk.bemgk.entity.Product;
 import com.mgk.bemgk.service.CurrentUserService;
 import com.mgk.bemgk.service.ProductService;
-import java.util.List;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/products")

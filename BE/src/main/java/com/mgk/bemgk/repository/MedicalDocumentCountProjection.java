@@ -4,11 +4,11 @@ import com.mgk.bemgk.entity.MedicalDocumentType;
 
 public interface MedicalDocumentCountProjection {
 
-    Long getPetId();
+	Long getPetId();
 
-    MedicalDocumentType getType();
+	MedicalDocumentType getType();
 
-    String getDetails();
+	String getDetails();
 
-    Long getDocumentCount();
+	Long getDocumentCount();
 }

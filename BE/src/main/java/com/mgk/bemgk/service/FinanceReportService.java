@@ -1,15 +1,5 @@
 package com.mgk.bemgk.service;
 
-import com.mgk.bemgk.dto.finance.FinanceMonthlyExpenseChartResponse;
-import com.mgk.bemgk.dto.finance.FinanceExpenseCategoryResponse;
-import com.mgk.bemgk.dto.finance.FinanceReportResponse;
-import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
-import com.mgk.bemgk.entity.AccountBook;
-import com.mgk.bemgk.entity.AccountBookCategory;
-import com.mgk.bemgk.entity.Pet;
-import com.mgk.bemgk.repository.AccountBookRepository;
-import com.mgk.bemgk.repository.AccountRepository;
-import com.mgk.bemgk.repository.PetRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -21,9 +11,21 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.mgk.bemgk.dto.finance.FinanceExpenseCategoryResponse;
+import com.mgk.bemgk.dto.finance.FinanceMonthlyExpenseChartResponse;
+import com.mgk.bemgk.dto.finance.FinanceReportResponse;
+import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
+import com.mgk.bemgk.entity.AccountBook;
+import com.mgk.bemgk.entity.AccountBookCategory;
+import com.mgk.bemgk.entity.Pet;
+import com.mgk.bemgk.repository.AccountBookRepository;
+import com.mgk.bemgk.repository.AccountRepository;
+import com.mgk.bemgk.repository.PetRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -84,8 +86,8 @@ public class FinanceReportService {
 			accountBookRepository.sumMonthlyPetExpenseByUserId(userId, startDateTime, endDateTime);
 
 		for (Object[] row : rawMonthlyExpenses) {
-			Integer year = ((Number) row[0]).intValue();
-			Integer month = ((Number) row[1]).intValue();
+			Integer year = ((Number)row[0]).intValue();
+			Integer month = ((Number)row[1]).intValue();
 			BigDecimal amount = row[2] == null ? BigDecimal.ZERO : new BigDecimal(row[2].toString());
 
 			YearMonth ym = YearMonth.of(year, month);
@@ -108,7 +110,6 @@ public class FinanceReportService {
 			.monthlyExpenses(monthlyExpenses)
 			.build();
 	}
-
 
 	// 최근 1년간 user 기준 반려동물 평균 한 달 지출
 	private BigDecimal calculateMonthlyAverageExpense(Long userId, List<Pet> pets) {
@@ -207,7 +208,9 @@ public class FinanceReportService {
 				}
 			}
 
-			if (alivePetCount == 0) continue;
+			if (alivePetCount == 0) {
+				continue;
+			}
 
 			BigDecimal livingCostForYear = annualExpensePerPet
 				.multiply(BigDecimal.valueOf(alivePetCount));
@@ -282,25 +285,41 @@ public class FinanceReportService {
 
 	// 반려견 연령대별 평균 치료비 (만원) - 출처: KB Think
 	private int getDogAnnualMedicalCost(double age) {
-		if (age <= 1) return 35;
-		else if (age <= 2) return 97;
-		else if (age <= 3) return 93;
-		else if (age <= 5) return 188;
-		else if (age <= 7) return 99;
-		else if (age <= 9) return 127;
-		else if (age <= 14) return 190;
+		if (age <= 1) {
+			return 35;
+		} else if (age <= 2) {
+			return 97;
+		} else if (age <= 3) {
+			return 93;
+		} else if (age <= 5) {
+			return 188;
+		} else if (age <= 7) {
+			return 99;
+		} else if (age <= 9) {
+			return 127;
+		} else if (age <= 14) {
+			return 190;
+		}
 		return 292;
 	}
 
 	// 반려묘 연령대별 평균 치료비 (만원) - 출처: KB Think
 	private int getCatAnnualMedicalCost(double age) {
-		if (age <= 1) return 96;
-		else if (age <= 2) return 84;
-		else if (age <= 3) return 114;
-		else if (age <= 5) return 91;
-		else if (age <= 7) return 138;
-		else if (age <= 9) return 155;
-		else if (age <= 14) return 210;
+		if (age <= 1) {
+			return 96;
+		} else if (age <= 2) {
+			return 84;
+		} else if (age <= 3) {
+			return 114;
+		} else if (age <= 5) {
+			return 91;
+		} else if (age <= 7) {
+			return 138;
+		} else if (age <= 9) {
+			return 155;
+		} else if (age <= 14) {
+			return 210;
+		}
 		return 134;
 	}
 
@@ -326,8 +345,8 @@ public class FinanceReportService {
 
 		for (Object[] row : rawMonthlyExpenses) {
 			YearMonth month = YearMonth.of(
-				((Number) row[0]).intValue(),
-				((Number) row[1]).intValue()
+				((Number)row[0]).intValue(),
+				((Number)row[1]).intValue()
 			);
 			BigDecimal amount = row[2] == null ? BigDecimal.ZERO : new BigDecimal(row[2].toString());
 			if (monthlyExpenseMap.containsKey(month)) {
@@ -384,10 +403,10 @@ public class FinanceReportService {
 		LocalDateTime endDateTime = currentMonth.atEndOfMonth().atTime(23, 59, 59);
 
 		List<AccountBook> monthlyExpenses = accountBookRepository.findMonthlyExpensesByUserId(
-			userId,
-			startDateTime,
-			endDateTime
-		).stream()
+				userId,
+				startDateTime,
+				endDateTime
+			).stream()
 			.filter(accountBook -> !"첫 계좌연결".equals(accountBook.getTitle()))
 			.toList();
 

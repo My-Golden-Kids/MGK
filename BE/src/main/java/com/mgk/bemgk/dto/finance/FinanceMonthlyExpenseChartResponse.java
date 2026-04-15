@@ -2,6 +2,7 @@ package com.mgk.bemgk.dto.finance;
 
 import java.math.BigDecimal;
 import java.util.List;
+
 import lombok.Builder;
 import lombok.Getter;
 

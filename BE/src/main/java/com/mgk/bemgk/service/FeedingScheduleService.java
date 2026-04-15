@@ -158,10 +158,12 @@ public class FeedingScheduleService {
 		}
 		return switch (normalizeSpecies(species)) {
 			case "DOG" -> {
-				if (age <= 2)
+				if (age <= 2) {
 					yield 350;
-				if (age <= 9)
+				}
+				if (age <= 9) {
 					yield 450;
+				}
 				yield 350;
 			}
 			case "CAT" -> age < 10 ? 65 : 55;

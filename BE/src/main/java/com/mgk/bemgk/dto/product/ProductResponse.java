@@ -1,8 +1,10 @@
 package com.mgk.bemgk.dto.product;
 
+import java.math.BigDecimal;
+
 import com.mgk.bemgk.entity.Product;
 import com.mgk.bemgk.entity.ProductType;
-import java.math.BigDecimal;
+
 import lombok.Builder;
 import lombok.Getter;
 

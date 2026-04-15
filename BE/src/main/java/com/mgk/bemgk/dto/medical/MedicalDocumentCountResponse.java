@@ -9,8 +9,8 @@ import lombok.Getter;
 @Builder
 public class MedicalDocumentCountResponse {
 
-    private Long petId;
-    private MedicalDocumentType type;
-    private String details;
-    private Long count;
+	private Long petId;
+	private MedicalDocumentType type;
+	private String details;
+	private Long count;
 }

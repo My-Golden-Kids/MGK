@@ -1,6 +1,9 @@
 package com.mgk.bemgk.entity;
 
+import java.math.BigDecimal;
+
 import com.mgk.bemgk.common.BaseEntity;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -10,7 +13,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,44 +24,44 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Account extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "user_id", nullable = false)
+	private User user;
 
-    @Column(name = "account_number", nullable = false, unique = true, length = 50)
-    private String accountNumber;
+	@Column(name = "account_number", nullable = false, unique = true, length = 50)
+	private String accountNumber;
 
-    @Column(name = "bank_name", nullable = false, length = 100)
-    private String bankName;
+	@Column(name = "bank_name", nullable = false, length = 100)
+	private String bankName;
 
-    @Column(name = "money_amount", nullable = false, precision = 19, scale = 2)
-    private BigDecimal moneyAmount;
+	@Column(name = "money_amount", nullable = false, precision = 19, scale = 2)
+	private BigDecimal moneyAmount;
 
-    @Column(name = "reward_amount", nullable = false, precision = 19, scale = 2)
-    private BigDecimal rewardAmount;
+	@Column(name = "reward_amount", nullable = false, precision = 19, scale = 2)
+	private BigDecimal rewardAmount;
 
-    @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
-    private BigDecimal totalAmount;
+	@Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
+	private BigDecimal totalAmount;
 
-    @Builder
-    public Account(User user, String accountNumber, String bankName, BigDecimal moneyAmount,
-                   BigDecimal rewardAmount, BigDecimal totalAmount) {
-        this.user = user;
-        this.accountNumber = accountNumber;
-        this.bankName = bankName;
-        this.moneyAmount = moneyAmount;
-        this.rewardAmount = rewardAmount;
-        this.totalAmount = totalAmount;
-    }
+	@Builder
+	public Account(User user, String accountNumber, String bankName, BigDecimal moneyAmount,
+		BigDecimal rewardAmount, BigDecimal totalAmount) {
+		this.user = user;
+		this.accountNumber = accountNumber;
+		this.bankName = bankName;
+		this.moneyAmount = moneyAmount;
+		this.rewardAmount = rewardAmount;
+		this.totalAmount = totalAmount;
+	}
 
-    public void addRewardAmount(BigDecimal amount) {
-        BigDecimal safeAmount = amount == null ? BigDecimal.ZERO : amount;
+	public void addRewardAmount(BigDecimal amount) {
+		BigDecimal safeAmount = amount == null ? BigDecimal.ZERO : amount;
 
-        this.rewardAmount = (this.rewardAmount == null ? BigDecimal.ZERO : this.rewardAmount).add(safeAmount);
-        this.totalAmount = (this.totalAmount == null ? BigDecimal.ZERO : this.totalAmount).add(safeAmount);
-    }
+		this.rewardAmount = (this.rewardAmount == null ? BigDecimal.ZERO : this.rewardAmount).add(safeAmount);
+		this.totalAmount = (this.totalAmount == null ? BigDecimal.ZERO : this.totalAmount).add(safeAmount);
+	}
 }

@@ -1,11 +1,13 @@
 package com.mgk.bemgk.config;
 
-import com.mgk.bemgk.entity.AverageMedicalCost;
-import com.mgk.bemgk.repository.AverageMedicalCostRepository;
-import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.mgk.bemgk.entity.AverageMedicalCost;
+import com.mgk.bemgk.repository.AverageMedicalCostRepository;
+
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @RequiredArgsConstructor
