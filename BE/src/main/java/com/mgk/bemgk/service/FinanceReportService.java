@@ -1,8 +1,11 @@
 package com.mgk.bemgk.service;
 
 import com.mgk.bemgk.dto.finance.FinanceMonthlyExpenseChartResponse;
+import com.mgk.bemgk.dto.finance.FinanceExpenseCategoryResponse;
 import com.mgk.bemgk.dto.finance.FinanceReportResponse;
 import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
+import com.mgk.bemgk.entity.AccountBook;
+import com.mgk.bemgk.entity.AccountBookCategory;
 import com.mgk.bemgk.entity.Pet;
 import com.mgk.bemgk.repository.AccountBookRepository;
 import com.mgk.bemgk.repository.AccountRepository;
@@ -42,6 +45,7 @@ public class FinanceReportService {
 		BigDecimal monthlyAverageExpense = calculateMonthlyAverageExpense(userId, pets);
 		BigDecimal totalAsset = defaultAmount(accountRepository.sumMoneyAmountByUserId(userId));
 		BigDecimal futurePetCost = calculateFuturePetCost(monthlyAverageExpense, alivePets);
+		FinanceExpenseCategoryResponse dominantCategory = calculateDominantCategory(userId);
 		ProductPersonalizedReportResponse recommendedProduct = productService.getFeaturedPersonalizedProduct(userId);
 
 		BigDecimal retirementImpactPercent = BigDecimal.ZERO;
@@ -57,6 +61,8 @@ public class FinanceReportService {
 			.retirementPercent(retirementImpactPercent)
 			.averageExpense(monthlyAverageExpense.setScale(0, RoundingMode.HALF_UP))
 			.totalAsset(totalAsset.setScale(0, RoundingMode.HALF_UP))
+			.dominantCategory(dominantCategory)
+			.expenseCategory(dominantCategory)
 			.recommendedProduct(recommendedProduct)
 			.build();
 	}
@@ -370,5 +376,73 @@ public class FinanceReportService {
 		}
 
 		return pet.getDeathDate().toLocalDate().isBefore(monthStart);
+	}
+
+	private FinanceExpenseCategoryResponse calculateDominantCategory(Long userId) {
+		YearMonth currentMonth = YearMonth.now();
+		LocalDateTime startDateTime = currentMonth.atDay(1).atStartOfDay();
+		LocalDateTime endDateTime = currentMonth.atEndOfMonth().atTime(23, 59, 59);
+
+		List<AccountBook> monthlyExpenses = accountBookRepository.findMonthlyExpensesByUserId(
+			userId,
+			startDateTime,
+			endDateTime
+		).stream()
+			.filter(accountBook -> !"첫 계좌연결".equals(accountBook.getTitle()))
+			.toList();
+
+		BigDecimal hospitalAmount = sumCategoryAmount(monthlyExpenses, AccountBookCategory.Hospital);
+		BigDecimal foodAmount = sumCategoryAmount(monthlyExpenses, AccountBookCategory.Food);
+		BigDecimal etcAmount = sumCategoryAmount(monthlyExpenses, AccountBookCategory.Etc);
+		BigDecimal totalAmount = hospitalAmount.add(foodAmount).add(etcAmount);
+
+		if (totalAmount.compareTo(BigDecimal.ZERO) <= 0) {
+			return FinanceExpenseCategoryResponse.builder()
+				.category("Etc")
+				.categoryLabel("기타")
+				.amount(BigDecimal.ZERO)
+				.percent(BigDecimal.ZERO)
+				.build();
+		}
+
+		Map<AccountBookCategory, BigDecimal> categoryAmounts = Map.of(
+			AccountBookCategory.Food, foodAmount,
+			AccountBookCategory.Hospital, hospitalAmount,
+			AccountBookCategory.Etc, etcAmount
+		);
+
+		AccountBookCategory dominantCategory = categoryAmounts.entrySet().stream()
+			.max((entry1, entry2) -> entry1.getValue().compareTo(entry2.getValue()))
+			.map(Map.Entry::getKey)
+			.orElse(AccountBookCategory.Etc);
+
+		BigDecimal dominantAmount = categoryAmounts.getOrDefault(dominantCategory, BigDecimal.ZERO);
+
+		BigDecimal percent = dominantAmount
+			.divide(totalAmount, 4, RoundingMode.HALF_UP)
+			.multiply(ONE_HUNDRED)
+			.setScale(1, RoundingMode.HALF_UP);
+
+		return FinanceExpenseCategoryResponse.builder()
+			.category(dominantCategory.name())
+			.categoryLabel(toCategoryLabel(dominantCategory))
+			.amount(dominantAmount.setScale(0, RoundingMode.HALF_UP))
+			.percent(percent)
+			.build();
+	}
+
+	private BigDecimal sumCategoryAmount(List<AccountBook> accountBooks, AccountBookCategory category) {
+		return accountBooks.stream()
+			.filter(accountBook -> accountBook.getCategory() == category)
+			.map(AccountBook::getAmount)
+			.reduce(BigDecimal.ZERO, BigDecimal::add);
+	}
+
+	private String toCategoryLabel(AccountBookCategory category) {
+		return switch (category) {
+			case Hospital -> "병원비";
+			case Food -> "식비";
+			case Etc -> "기타";
+		};
 	}
 }
