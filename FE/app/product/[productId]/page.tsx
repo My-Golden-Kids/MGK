@@ -67,7 +67,7 @@ function InsuranceReport({ report }: { report: PersonalizedProductReport }) {
         }
       >
         <div className="grid grid-cols-2 gap-3 md:gap-3.5 lg:gap-4">
-          <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
+          <div className="flex flex-col items-center justify-center rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
             <p className="font-semibold text-[16px] md:text-[20px] lg:text-[24px]">
               방문한 횟수
             </p>
@@ -75,9 +75,11 @@ function InsuranceReport({ report }: { report: PersonalizedProductReport }) {
               {report.hospitalVisitCount}번
             </p>
           </div>
-          <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
+          <div className="flex flex-col items-center justify-center rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
             <p className="font-semibold text-[16px] leading-snug md:text-[20px] lg:text-[24px]">
-              보험 가입 시
+              <span className="text-[var(--color-main-green)]">
+                보험 가입 시
+              </span>
               <br />
               예상 절감액
             </p>
@@ -110,8 +112,13 @@ function InsuranceReport({ report }: { report: PersonalizedProductReport }) {
             까지 보장 혜택을 받을 수 있어요.
           </p>
         </div>
-        <p className="mt-3 mr-3 text-[13px] md:mt-4 md:mr-4 md:p-4 lg:mr-5 lg:p-5">
-          보험 가입 시 병원비 부담을 크게 줄일 수 있어요.
+        <p className="mt-3 mr-3 flex items-start gap-1.5 text-[12px] md:mt-4 md:mr-4 md:gap-1.5 md:text-[16px] lg:mr-5 lg:gap-2 lg:text-[20px]">
+          <img
+            src="/images/product/icon_check.png"
+            alt="체크 아이콘"
+            className="h-[15px] w-[15px] shrink-0 md:mt-0.5 md:h-[18px] md:w-[18px] lg:mt-1 lg:h-[21px] lg:w-[21px]"
+          />
+          <span>보험 가입 시 병원비 부담을 크게 줄일 수 있어요.</span>
         </p>
       </SectionCard>
     </>
@@ -130,25 +137,30 @@ function CardReport({ report }: { report: PersonalizedProductReport }) {
         />
       }
     >
-      <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
-        <p className="font-bold text-[16px] text-black leading-snug">
+      <div className="flex items-center justify-center rounded-[10px] bg-[#D4F4F0] p-3 md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
+        <p className="text-[16px] leading-snug md:text-[20px] lg:text-[24px]">
           <span className="text-[var(--color-main-green)]">
             {report.productName}
           </span>
           를 사용하시면 매달 평균{' '}
-          <span className="text-[var(--color-main-green)]">
+          <span className="font-bold text-[var(--color-main-green)]">
             {formatMoney(report.estimatedMonthlyBenefit)}
           </span>
           을 절약하실 수 있어요.
           <br />
           또한, 연{' '}
-          <span className="text-[#FF4D4F]">
+          <span className="font-bold text-[#DB1F26]">
             최대 {formatMoney(report.benefitLimitAmount ?? 0)}
           </span>
-          까지 보장 혜택을 받을 수 있어요.
+          까지 보장 혜택을 받을 수 있어 다양한 지출 부담을 줄일 수 있어요.
         </p>
       </div>
-      <p className="mt-3 text-[#555555] text-[13px]">
+      <p className="mt-3 mr-3 flex items-start gap-1.5 text-[12px] md:mt-4 md:mr-4 md:gap-1.5 md:text-[16px] lg:mr-5 lg:gap-2 lg:text-[20px]">
+        <img
+          src="/images/product/icon_check.png"
+          alt="체크 아이콘"
+          className="h-[15px] w-[15px] shrink-0 md:mt-0.5 md:h-[18px] md:w-[18px] lg:mt-1 lg:h-[21px] lg:w-[21px]"
+        />
         사용처 : 동물병원, 펫용품 구매, 사료 구입
       </p>
     </SectionCard>
@@ -167,26 +179,40 @@ function SavingsReport({ report }: { report: PersonalizedProductReport }) {
         />
       }
     >
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
-          <p className="font-bold text-[#FF4D4F] text-[15px] leading-snug">
+      <div className="grid grid-cols-2 gap-3 md:gap-3.5 lg:gap-4">
+        <div className="flex flex-col items-center justify-center rounded-[10px] bg-[#D4F4F0] p-3 md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
+          <p className="font-bold text-[#DB1F26] text-[16px] md:text-[20px] lg:text-[24px]">
             연 최대 이자
           </p>
-          <p className="mt-3 font-extrabold text-[#FF4D4F] text-[28px]">
+          <p className="font-extrabold text-[#DB1F26] text-[28px] md:text-[32px] lg:text-[36px]">
             {formatMoney(report.estimatedAnnualBenefit)}
           </p>
         </div>
-        <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
-          <p className="mt-4 font-extrabold text-[#FF4D4F] text-[24px] leading-tight">
+        <div className="flex flex-col items-center justify-center rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
+          <p className="font-extrabold text-[#DB1F26] text-[28px] leading-snug md:text-[32px] lg:text-[36px]">
             보험
             <br />
             무료 가입
           </p>
         </div>
       </div>
-      <div className="mt-3 space-y-1 text-[#555555] text-[13px]">
-        <p>매달 50만원 저축 시 최대 이자 혜택 적용</p>
-        <p>보험 무료 가입 및 부가 혜택 적용 가능</p>
+      <div className="mt-3 mr-3 text-[12px] md:mt-4 md:mr-4 md:text-[16px] lg:mr-5 lg:text-[20px]">
+        <p className="items-startgap-1.5 mb-0.5 flex md:gap-1.5 lg:gap-2">
+          <img
+            src="/images/product/icon_check.png"
+            alt="체크 아이콘"
+            className="h-[15px] w-[15px] shrink-0 md:mt-0.5 md:h-[18px] md:w-[18px] lg:mt-1 lg:h-[21px] lg:w-[21px]"
+          />
+          매달 50만원 저축 시 최대 이자 혜택 적용
+        </p>
+        <p className="items-startgap-1.5 flex md:gap-1.5 lg:gap-2">
+          <img
+            src="/images/product/icon_check.png"
+            alt="체크 아이콘"
+            className="h-[15px] w-[15px] shrink-0 md:mt-0.5 md:h-[18px] md:w-[18px] lg:mt-1 lg:h-[21px] lg:w-[21px]"
+          />
+          보험 무료 가입 및 부가 혜택 적용 가능
+        </p>
       </div>
     </SectionCard>
   );
@@ -204,13 +230,13 @@ function SubscriptionReport({ report }: { report: PersonalizedProductReport }) {
         />
       }
     >
-      <div className="rounded-[10px] bg-[#D4F4F0] p-3 text-center md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
-        <p className="font-bold text-[16px] text-black leading-snug">
+      <div className="flex flex-col items-center justify-center rounded-[10px] bg-[#D4F4F0] p-3 md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
+        <p className="text-[16px] leading-snug md:text-[20px] lg:text-[24px]">
           <span className="text-[var(--color-main-green)]">
             {report.productName}
           </span>{' '}
           구독은 매달{' '}
-          <span className="text-[#FF4D4F]">
+          <span className="font-bold text-[#DB1F26]">
             최소{' '}
             {formatMoney(
               report.benefitAmount ?? report.estimatedMonthlyBenefit,
@@ -219,7 +245,12 @@ function SubscriptionReport({ report }: { report: PersonalizedProductReport }) {
           의 비용을 절약하고 다양한 혜택을 받을 수 있어요.
         </p>
       </div>
-      <p className="mt-3 text-[#555555] text-[13px]">
+      <p className="mt-3 mr-3 flex items-start gap-1.5 text-[12px] md:mt-4 md:mr-4 md:gap-1.5 md:text-[16px] lg:mr-5 lg:gap-2 lg:text-[20px]">
+        <img
+          src="/images/product/icon_check.png"
+          alt="체크 아이콘"
+          className="h-[15px] w-[15px] shrink-0 md:mt-0.5 md:h-[18px] md:w-[18px] lg:mt-1 lg:h-[21px] lg:w-[21px]"
+        />
         사료 할인, 최소 기준 펫보험, 건강관리 지원
       </p>
     </SectionCard>
@@ -238,15 +269,15 @@ function ForestReport({ report }: { report: PersonalizedProductReport }) {
         />
       }
     >
-      <div className="rounded-[12px] bg-[#D4F4F0] px-4 py-4">
-        <p className="font-bold text-[16px] text-black leading-snug">
+      <div className="flex flex-col items-center justify-center rounded-[10px] bg-[#D4F4F0] p-3 md:rounded-[11px] md:p-4 lg:rounded-[12px] lg:p-5">
+        <p className="text-[16px] leading-snug md:text-[20px] lg:text-[24px]">
           반려동물 장례 전문업체{' '}
           <span className="text-[var(--color-main-green)]">펫포레스트</span> 와
           제휴를 통해{' '}
-          <span className="text-[#FF4D4F]">
-            {report.benefitRate?.toFixed(0)}% 할인
-          </span>{' '}
-          쿠폰을 제공받을 수 있어요.
+          <span className="font-bold text-[#DB1F26]">
+            {report.benefitRate?.toFixed(0)}% 할인 쿠폰을 제공
+          </span>
+          받을 수 있어요.
         </p>
       </div>
     </SectionCard>
