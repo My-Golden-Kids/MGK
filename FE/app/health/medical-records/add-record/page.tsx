@@ -1,12 +1,11 @@
 'use client';
-
-import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
 import { clientFetch } from '@/lib/client-fetch';
+import { toRenderableImageSrc } from '@/lib/local-image';
 import {
   EMPTY_MEDICAL_RECORD_FORM,
   getStoredMedicalPetId,
@@ -192,11 +191,9 @@ function AddMedicalRecordForm() {
             </h2>
             <div className="flex h-[220px] w-full items-center justify-center overflow-hidden rounded-[14px] bg-[#F4F6F5] text-[#B4BBB8] text-[18px]">
               {imageDataUrl ? (
-                <Image
-                  src={imageDataUrl}
+                <img
+                  src={toRenderableImageSrc(imageDataUrl)}
                   alt="업로드한 진단서(처방전)"
-                  width={1200}
-                  height={1200}
                   className="h-full w-full object-cover"
                 />
               ) : (

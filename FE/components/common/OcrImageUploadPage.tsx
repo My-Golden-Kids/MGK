@@ -1,10 +1,10 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import BackButton from '@/components/common/BackButton';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { Button } from '@/components/common/Button';
-import Image from 'next/image';
-import { useRef, useState } from 'react';
+import { toRenderableImageSrc } from '@/lib/local-image';
 
 type OcrImageUploadPageProps = {
   title: string;
@@ -114,11 +114,9 @@ export default function OcrImageUploadPage({
               className="relative flex min-h-0 w-full flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-[14px] bg-[#F4F6F5] text-[#B4BBB8] text-[18px]"
             >
               {previewImageUrl ? (
-                <Image
-                  src={previewImageUrl}
+                <img
+                  src={toRenderableImageSrc(previewImageUrl)}
                   alt={uploadAlt}
-                  width={1200}
-                  height={1200}
                   className="pointer-events-none absolute inset-0 h-full w-full object-cover"
                 />
               ) : (

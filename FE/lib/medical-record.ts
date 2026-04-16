@@ -1,3 +1,4 @@
+import { toRenderableImageSrc } from '@/lib/local-image';
 import { groupBy } from '@/lib/utils';
 
 export type MedicalRecordForm = {
@@ -139,7 +140,7 @@ export async function imageSourceToFile(source: string, fileName: string) {
     return dataUrlToFile(source, fileName);
   }
 
-  const response = await fetch(source);
+  const response = await fetch(toRenderableImageSrc(source));
   if (!response.ok) {
     throw new Error('이미지를 불러오지 못했습니다.');
   }

@@ -1,6 +1,4 @@
 'use client';
-
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -15,6 +13,7 @@ import {
   EXPENSE_RECEIPT_OCR_STORAGE_KEY,
   mapOcrResultToExpenseDraft,
 } from '@/lib/expense-receipt';
+import { toRenderableImageSrc } from '@/lib/local-image';
 import type { OcrMedicalRecord } from '@/lib/medical-record';
 
 const CATEGORY_OPTIONS = [
@@ -184,11 +183,9 @@ export default function AddExpensePage() {
               </span>
               <div className="mt-3 flex h-[180px] items-center justify-center overflow-hidden rounded-[14px] bg-[#F4F6F5] text-[#B4BBB8] text-[16px]">
                 {receiptImageUrl ? (
-                  <Image
-                    src={receiptImageUrl}
+                  <img
+                    src={toRenderableImageSrc(receiptImageUrl)}
                     alt="업로드한 영수증"
-                    width={1200}
-                    height={1200}
                     className="h-full w-full object-cover"
                   />
                 ) : (
