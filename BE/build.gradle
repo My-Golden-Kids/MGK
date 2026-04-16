@@ -3,6 +3,7 @@ plugins {
     id 'org.springframework.boot' version '4.0.3'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'checkstyle'
+    id 'jacoco'
 }
 
 checkstyle {
@@ -70,6 +71,90 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+jacoco {
+    toolVersion = '0.8.13'
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = true
+    }
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('test')
+
+    violationRules {
+        rule {
+            element = 'PACKAGE'
+            includes = [
+                    'com.mgk.bemgk.auth',
+                    'com.mgk.bemgk.common',
+                    'com.mgk.bemgk.config',
+                    'com.mgk.bemgk.dto.alarm',
+                    'com.mgk.bemgk.dto.auth',
+                    'com.mgk.bemgk.dto.feeding',
+                    'com.mgk.bemgk.dto.finance',
+                    'com.mgk.bemgk.dto.medical',
+                    'com.mgk.bemgk.dto.pet',
+                    'com.mgk.bemgk.dto.product',
+                    'com.mgk.bemgk.dto.talk',
+                    'com.mgk.bemgk.dto.vaccination',
+                    'com.mgk.bemgk.entity',
+                    'com.mgk.bemgk.exception'
+            ]
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+
+        rule {
+            element = 'PACKAGE'
+            includes = ['com.mgk.bemgk.controller']
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+
+        rule {
+            element = 'PACKAGE'
+            includes = ['com.mgk.bemgk.repository']
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.90
+            }
+        }
+
+        rule {
+            element = 'PACKAGE'
+            includes = ['com.mgk.bemgk.service']
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
 }
 
 //체크스타일에서 테스트코드는 검사하지 않도록 설정
