@@ -27,7 +27,7 @@ jobs:
         with:
           version: 10
 
-      - name: Inject BE secrets
+      - name: BE secrets
         working-directory: BE
         run: |
           mkdir -p src/main/resources
