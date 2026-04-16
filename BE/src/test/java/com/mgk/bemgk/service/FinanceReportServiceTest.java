@@ -133,10 +133,75 @@ class FinanceReportServiceTest {
 
 		assertThat(chart.getMonthlyExpenses()).hasSize(12);
 		assertThat(chart.getMonthlyExpenses().getLast().getAmount()).isEqualByComparingTo("125000");
-		assertThat(report.getAverageExpense()).isNotNull();
+		assertThat(report.getAverageExpense()).isEqualByComparingTo("14583");
 		assertThat(dogLife).isEqualByComparingTo("13.0");
 		assertThat(catLife).isEqualByComparingTo("20.0");
 		assertThat(monthlyMap).containsKeys(YearMonth.now().minusMonths(1), YearMonth.now());
 		assertThat(activePetsThisMonth).isEqualTo(1);
+	}
+
+	@Test
+	void monthlyAverageExpense_doesNotDropBackfilledExpenseMonthsBeforePetCreatedAt() {
+		Long userId = 3L;
+		Pet pet = Pet.builder()
+			.name("멩이")
+			.species("DOG")
+			.age(4.0)
+			.size(PetSize.중형)
+			.death(false)
+			.build();
+		ReflectionTestUtils.setField(pet, "createdAt", LocalDateTime.now());
+
+		when(petRepository.findByUser_Id(userId)).thenReturn(List.of(pet));
+		when(accountBookRepository.findFirstPetSpendDateByUserId(userId)).thenReturn(LocalDateTime.of(2026, 2, 1, 0, 0));
+		when(accountBookRepository.sumMonthlyPetExpenseByUserId(eq(userId), any(), any()))
+			.thenReturn(List.of(
+				new Object[] {2026, 2, 85800},
+				new Object[] {2026, 3, 125000},
+				new Object[] {2026, 4, 640000}
+			));
+		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
+		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
+		when(productService.getFeaturedPersonalizedProduct(userId)).thenReturn(null);
+
+		FinanceReportResponse report = financeReportService.getRetirementReport(userId);
+
+		assertThat(report.getAverageExpense()).isEqualByComparingTo("283600");
+	}
+
+	@Test
+	void futurePetCost_splitsUserMonthlyAverageAcrossAlivePets() {
+		Long userId = 4L;
+		Pet firstDog = Pet.builder()
+			.name("첫째")
+			.species("DOG")
+			.age(13.0)
+			.size(PetSize.소형)
+			.death(false)
+			.build();
+		Pet secondDog = Pet.builder()
+			.name("둘째")
+			.species("DOG")
+			.age(11.0)
+			.size(PetSize.소형)
+			.death(false)
+			.build();
+
+		when(petRepository.findByUser_Id(userId)).thenReturn(List.of(firstDog, secondDog));
+		when(accountBookRepository.findFirstPetSpendDateByUserId(userId)).thenReturn(LocalDateTime.of(2026, 2, 1, 0, 0));
+		when(accountBookRepository.sumMonthlyPetExpenseByUserId(eq(userId), any(), any()))
+			.thenReturn(List.of(
+				new Object[] {2026, 2, 800000},
+				new Object[] {2026, 3, 800000},
+				new Object[] {2026, 4, 800000}
+			));
+		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
+		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
+		when(productService.getFeaturedPersonalizedProduct(userId)).thenReturn(null);
+
+		FinanceReportResponse report = financeReportService.getRetirementReport(userId);
+
+		assertThat(report.getAverageExpense()).isEqualByComparingTo("800000");
+		assertThat(report.getTotalPetCost()).isEqualByComparingTo("40200000");
 	}
 }

@@ -44,7 +44,7 @@ public class FinanceReportService {
 		List<Pet> pets = petRepository.findByUser_Id(userId);
 		List<Pet> alivePets = getAlivePetsAsOfToday(pets);
 
-		BigDecimal monthlyAverageExpense = calculateMonthlyAverageExpense(userId, pets);
+		BigDecimal monthlyAverageExpense = calculateMonthlyAverageExpense(userId);
 		BigDecimal totalAsset = defaultAmount(accountRepository.sumMoneyAmountByUserId(userId));
 		BigDecimal futurePetCost = calculateFuturePetCost(monthlyAverageExpense, alivePets);
 		FinanceExpenseCategoryResponse dominantCategory = calculateDominantCategory(userId);
@@ -111,12 +111,8 @@ public class FinanceReportService {
 			.build();
 	}
 
-	// 최근 1년간 user 기준 반려동물 평균 한 달 지출
-	private BigDecimal calculateMonthlyAverageExpense(Long userId, List<Pet> pets) {
-		if (pets == null || pets.isEmpty()) {
-			return BigDecimal.ZERO;
-		}
-
+	// 최근 1년간 사용자 기준 월 지출 평균
+	private BigDecimal calculateMonthlyAverageExpense(Long userId) {
 		LocalDateTime firstPetSpendDateTime = accountBookRepository.findFirstPetSpendDateByUserId(userId);
 
 		if (firstPetSpendDateTime == null) {
@@ -134,23 +130,12 @@ public class FinanceReportService {
 		YearMonth startMonth = observedMonths < 12 ? firstSpendMonth : currentMonth.minusMonths(11);
 		Map<YearMonth, BigDecimal> monthlyExpenseMap = getMonthlyExpenseMap(userId, startMonth, currentMonth);
 
-		BigDecimal adjustedExpenseSum = BigDecimal.ZERO;
+		BigDecimal monthlyExpenseSum = BigDecimal.ZERO;
 		long countedMonths = 0;
 
 		for (YearMonth month = startMonth; !month.isAfter(currentMonth); month = month.plusMonths(1)) {
-			int activePetCount = countActivePetsForMonth(pets, month);
-			if (activePetCount <= 0) {
-				continue;
-			}
-
 			BigDecimal monthlyExpense = defaultAmount(monthlyExpenseMap.get(month));
-			BigDecimal adjustedMonthlyExpense = monthlyExpense.divide(
-				BigDecimal.valueOf(activePetCount),
-				2,
-				RoundingMode.HALF_UP
-			);
-
-			adjustedExpenseSum = adjustedExpenseSum.add(adjustedMonthlyExpense);
+			monthlyExpenseSum = monthlyExpenseSum.add(monthlyExpense);
 			countedMonths++;
 		}
 
@@ -158,7 +143,7 @@ public class FinanceReportService {
 			return BigDecimal.ZERO;
 		}
 
-		return adjustedExpenseSum.divide(BigDecimal.valueOf(countedMonths), 2, RoundingMode.HALF_UP);
+		return monthlyExpenseSum.divide(BigDecimal.valueOf(countedMonths), 2, RoundingMode.HALF_UP);
 	}
 
 	/**
@@ -178,44 +163,31 @@ public class FinanceReportService {
 			return BigDecimal.ZERO;
 		}
 
-		BigDecimal annualExpensePerPet = monthlyAverageExpense.multiply(TWELVE);
+		BigDecimal monthlyExpensePerPet = monthlyAverageExpense.divide(
+			BigDecimal.valueOf(pets.size()),
+			2,
+			RoundingMode.HALF_UP
+		);
+		BigDecimal annualExpensePerPet = monthlyExpensePerPet.multiply(TWELVE);
 
 		List<Integer> projectedYears = pets.stream()
 			.map(this::getProjectedYears)
 			.toList();
 
-		int maxYears = projectedYears.stream()
-			.max(Integer::compareTo)
-			.orElse(0);
-
 		BigDecimal totalCost = BigDecimal.ZERO;
 
-		for (int year = 1; year <= maxYears; year++) {
-			int alivePetCount = 0;
-			BigDecimal medicalCostForYear = BigDecimal.ZERO;
+		for (int i = 0; i < pets.size(); i++) {
+			Pet pet = pets.get(i);
+			int projectedYear = projectedYears.get(i);
+			BigDecimal petCost = annualExpensePerPet.multiply(BigDecimal.valueOf(projectedYear));
 
-			for (int i = 0; i < pets.size(); i++) {
-				Pet pet = pets.get(i);
-				int projectedYear = projectedYears.get(i);
-
-				if (year <= projectedYear) {
-					alivePetCount++;
-
-					double currentAge = pet.getAge();
-					double ageAtThatYear = currentAge + year - 1;
-
-					medicalCostForYear = medicalCostForYear.add(getAnnualMedicalCost(pet, ageAtThatYear));
-				}
+			for (int year = 1; year <= projectedYear; year++) {
+				double currentAge = pet.getAge();
+				double ageAtThatYear = currentAge + year - 1;
+				petCost = petCost.add(getAnnualMedicalCost(pet, ageAtThatYear));
 			}
 
-			if (alivePetCount == 0) {
-				continue;
-			}
-
-			BigDecimal livingCostForYear = annualExpensePerPet
-				.multiply(BigDecimal.valueOf(alivePetCount));
-
-			totalCost = totalCost.add(livingCostForYear).add(medicalCostForYear);
+			totalCost = totalCost.add(petCost);
 		}
 
 		return totalCost;
@@ -360,14 +332,8 @@ public class FinanceReportService {
 	private int countActivePetsForMonth(List<Pet> pets, YearMonth month) {
 		int count = 0;
 		LocalDate monthStart = month.atDay(1);
-		LocalDate monthEnd = month.atEndOfMonth();
 
 		for (Pet pet : pets) {
-			LocalDate createdDate = pet.getCreatedAt() == null ? null : pet.getCreatedAt().toLocalDate();
-			if (createdDate != null && createdDate.isAfter(monthEnd)) {
-				continue;
-			}
-
 			if (isDeadBeforeMonthStart(pet, monthStart)) {
 				continue;
 			}
