@@ -68,6 +68,27 @@ export default function FinanceReportPage() {
     return Math.max(...safeMonthlyData.map((item) => item.amount ?? 0), 0);
   }, [safeMonthlyData]);
 
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: '산책 상위 10%',
+          text: '우리동네 산책 영웅이에요! 🐶',
+          url: window.location.href, // 현재 페이지 링크
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('링크가 복사되었습니다!');
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+
+      alert('공유에 실패했어요. 링크를 다시 복사해 주세요.');
+    }
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto">
@@ -157,7 +178,7 @@ export default function FinanceReportPage() {
           <section className="mt-3 grid grid-cols-2 gap-3 md:mt-3.5 md:gap-3.5 lg:mt-4 lg:gap-4">
             {recommendedProduct && (
               <article className="flex h-[270px] flex-col rounded-[12px] border border-[#C4C4C4] bg-white p-3 md:h-[310px] md:rounded-[16px] md:p-4 lg:h-[350px] lg:rounded-[20px] lg:p-5">
-                <h3 className="font-bold text-[20px] leading-[1.25] md:text-[24px] lg:text-[28px]">
+                <h3 className="font-bold text-[18px] leading-tight md:text-[22px] lg:text-[26px]">
                   '{dominantCategoryText}' 지출{' '}
                   <span className="text-[var(--color-hana-pink)]">
                     {dominantPercent.toFixed(0)}%
@@ -181,7 +202,7 @@ export default function FinanceReportPage() {
 
                 <Link
                   href={`/product/${recommendedProduct.productId}`}
-                  className="m-auto block pt-3 text-[18px] md:text-[22px] lg:text-[26px]"
+                  className="m-auto block pt-3 text-[#71717A] text-[18px] md:text-[22px] lg:text-[26px]"
                 >
                   {recommendedProduct.productName === '하나 펫사랑보험'
                     ? '펫보험 알아보기 >'
@@ -227,7 +248,7 @@ export default function FinanceReportPage() {
               <button
                 type="button"
                 onClick={() => setIsBadgeModalOpen(true)}
-                className="m-auto block text-[18px] md:text-[22px] lg:text-[26px]"
+                className="m-auto block text-[#71717A] text-[18px] md:text-[22px] lg:text-[26px]"
               >
                 뱃지 받기 &gt;
               </button>
@@ -295,7 +316,7 @@ export default function FinanceReportPage() {
 
               <button
                 type="button"
-                onClick={() => setIsBadgeModalOpen(false)}
+                onClick={handleShare}
                 className="mx-auto mt-5 flex items-center justify-center rounded-[12px] bg-[var(--color-main-green)] px-16 py-2 font-bold text-[18px] text-white md:mt-6 md:px-18 md:py-2.5 md:text-[22px] lg:mt-7 lg:px-20 lg:py-3 lg:text-[26px]"
               >
                 공유하기
