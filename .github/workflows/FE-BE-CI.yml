@@ -70,25 +70,29 @@ jobs:
         run: |
           ssh ec2-user@${{ secrets.WAS_HOST }} "python3 -m json.tool /home/ec2-user/workspace/MGK/BE/secrets/vision-key.json > /dev/null"
 
-      - name: Restart services on EC2
+      - name: Git pull & Restart FE,BE Server
         run: |
           ssh ec2-user@${{ secrets.WAS_HOST }} "
             cd /home/ec2-user/workspace/MGK &&
             git restore BE/src/main/resources/application.yml || true &&
             git pull origin dev &&
             cd /home/ec2-user/workspace/MGK/BE &&
-            pm2 describe mgk-be > /dev/null 2>&1 &&
-            pm2 restart mgk-be --update-env ||
-            pm2 start 'java -jar app.jar' --name mgk-be
+            if pm2 describe mgk-be > /dev/null 2>&1; then
+              pm2 restart mgk-be --update-env;
+            else
+              pm2 start 'java -jar app.jar' --name mgk-be;
+            fi
           "
 
           ssh ec2-user@${{ secrets.WAS_HOST }} "
             cd /home/ec2-user/workspace/MGK/FE &&
             pnpm install --frozen-lockfile &&
             pnpm exec next build --webpack &&
-            pm2 describe mgk-fe > /dev/null 2>&1 &&
-            pm2 restart mgk-fe --update-env ||
-            pm2 start 'pnpm exec next start -p 3000' --name mgk-fe
+            if pm2 describe mgk-fe > /dev/null 2>&1; then
+              pm2 restart mgk-fe --update-env;
+            else
+              pm2 start 'pnpm exec next start -p 3000' --name mgk-fe;
+            fi
           "
 
           ssh ec2-user@${{ secrets.WAS_HOST }} "
