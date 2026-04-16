@@ -329,7 +329,7 @@ export default function HomePage() {
             )}
           </section>
 
-          <div className="mt-auto flex flex-col gap-4">
+          <div className="mt-auto flex flex-col gap-5 md:gap-6 lg:gap-7">
             <section>
               <SelectedPetProfile
                 pets={pets}
@@ -339,7 +339,7 @@ export default function HomePage() {
               />
               <div>
                 {selectedPet ? (
-                  <p className="text-center font-extrabold text-[28px] text-black leading-none">
+                  <p className="text-center font-extrabold text-[28px] md:text-[32px] lg:text-[36px]">
                     {selectedPet.name}
                   </p>
                 ) : isPetsLoading ? (
