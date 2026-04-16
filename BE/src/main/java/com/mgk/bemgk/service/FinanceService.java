@@ -174,8 +174,8 @@ public class FinanceService {
 		}
 
 		return switch (recommendedProduct.getProductType()) {
-			case INSURANCE -> recommendedProduct.getProductName() + "에 가입하시면 연간 약 "
-				+ toCurrencyText(recommendedProduct.getEstimatedAnnualBenefit()) + " 정도 의료비를 아끼실 수 있어요.";
+			case INSURANCE -> recommendedProduct.getProductName() + "에 가입하시면 연간 "
+				+ toCurrencyText(recommendedProduct.getEstimatedAnnualBenefit()) + " 정도의 의료비를 아끼실 수 있어요.";
 			case CARD -> recommendedProduct.getProductName() + "를 이용하시면 매달 약 "
 				+ toCurrencyText(recommendedProduct.getEstimatedMonthlyBenefit()) + " 정도 절약하실 수 있어요.";
 			case SUBSCRIPTION -> "구독 서비스를 이용하시면 매달 약 "
