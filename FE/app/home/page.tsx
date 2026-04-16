@@ -389,7 +389,7 @@ export default function HomePage() {
             </section>
 
             {isSpendingLoading ? (
-              <section className="rounded-[24px] border-2 border-[var(--color-main-green)] bg-white px-4 py-5">
+              <section className="rounded-[24px] border-2 border-[var(--color-main-green)] bg-white p-5 md:p-6 lg:p-7">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <h2 className="font-extrabold text-[20px] text-[var(--color-main-green)] leading-tight md:text-[24px] lg:text-[28px]">
                     이번달 소비
@@ -407,7 +407,7 @@ export default function HomePage() {
                 <Skeleton className="h-[56px] w-full rounded-[12px] bg-[#25C3A8]/25" />
               </section>
             ) : spendingData ? (
-              <section className="rounded-[24px] border-2 border-[var(--color-main-green)] bg-white px-4 py-5">
+              <section className="rounded-[24px] border-2 border-[var(--color-main-green)] bg-white p-5 md:p-6 lg:p-7">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <h2 className="font-bold text-[20px] text-[var(--color-main-green)] leading-tight md:text-[24px] lg:text-[28px]">
                     이번달 소비
@@ -437,9 +437,9 @@ export default function HomePage() {
                 </button>
               </section>
             ) : (
-              <section className="rounded-[24px] border-2 border-[var(--color-main-green)] bg-white py-6">
+              <section className="rounded-[24px] border-2 border-[var(--color-main-green)] bg-white p-5 md:p-6 lg:p-7">
                 <div className="flex min-h-[170px] flex-col items-center justify-center text-center">
-                  <p className="mb-5 font-extrabold text-[#0DA892] text-[20px] leading-tight">
+                  <p className="mb-5 font-bold text-[#0DA892] text-[18px] leading-tight md:text-[20px] lg:text-[22px]">
                     {spendingErrorMessage ??
                       '아직 등록된 소비 데이터가 없어요!'}
                   </p>
