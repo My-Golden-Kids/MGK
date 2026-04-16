@@ -1,10 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import PetProfileImage from '@/components/home/pet/PetProfileImage';
 import { clientFetch } from '@/lib/client-fetch';
 import { dataUrlToFile, type OcrMedicalRecord } from '@/lib/medical-record';
+import { uploadStaticImage } from '@/lib/static-image-upload';
 
 type OcrProcessingPageProps = {
   imageStorageKey: string;
@@ -13,6 +14,7 @@ type OcrProcessingPageProps = {
   fallbackPath: string;
   successPath: string;
   errorPath: string;
+  uploadDir: 'expense' | 'hospital';
 };
 
 export default function OcrProcessingPage({
@@ -22,14 +24,22 @@ export default function OcrProcessingPage({
   fallbackPath,
   successPath,
   errorPath,
+  uploadDir,
 }: OcrProcessingPageProps) {
   const centerImageClassName =
     'h-[180px] w-[180px] md:h-[240px] md:w-[240px] lg:h-[280px] lg:w-[280px]';
   const spinnerContainerClassName =
     'h-[244px] w-[244px] md:h-[324px] md:w-[324px] lg:h-[376px] lg:w-[376px]';
   const router = useRouter();
+  const hasStartedRef = useRef(false);
 
   useEffect(() => {
+    if (hasStartedRef.current) {
+      return;
+    }
+
+    hasStartedRef.current = true;
+
     const storedImage = sessionStorage.getItem(imageStorageKey);
 
     if (!storedImage) {
@@ -45,6 +55,12 @@ export default function OcrProcessingPage({
           storedImage,
           `${fileNamePrefix}-${Date.now()}.png`,
         );
+
+        const uploadResult = await uploadStaticImage(file, uploadDir);
+        if (uploadResult.ok && uploadResult.path) {
+          sessionStorage.setItem(imageStorageKey, uploadResult.path);
+        }
+
         const formData = new FormData();
         formData.append('file', file);
 
@@ -84,6 +100,7 @@ export default function OcrProcessingPage({
     ocrStorageKey,
     router,
     successPath,
+    uploadDir,
   ]);
 
   return (

@@ -67,6 +67,36 @@ class FilesControllerTest {
 	}
 
 	@Test
+	void getStaticUploadUrl_withDir_returnsDirScopedPublicUrl() throws Exception {
+		PresignedPutObjectRequest presignedPut = mock(PresignedPutObjectRequest.class);
+		when(presignedPut.url()).thenReturn(URL.of(new java.net.URI("https://upload.example.com"), null));
+		when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presignedPut);
+
+		mockMvc.perform(get("/apis/files/upload-url/static")
+				.param("fileName", "pet.png")
+				.param("contentType", "image/png")
+				.param("dir", "pet"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.objectKey").value(org.hamcrest.Matchers.containsString("static/")))
+			.andExpect(jsonPath("$.publicUrl").value(org.hamcrest.Matchers.containsString("/static/")));
+	}
+
+	@Test
+	void getStaticUploadUrl_withExpenseDir_returnsExpenseScopedPublicUrl() throws Exception {
+		PresignedPutObjectRequest presignedPut = mock(PresignedPutObjectRequest.class);
+		when(presignedPut.url()).thenReturn(URL.of(new java.net.URI("https://upload.example.com"), null));
+		when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presignedPut);
+
+		mockMvc.perform(get("/apis/files/upload-url/static")
+				.param("fileName", "receipt.png")
+				.param("contentType", "image/png")
+				.param("dir", "expense"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.objectKey").value(org.hamcrest.Matchers.containsString("expense/")))
+			.andExpect(jsonPath("$.publicUrl").value(org.hamcrest.Matchers.containsString("/expense/")));
+	}
+
+	@Test
 	void getUploadAndDownloadUrl_requireCurrentUserAndReturnPresignedUrls() throws Exception {
 		when(currentUserService.getCurrentUserId()).thenReturn(1L);
 		PresignedPutObjectRequest presignedPut = mock(PresignedPutObjectRequest.class);

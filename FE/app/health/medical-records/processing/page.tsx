@@ -15,6 +15,7 @@ export default function MedicalRecordProcessingPage() {
       fallbackPath="/health/medical-records/add-image"
       successPath="/health/medical-records/add-record"
       errorPath="/health/medical-records/add-record?ocrError=1"
+      uploadDir="hospital"
     />
   );
 }

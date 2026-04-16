@@ -10,6 +10,7 @@ import type {
   UploadResult,
 } from '@/features/settings/types/petSettings';
 import { clientFetch } from '@/lib/client-fetch';
+import { uploadStaticImage } from '@/lib/static-image-upload';
 
 type PetApiResponse = {
   id: number;
@@ -21,46 +22,6 @@ type PetApiResponse = {
   isDeath?: boolean | null;
   death?: boolean | null;
 };
-
-type StaticUploadUrlResponse = {
-  objectKey: string;
-  uploadUrl: string;
-  publicUrl: string;
-};
-
-function parseStaticUploadResponse(rawText: string) {
-  const trimmedText = rawText.trim();
-
-  if (!trimmedText) {
-    return { uploadUrl: '', publicUrl: '' };
-  }
-
-  try {
-    const parsed = JSON.parse(trimmedText) as StaticUploadUrlResponse | string;
-
-    if (typeof parsed === 'string') {
-      const uploadUrl = parsed.trim().replace(/^"|"$/g, '');
-      return {
-        uploadUrl,
-        publicUrl: uploadUrl.split('?')[0] ?? '',
-      };
-    }
-
-    return {
-      uploadUrl: parsed.uploadUrl?.trim().replace(/^"|"$/g, '') ?? '',
-      publicUrl:
-        parsed.publicUrl?.trim().replace(/^"|"$/g, '') ??
-        parsed.uploadUrl?.split('?')[0] ??
-        '',
-    };
-  } catch {
-    const uploadUrl = trimmedText.replace(/^"|"$/g, '');
-    return {
-      uploadUrl,
-      publicUrl: uploadUrl.split('?')[0] ?? '',
-    };
-  }
-}
 
 function parsePetSummary(data: PetApiResponse): PetSummary {
   return {
@@ -145,47 +106,5 @@ export async function deletePet(petId: number): Promise<PetDeleteResult> {
 }
 
 export async function uploadPetImage(file: File): Promise<UploadResult> {
-  try {
-    const params = new URLSearchParams({
-      fileName: file.name,
-      contentType: file.type || 'image/png',
-    });
-
-    const presignRes = await clientFetch(
-      `/apis/files/upload-url/static?${params.toString()}`,
-      {
-        method: 'GET',
-      },
-    );
-
-    if (!presignRes.ok)
-      return { ok: false, errorMessage: '이미지 업로드에 실패했어요.' };
-
-    const rawResponseText = await presignRes.text();
-    const { uploadUrl, publicUrl } = parseStaticUploadResponse(rawResponseText);
-
-    if (!uploadUrl) {
-      return { ok: false, errorMessage: '업로드 URL을 받지 못했어요.' };
-    }
-
-    if (!publicUrl) {
-      return { ok: false, errorMessage: '공개 이미지 URL을 받지 못했어요.' };
-    }
-
-    const uploadRes = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': file.type || 'image/png',
-      },
-      body: file,
-    });
-
-    if (!uploadRes.ok) {
-      return { ok: false, errorMessage: '이미지 업로드에 실패했어요.' };
-    }
-
-    return { ok: true, path: publicUrl };
-  } catch {
-    return { ok: false, errorMessage: '이미지 업로드 중 오류가 발생했어요.' };
-  }
+  return uploadStaticImage(file, 'pet');
 }

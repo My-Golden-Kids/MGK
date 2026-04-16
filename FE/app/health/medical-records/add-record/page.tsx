@@ -86,7 +86,9 @@ function AddMedicalRecordForm() {
       setMessage('');
 
       let imageUrl = '';
-      if (imageDataUrl) {
+      if (imageDataUrl.startsWith('/')) {
+        imageUrl = imageDataUrl;
+      } else if (imageDataUrl) {
         const uploadFormData = new FormData();
         uploadFormData.append(
           'file',

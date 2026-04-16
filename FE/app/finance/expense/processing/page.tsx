@@ -15,6 +15,7 @@ export default function ExpenseProcessingPage() {
       fallbackPath="/finance/expense/add-image"
       successPath="/finance/expense/add-expense"
       errorPath="/finance/expense/add-expense?ocrError=1"
+      uploadDir="expense"
     />
   );
 }

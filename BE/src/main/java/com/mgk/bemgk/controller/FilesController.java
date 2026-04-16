@@ -39,6 +39,7 @@ public class FilesController {
 		"image/heic",
 		"image/heif"
 	);
+	private static final Set<String> ALLOWED_STATIC_DIRS = Set.of("pet", "expense", "hospital");
 
 	private final S3Presigner s3Presigner;
 	private final CurrentUserService currentUserService;
@@ -58,9 +59,10 @@ public class FilesController {
 	@GetMapping("/upload-url/static")
 	public StaticUploadUrlResponse getStaticUploadUrl(
 		@RequestParam String fileName,
-		@RequestParam String contentType
+		@RequestParam String contentType,
+		@RequestParam(required = false) String dir
 	) {
-		String key = "static/" + uniqName(fileName);
+		String key = staticKey(fileName, dir);
 		return new StaticUploadUrlResponse(
 			key,
 			presignUploadUrl(publicBucket, key, contentType),
@@ -160,6 +162,25 @@ public class FilesController {
 
 	private String userKey(Long userId, String fileName) {
 		return "users/%d/%s".formatted(userId, normalizeFileName(fileName));
+	}
+
+	private String staticKey(String fileName, String dir) {
+		String normalizedFileName = uniqName(fileName);
+
+		if (!StringUtils.hasText(dir)) {
+			return "static/" + normalizedFileName;
+		}
+
+		String normalizedDir = dir.trim().toLowerCase();
+		if (!ALLOWED_STATIC_DIRS.contains(normalizedDir)) {
+			throw new ResponseStatusException(BAD_REQUEST, "허용되지 않는 업로드 디렉터리입니다.");
+		}
+
+		if ("pet".equals(normalizedDir)) {
+			return "static/" + normalizedFileName;
+		}
+
+		return "%s/%s".formatted(normalizedDir, normalizedFileName);
 	}
 
 	private String uniqName(String fileName) {

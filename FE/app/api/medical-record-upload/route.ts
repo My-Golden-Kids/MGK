@@ -17,15 +17,15 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const extension = extname(file.name) || '.png';
-    const fileName = `medical-record-${Date.now()}${extension}`;
-    const uploadDir = `${process.cwd()}/public/images/health/records`;
+    const fileName = `hospital-${Date.now()}${extension}`;
+    const uploadDir = `${process.cwd()}/public/hospital`;
 
     await mkdir(uploadDir, { recursive: true });
     await writeFile(`${uploadDir}/${fileName}`, buffer);
 
     return NextResponse.json({
       success: true,
-      path: `/images/health/records/${fileName}`,
+      path: `/hospital/${fileName}`,
     });
   } catch (error) {
     console.error(error);
