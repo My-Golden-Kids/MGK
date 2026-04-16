@@ -117,7 +117,9 @@ public class VaccinationService {
 				List<Map.Entry<String, MedicalDocument>> vaccinationParts = Arrays.stream(details.split("/"))
 					.map(String::trim)
 					.filter(part -> !part.isBlank() && part.contains("접종"))
-					.map(part -> Map.entry(part, d))
+					.map(part -> cleanVaccinationTitle(part))
+					.filter(title -> !title.isBlank())
+					.map(title -> Map.entry(title, d))
 					.toList();
 				return vaccinationParts.isEmpty()
 					? Stream.of(Map.entry("기타", d))
@@ -199,6 +201,15 @@ public class VaccinationService {
 			return false;
 		}
 		return str1.contains(str2) || str2.contains(str1);
+	}
+
+	/** OCR details 파트 정제: 금액·'예방접종' 제거 후 trim */
+	private String cleanVaccinationTitle(String raw) {
+		return raw
+			.replaceAll("\\d{1,3}(,\\d{3})*원", "")  // 금액 제거 (예: 30,000원)
+			.replaceAll("예방접종", "")                 // "예방접종" 제거
+			.replaceAll("\\s+", " ")
+			.trim();
 	}
 
 	/** 이벤트 이름 정규화: '접종' 키워드 제거 후 trim */
