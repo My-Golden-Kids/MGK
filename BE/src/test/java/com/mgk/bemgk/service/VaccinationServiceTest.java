@@ -116,6 +116,68 @@ class VaccinationServiceTest {
 		assertThat(result.getFirst().getVaccinationItems().getFirst().getHistory()).hasSize(2);
 	}
 
+	@Test
+	void getSummary_stripsVaccinationLabelAndAmountFromTitle() {
+		User user = User.builder().name("user").email("user@test.com").password("pw").build();
+		ReflectionTestUtils.setField(user, "id", 1L);
+		Pet pet = Pet.builder().name("멩이").user(user).image(null).death(false).build();
+		ReflectionTestUtils.setField(pet, "id", 1L);
+
+		// "종합백신 예방접종" → "종합백신", "코로나 예방접종 30,000원" → "코로나"
+		MedicalDocument doc = new MedicalDocument();
+		ReflectionTestUtils.setField(doc, "pet", pet);
+		ReflectionTestUtils.setField(doc, "date", LocalDate.now().minusDays(10));
+		ReflectionTestUtils.setField(doc, "type", MedicalDocumentType.VACCINATION);
+		ReflectionTestUtils.setField(doc, "details", "종합백신 예방접종 / 코로나 예방접종 30,000원");
+
+		when(petRepository.findByUser_Id(1L)).thenReturn(List.of(pet));
+		when(calendarRepository.findFirstByPet_IdAndDateGreaterThanEqualOrderByDateAsc(1L, LocalDate.now()))
+			.thenReturn(Optional.empty());
+		when(calendarRepository.findByPet_IdAndEventTypeAndDateGreaterThanEqualOrderByDateAsc(1L, "VACCINATION", LocalDate.now()))
+			.thenReturn(List.of());
+		when(medicalDocumentRepository.findByPet_IdAndTypeOrderByDateDescCreatedAtDesc(1L, MedicalDocumentType.VACCINATION))
+			.thenReturn(List.of(doc));
+
+		List<VaccinationPetSummaryResponse> result = vaccinationService.getSummary(1L);
+
+		List<String> titles = result.getFirst().getVaccinationItems().stream()
+			.map(com.mgk.bemgk.dto.vaccination.VaccinationItemResponse::getTitle)
+			.toList();
+
+		assertThat(titles).containsExactlyInAnyOrder("종합백신", "코로나");
+	}
+
+	@Test
+	void getSummary_standaloneVaccinationLabelFallsToEtc() {
+		User user = User.builder().name("user").email("user@test.com").password("pw").build();
+		ReflectionTestUtils.setField(user, "id", 1L);
+		Pet pet = Pet.builder().name("멩이").user(user).image(null).death(false).build();
+		ReflectionTestUtils.setField(pet, "id", 1L);
+
+		// "예방접종" 단독 → cleanVaccinationTitle 결과 빈 문자열 → "기타"로 분류
+		MedicalDocument doc = new MedicalDocument();
+		ReflectionTestUtils.setField(doc, "pet", pet);
+		ReflectionTestUtils.setField(doc, "date", LocalDate.now().minusDays(5));
+		ReflectionTestUtils.setField(doc, "type", MedicalDocumentType.VACCINATION);
+		ReflectionTestUtils.setField(doc, "details", "예방접종");
+
+		when(petRepository.findByUser_Id(1L)).thenReturn(List.of(pet));
+		when(calendarRepository.findFirstByPet_IdAndDateGreaterThanEqualOrderByDateAsc(1L, LocalDate.now()))
+			.thenReturn(Optional.empty());
+		when(calendarRepository.findByPet_IdAndEventTypeAndDateGreaterThanEqualOrderByDateAsc(1L, "VACCINATION", LocalDate.now()))
+			.thenReturn(List.of());
+		when(medicalDocumentRepository.findByPet_IdAndTypeOrderByDateDescCreatedAtDesc(1L, MedicalDocumentType.VACCINATION))
+			.thenReturn(List.of(doc));
+
+		List<VaccinationPetSummaryResponse> result = vaccinationService.getSummary(1L);
+
+		List<String> titles = result.getFirst().getVaccinationItems().stream()
+			.map(com.mgk.bemgk.dto.vaccination.VaccinationItemResponse::getTitle)
+			.toList();
+
+		assertThat(titles).containsExactly("기타");
+	}
+
 	private CreateScheduleRequest buildScheduleRequest(Long petId) {
 		CreateScheduleRequest request = new CreateScheduleRequest();
 		ReflectionTestUtils.setField(request, "petId", petId);
