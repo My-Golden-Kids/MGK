@@ -288,7 +288,10 @@ export default function SettingsPage() {
 
       <main className="flex flex-1 flex-col px-8 py-6">
         <div className="pb-3 sm:pb-4 md:pb-5 lg:pb-6">
-          <BackButton />
+          <BackButton
+            useHistory={false}
+            onClick={() => router.replace('/home')}
+          />
         </div>
 
         <section className="space-y-4 px-5 md:space-y-5 lg:space-y-6">
