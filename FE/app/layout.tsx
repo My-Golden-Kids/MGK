@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={pretendard.variable}>
+    <html lang="ko" className={`${pretendard.variable} ${pretendard.className}`}>
       <body className="bg-[#F2F2F2]">
         {/* 로그인 정보 제공 */}
         <Providers>
