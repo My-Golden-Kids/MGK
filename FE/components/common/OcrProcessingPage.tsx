@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import PetProfileImage from '@/components/home/pet/PetProfileImage';
 import { clientFetch } from '@/lib/client-fetch';
-import { dataUrlToFile, type OcrMedicalRecord } from '@/lib/medical-record';
+import { imageSourceToFile, type OcrMedicalRecord } from '@/lib/medical-record';
 import { uploadStaticImage } from '@/lib/static-image-upload';
 
 type OcrProcessingPageProps = {
@@ -51,7 +51,7 @@ export default function OcrProcessingPage({
 
     const processOcr = async () => {
       try {
-        const file = dataUrlToFile(
+        const file = await imageSourceToFile(
           storedImage,
           `${fileNamePrefix}-${Date.now()}.png`,
         );

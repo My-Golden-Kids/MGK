@@ -133,3 +133,19 @@ export function dataUrlToFile(dataUrl: string, fileName: string) {
 
   return new File([bytes], fileName, { type: mimeType });
 }
+
+export async function imageSourceToFile(source: string, fileName: string) {
+  if (source.startsWith('data:')) {
+    return dataUrlToFile(source, fileName);
+  }
+
+  const response = await fetch(source);
+  if (!response.ok) {
+    throw new Error('이미지를 불러오지 못했습니다.');
+  }
+
+  const blob = await response.blob();
+  return new File([blob], fileName, {
+    type: blob.type || 'image/png',
+  });
+}
