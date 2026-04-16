@@ -119,6 +119,11 @@ public class FinanceService {
 
 	@Transactional(readOnly = true)
 	public Optional<HomeSpendingSummaryResponse> getHomeSpendingSummary(Long userId, int year, int month) {
+		return getHomeSpendingSummary(userId, year, month, null);
+	}
+
+	@Transactional(readOnly = true)
+	public Optional<HomeSpendingSummaryResponse> getHomeSpendingSummary(Long userId, int year, int month, Long petId) {
 		YearMonth yearMonth = YearMonth.of(year, month);
 		List<AccountBook> monthlyExpenses = findMonthlyExpenseEntities(userId, yearMonth);
 		Optional<AccountBookCategory> dominantCategory = findDominantHomeCategory(monthlyExpenses);
@@ -129,7 +134,7 @@ public class FinanceService {
 
 		AccountBookCategory category = dominantCategory.get();
 		ProductPersonalizedReportResponse recommendedProduct =
-			productService.getFeaturedPersonalizedProduct(userId);
+			productService.getFeaturedPersonalizedProduct(userId, petId);
 
 		return Optional.of(HomeSpendingSummaryResponse.builder()
 			.monthlyAmount(sumAmount(monthlyExpenses))

@@ -12,6 +12,7 @@ import type {
   FinanceRetirementReport,
   MonthlyExpenseItem,
 } from '@/features/finance/types/financeReport';
+import { getStoredMedicalPetId } from '@/lib/medical-record';
 import { formatMoney, formatPercent } from '@/lib/utils/formatNumber';
 
 function createEmptyMonthlyData(): MonthlyExpenseItem[] {
@@ -28,10 +29,15 @@ function createEmptyMonthlyData(): MonthlyExpenseItem[] {
 }
 
 export default function FinanceReportPage() {
+  const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [report, setReport] = useState<FinanceRetirementReport | null>(null);
   const [monthlyData, setMonthlyData] = useState<MonthlyExpenseItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setSelectedPetId(getStoredMedicalPetId());
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -201,7 +207,11 @@ export default function FinanceReportPage() {
                 </div>
 
                 <Link
-                  href={`/product/${recommendedProduct.productId}`}
+                  href={
+                    selectedPetId !== null
+                      ? `/product/${recommendedProduct.productId}?petId=${selectedPetId}`
+                      : `/product/${recommendedProduct.productId}`
+                  }
                   className="m-auto block pt-3 text-[#71717A] text-[18px] md:text-[22px] lg:text-[26px]"
                 >
                   {recommendedProduct.productName === '하나 펫사랑보험'

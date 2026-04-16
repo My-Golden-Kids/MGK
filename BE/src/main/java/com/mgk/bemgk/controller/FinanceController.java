@@ -44,11 +44,12 @@ public class FinanceController {
 	@GetMapping("/home-summary")
 	public ResponseEntity<HomeSpendingSummaryResponse> getHomeSpendingSummary(
 		@RequestParam int year,
-		@RequestParam int month
+		@RequestParam int month,
+		@RequestParam(required = false) Long petId
 	) {
 		Long userId = currentUserService.getCurrentUserIdOrDefault();
 
-		return financeService.getHomeSpendingSummary(userId, year, month)
+		return financeService.getHomeSpendingSummary(userId, year, month, petId)
 			.map(ResponseEntity::ok)
 			.orElseGet(() -> ResponseEntity.noContent().build());
 	}

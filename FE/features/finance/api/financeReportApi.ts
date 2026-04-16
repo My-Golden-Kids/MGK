@@ -1,4 +1,5 @@
 import { clientFetch } from '@/lib/client-fetch';
+import { getStoredMedicalPetId } from '@/lib/medical-record';
 import type {
   FinanceRetirementReport,
   MonthlyExpenseChartResponse,
@@ -28,7 +29,9 @@ function createEmptyMonthlyChart(): MonthlyExpenseChartResponse {
 
 export async function getFinanceRetirementReport(): Promise<FinanceRetirementReport> {
   try {
-    const res = await clientFetch('/api/finance/report');
+    const petId = getStoredMedicalPetId();
+    const query = petId > 0 ? `?petId=${petId}` : '';
+    const res = await clientFetch(`/api/finance/report${query}`);
 
     if (!res.ok) {
       return EMPTY_REPORT;

@@ -68,7 +68,7 @@ class FinanceReportServiceTest {
 		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any()))
 			.thenReturn(List.of(foodExpense, hospitalExpense));
-		when(productService.getFeaturedPersonalizedProduct(userId))
+		when(productService.getFeaturedPersonalizedProduct(userId, null))
 			.thenReturn(ProductPersonalizedReportResponse.builder().productId(10L).productName("하나 펫카드").build());
 
 		FinanceReportResponse result = financeReportService.getRetirementReport(userId);
@@ -112,7 +112,7 @@ class FinanceReportServiceTest {
 		lenient().when(accountBookRepository.sumPetExpenseLastYear(eq(userId), any())).thenReturn(BigDecimal.valueOf(1200000));
 		lenient().when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.valueOf(1000000));
 		lenient().when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
-		lenient().when(productService.getFeaturedPersonalizedProduct(userId)).thenReturn(null);
+		lenient().when(productService.getFeaturedPersonalizedProduct(userId, null)).thenReturn(null);
 
 		FinanceMonthlyExpenseChartResponse chart = financeReportService.getMonthlyExpenseChart(userId);
 		FinanceReportResponse report = financeReportService.getRetirementReport(userId);
@@ -164,7 +164,7 @@ class FinanceReportServiceTest {
 			));
 		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
-		when(productService.getFeaturedPersonalizedProduct(userId)).thenReturn(null);
+		when(productService.getFeaturedPersonalizedProduct(userId, null)).thenReturn(null);
 
 		FinanceReportResponse report = financeReportService.getRetirementReport(userId);
 
@@ -199,7 +199,7 @@ class FinanceReportServiceTest {
 			));
 		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
-		when(productService.getFeaturedPersonalizedProduct(userId)).thenReturn(null);
+		when(productService.getFeaturedPersonalizedProduct(userId, null)).thenReturn(null);
 
 		FinanceReportResponse report = financeReportService.getRetirementReport(userId);
 

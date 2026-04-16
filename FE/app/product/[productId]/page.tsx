@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
   getPersonalizedProducts,
@@ -8,10 +9,10 @@ import type {
   ProductType,
 } from '@/features/product/types/product';
 import { formatMoney } from '@/lib/utils/formatNumber';
-import Image from 'next/image';
 
 type ProductDetailPageProps = {
   params: Promise<{ productId: string }>;
+  searchParams: Promise<{ petId?: string }>;
 };
 
 function getProductImageSrc(productType: ProductType) {
@@ -303,12 +304,17 @@ function ProductReportBody({ report }: { report: PersonalizedProductReport }) {
 
 export default async function ProductDetailPage({
   params,
+  searchParams,
 }: ProductDetailPageProps) {
   const { productId } = await params;
+  const { petId } = await searchParams;
+  const parsedPetId = Number(petId);
+  const selectedPetId =
+    Number.isFinite(parsedPetId) && parsedPetId > 0 ? parsedPetId : null;
 
   const [product, personalizedProducts] = await Promise.all([
     getProductDetail(productId),
-    getPersonalizedProducts(),
+    getPersonalizedProducts(selectedPetId),
   ]);
 
   const report = personalizedProducts.find(

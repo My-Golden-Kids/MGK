@@ -66,7 +66,7 @@ class ProductControllerTest {
 	@DisplayName("GET /api/products/personalized/featured returns featured personalized product")
 	void getFeaturedPersonalizedProduct_returnsFeaturedProduct() throws Exception {
 		when(currentUserService.getCurrentUserIdOrDefault()).thenReturn(1L);
-		when(productService.getFeaturedPersonalizedProduct(1L))
+		when(productService.getFeaturedPersonalizedProduct(1L, null))
 			.thenReturn(ProductPersonalizedReportResponse.builder()
 				.productId(3L)
 				.productName("하나 펫카드")
@@ -79,5 +79,22 @@ class ProductControllerTest {
 			.andExpect(jsonPath("$.productId").value(3))
 			.andExpect(jsonPath("$.productName").value("하나 펫카드"))
 			.andExpect(jsonPath("$.estimatedMonthlyBenefit").value(20000));
+	}
+
+	@Test
+	@DisplayName("GET /api/products/personalized/featured forwards selected pet id")
+	void getFeaturedPersonalizedProduct_withPetId_forwardsPetId() throws Exception {
+		when(currentUserService.getCurrentUserIdOrDefault()).thenReturn(1L);
+		when(productService.getFeaturedPersonalizedProduct(1L, 7L))
+			.thenReturn(ProductPersonalizedReportResponse.builder()
+				.productId(5L)
+				.productName("하나 펫적금")
+				.productType(ProductType.SAVINGS)
+				.build());
+
+		mockMvc.perform(get("/api/products/personalized/featured").param("petId", "7"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.productId").value(5))
+			.andExpect(jsonPath("$.productType").value("SAVINGS"));
 	}
 }

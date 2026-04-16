@@ -15,10 +15,11 @@ export async function getProductDetail(productId: string): Promise<Product> {
   return res.json();
 }
 
-export async function getPersonalizedProducts(): Promise<
-  PersonalizedProductReport[]
-> {
-  const res = await serverFetch('/api/products/personalized', {
+export async function getPersonalizedProducts(
+  petId?: number | null,
+): Promise<PersonalizedProductReport[]> {
+  const query = petId != null && petId > 0 ? `?petId=${petId}` : '';
+  const res = await serverFetch(`/api/products/personalized${query}`, {
     cache: 'no-store',
   });
   if (!res.ok) throw new Error('개인화 상품 조회 실패');

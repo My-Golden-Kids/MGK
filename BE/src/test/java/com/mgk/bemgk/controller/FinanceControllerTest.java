@@ -71,7 +71,7 @@ class FinanceControllerTest {
 	@DisplayName("GET /api/account-books/home-summary returns no content when summary missing")
 	void getHomeSpendingSummary_returnsNoContentWhenMissing() throws Exception {
 		when(currentUserService.getCurrentUserIdOrDefault()).thenReturn(1L);
-		when(financeService.getHomeSpendingSummary(1L, 2026, 4)).thenReturn(Optional.empty());
+		when(financeService.getHomeSpendingSummary(1L, 2026, 4, null)).thenReturn(Optional.empty());
 
 		mockMvc.perform(get("/api/account-books/home-summary")
 				.param("year", "2026")
@@ -84,7 +84,7 @@ class FinanceControllerTest {
 	@DisplayName("GET /api/account-books/home-summary returns home summary payload")
 	void getHomeSpendingSummary_returnsSummaryPayload() throws Exception {
 		when(currentUserService.getCurrentUserIdOrDefault()).thenReturn(1L);
-		when(financeService.getHomeSpendingSummary(1L, 2026, 4))
+		when(financeService.getHomeSpendingSummary(1L, 2026, 4, null))
 			.thenReturn(Optional.of(HomeSpendingSummaryResponse.builder()
 				.monthlyAmount(BigDecimal.valueOf(210_000))
 				.primaryCategory("식비")
@@ -100,7 +100,29 @@ class FinanceControllerTest {
 			.andExpect(jsonPath("$.summary").value("에서 가장 많이 사용해요."))
 			.andExpect(jsonPath("$.savingsHint").value("구독 서비스를 이용하시면 매달 약 15,000원 정도 절약하실 수 있어요."));
 
-		verify(financeService).getHomeSpendingSummary(1L, 2026, 4);
+		verify(financeService).getHomeSpendingSummary(1L, 2026, 4, null);
+	}
+
+	@Test
+	@DisplayName("GET /api/account-books/home-summary forwards selected pet id")
+	void getHomeSpendingSummary_withPetId_forwardsPetId() throws Exception {
+		when(currentUserService.getCurrentUserIdOrDefault()).thenReturn(1L);
+		when(financeService.getHomeSpendingSummary(1L, 2026, 4, 7L))
+			.thenReturn(Optional.of(HomeSpendingSummaryResponse.builder()
+				.monthlyAmount(BigDecimal.valueOf(210_000))
+				.primaryCategory("식비")
+				.summary("에서 가장 많이 사용해요.")
+				.savingsHint("추천 문구")
+				.build()));
+
+		mockMvc.perform(get("/api/account-books/home-summary")
+				.param("year", "2026")
+				.param("month", "4")
+				.param("petId", "7"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.savingsHint").value("추천 문구"));
+
+		verify(financeService).getHomeSpendingSummary(1L, 2026, 4, 7L);
 	}
 
 	@Test
