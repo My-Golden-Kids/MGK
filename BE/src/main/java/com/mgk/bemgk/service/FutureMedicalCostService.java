@@ -1,21 +1,23 @@
 package com.mgk.bemgk.service;
 
-import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
-import com.mgk.bemgk.entity.MedicalDocument;
-import com.mgk.bemgk.entity.MedicalDocumentType;
-import com.mgk.bemgk.entity.Pet;
-import com.mgk.bemgk.repository.MedicalDocumentRepository;
-import com.mgk.bemgk.repository.PetRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
+import com.mgk.bemgk.entity.MedicalDocument;
+import com.mgk.bemgk.entity.MedicalDocumentType;
+import com.mgk.bemgk.entity.Pet;
+import com.mgk.bemgk.repository.MedicalDocumentRepository;
+import com.mgk.bemgk.repository.PetRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -87,17 +89,17 @@ public class FutureMedicalCostService {
 
 		Pet pet = petId == null
 			? petRepository.findByUser_Id(userId).stream()
-				.filter(candidate -> !candidate.isDead())
-				.findFirst()
-				.orElseThrow(() -> new ResponseStatusException(
-					HttpStatus.NOT_FOUND,
-					"미래 병원비를 예측할 반려동물이 없습니다."
-				))
+			.filter(candidate -> !candidate.isDead())
+			.findFirst()
+			.orElseThrow(() -> new ResponseStatusException(
+				HttpStatus.NOT_FOUND,
+				"미래 병원비를 예측할 반려동물이 없습니다."
+			))
 			: petRepository.findByIdAndUser_Id(petId, userId)
-				.orElseThrow(() -> new ResponseStatusException(
-					HttpStatus.NOT_FOUND,
-					"반려동물을 찾을 수 없습니다."
-				));
+			.orElseThrow(() -> new ResponseStatusException(
+				HttpStatus.NOT_FOUND,
+				"반려동물을 찾을 수 없습니다."
+			));
 
 		if (pet.isDead()) {
 			throw new ResponseStatusException(
@@ -139,7 +141,8 @@ public class FutureMedicalCostService {
 			.min(LocalDate::compareTo)
 			.orElse(LocalDate.now());
 
-		long observedMonths = Math.max(1, ChronoUnit.MONTHS.between(oldestDate.withDayOfMonth(1), LocalDate.now().withDayOfMonth(1)) + 1);
+		long observedMonths = Math.max(1,
+			ChronoUnit.MONTHS.between(oldestDate.withDayOfMonth(1), LocalDate.now().withDayOfMonth(1)) + 1);
 		BigDecimal totalMedicalCost = recentMedicalDocuments.stream()
 			.map(MedicalDocument::getTotalAmount)
 			.filter(amount -> amount != null && amount > 0)
@@ -215,24 +218,52 @@ public class FutureMedicalCostService {
 	}
 
 	private int getDogAnnualMedicalCost(double age) {
-		if (age <= 1) return 35;
-		if (age <= 2) return 97;
-		if (age <= 3) return 93;
-		if (age <= 5) return 188;
-		if (age <= 7) return 99;
-		if (age <= 9) return 127;
-		if (age <= 14) return 190;
+		if (age <= 1) {
+			return 35;
+		}
+		if (age <= 2) {
+			return 97;
+		}
+		if (age <= 3) {
+			return 93;
+		}
+		if (age <= 5) {
+			return 188;
+		}
+		if (age <= 7) {
+			return 99;
+		}
+		if (age <= 9) {
+			return 127;
+		}
+		if (age <= 14) {
+			return 190;
+		}
 		return 292;
 	}
 
 	private int getCatAnnualMedicalCost(double age) {
-		if (age <= 1) return 96;
-		if (age <= 2) return 84;
-		if (age <= 3) return 114;
-		if (age <= 5) return 91;
-		if (age <= 7) return 138;
-		if (age <= 9) return 155;
-		if (age <= 14) return 210;
+		if (age <= 1) {
+			return 96;
+		}
+		if (age <= 2) {
+			return 84;
+		}
+		if (age <= 3) {
+			return 114;
+		}
+		if (age <= 5) {
+			return 91;
+		}
+		if (age <= 7) {
+			return 138;
+		}
+		if (age <= 9) {
+			return 155;
+		}
+		if (age <= 14) {
+			return 210;
+		}
 		return 134;
 	}
 
