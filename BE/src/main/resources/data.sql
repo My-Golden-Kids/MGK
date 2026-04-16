@@ -1,6 +1,9 @@
 SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE account_books;
 TRUNCATE TABLE accounts;
+TRUNCATE TABLE medical_documents;
+TRUNCATE TABLE calendars;
+TRUNCATE TABLE feeding_schedules;
 TRUNCATE TABLE pet_walk_records;
 TRUNCATE TABLE pets;
 TRUNCATE TABLE refresh_tokens;
@@ -270,6 +273,16 @@ FROM pets p JOIN users u ON p.user_id = u.id
 WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '보리'
   AND NOT EXISTS (SELECT 1 FROM feeding_schedules fs WHERE fs.pet_id = p.id);
 
+-- seonu.kim.kr@gmail.com 계좌 (하나은행, 초기 100만원)
+INSERT INTO accounts
+(user_id, account_number, bank_name, money_amount, reward_amount, total_amount, created_at, updated_at)
+SELECT u.id, '01085338796', '하나은행', 1000000, 0, 1000000, NOW(), NOW()
+FROM users u
+WHERE u.email = 'seonu.kim.kr@gmail.com'
+  AND NOT EXISTS (
+    SELECT 1 FROM accounts WHERE user_id = u.id AND account_number = '01085338796'
+);
+
 -- ──────────────────────────────────────────
 -- 캘린더 이벤트 (4월, 접종 4개 + 검진 4개)
 -- Apr 10: 솜이 켄넬코프 접종 + 검진 (같은 날)
@@ -345,7 +358,7 @@ WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '두부'
 INSERT INTO medical_documents
 (pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
 SELECT p.id, '코코', '2026-04-05', 'VACCINATION', '행복동물병원',
-       '기본 진료비 15,000원 / 광견병 예방접종 30,000원 / 처방약 7일분 21,000원',
+       '기본 진료비  / 광견병 예방접종  / 처방약 7일분 ',
        66000, NULL, NOW()
 FROM pets p JOIN users u ON p.user_id = u.id
 WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '코코'
@@ -355,7 +368,7 @@ WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '코코'
 INSERT INTO medical_documents
 (pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
 SELECT p.id, '솜이', '2026-04-10', 'VACCINATION', '행복동물병원',
-       '기본 진료비 15,000원 / 켄넬코프 예방접종 25,000원 / 처방약 7일분 21,000원',
+       '기본 진료비 / 켄넬코프 예방접종  / 처방약 7일분 ',
        61000, NULL, NOW()
 FROM pets p JOIN users u ON p.user_id = u.id
 WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '솜이'
@@ -365,7 +378,7 @@ WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '솜이'
 INSERT INTO medical_documents
 (pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
 SELECT p.id, '솜이', '2026-04-10', 'CHECKUP', '행복동물병원',
-       '기본 진료비 15,000원 / 청진 및 촉진 검사 10,000원',
+       '기본 진료비  / 청진 및 촉진 검사 ',
        25000, NULL, NOW()
 FROM pets p JOIN users u ON p.user_id = u.id
 WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '솜이'
@@ -375,7 +388,7 @@ WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '솜이'
 INSERT INTO medical_documents
 (pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
 SELECT p.id, '몽이', '2026-04-08', 'CHECKUP', '사랑동물병원',
-       '기본 진료비 15,000원 / 혈액검사 30,000원',
+       '기본 진료비  / 혈액검사 ',
        45000, NULL, NOW()
 FROM pets p JOIN users u ON p.user_id = u.id
 WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '몽이'
@@ -385,7 +398,7 @@ WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '몽이'
 INSERT INTO medical_documents
 (pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
 SELECT p.id, '해피', '2026-04-18', 'VACCINATION', '사랑동물병원',
-       '기본 진료비 15,000원 / 종합백신 예방접종 40,000원 / 처방약 7일분 21,000원',
+       '기본 진료비 / 종합백신 예방접종 / 처방약 7일분',
        76000, NULL, NOW()
 FROM pets p JOIN users u ON p.user_id = u.id
 WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '해피'
@@ -395,7 +408,7 @@ WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '해피'
 INSERT INTO medical_documents
 (pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
 SELECT p.id, '코코', '2026-04-20', 'CHECKUP', '행복동물병원',
-       '기본 진료비 15,000원 / 정기 건강검진 20,000원',
+       '기본 진료비 / 정기 건강검진',
        35000, NULL, NOW()
 FROM pets p JOIN users u ON p.user_id = u.id
 WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '코코'
@@ -405,7 +418,7 @@ WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '코코'
 INSERT INTO medical_documents
 (pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
 SELECT p.id, '두부', '2026-04-24', 'VACCINATION', '사랑동물병원',
-       '기본 진료비 15,000원 / 광견병 예방접종 30,000원 / 처방약 7일분 21,000원',
+       '기본 진료비  / 광견병 예방접종  / 처방약 7일분 ',
        66000, NULL, NOW()
 FROM pets p JOIN users u ON p.user_id = u.id
 WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '두부'
@@ -415,7 +428,7 @@ WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '두부'
 INSERT INTO medical_documents
 (pet_id, pet_name, date, type, hospital_name, details, total_amount, image_url, created_at)
 SELECT p.id, '두부', '2026-04-24', 'CHECKUP', '사랑동물병원',
-       '기본 진료비 15,000원 / 혈액검사 30,000원',
+       '기본 진료비  / 혈액검사 ',
        45000, NULL, NOW()
 FROM pets p JOIN users u ON p.user_id = u.id
 WHERE u.email = 'seonu.kim.kr@gmail.com' AND p.name = '두부'
