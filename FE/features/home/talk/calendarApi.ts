@@ -170,6 +170,27 @@ export async function createCalendarEvent(
 }
 
 // ---------------------------------------------------------------------------
+// STT 오인식 교정 (사료/식사 도메인 한정)
+// ---------------------------------------------------------------------------
+
+// [오인식 패턴, 정답] 순서 중요: 복합어 → 단어 순으로 처리
+const STT_FEEDING_CORRECTIONS: [string, string][] = [
+  ['밤토끼', '밥두끼'], // 밥두끼 → 밤토끼 (STT 가장 빈발)
+  ['두기', '두끼'],
+  ['세기', '세끼'],
+  ['네기', '네끼'],
+  ['새끼', '세끼'], // 사료 컨텍스트 내에서만 호출되므로 안전
+];
+
+function normalizeSTTForFeeding(normalized: string): string {
+  let result = normalized;
+  for (const [from, to] of STT_FEEDING_CORRECTIONS) {
+    result = result.replaceAll(from, to);
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // 사료 알람 intent 파싱
 // ---------------------------------------------------------------------------
 
@@ -212,8 +233,8 @@ function parseTimeFromTranscript(normalized: string): string | null {
 }
 
 function parseMealsPerDay(normalized: string): number | null {
-  // 숫자 + 끼 / 번
-  const digitMatch = normalized.match(/([2-4])(끼|번)/);
+  // 숫자 + 끼/기/번 (기: 경음 탈락 오인식 대응)
+  const digitMatch = normalized.match(/([2-4])(끼|기|번)/);
   if (digitMatch) return parseInt(digitMatch[1], 10);
 
   // 한글 + 끼 / 번
@@ -233,14 +254,15 @@ export function parseFeedingIntent(
   transcript: string,
   pets: PetCandidate[],
 ): PendingFeedingAlarm | null {
-  const normalized = transcript.replaceAll(' ', '');
+  const raw = transcript.replaceAll(' ', '');
+  const normalized = normalizeSTTForFeeding(raw);
 
   const hasFeedingKeyword =
     normalized.includes('사료') ||
     normalized.includes('밥') ||
     normalized.includes('먹이') ||
     normalized.includes('급여') ||
-    /[2-4](끼|번)/.test(normalized) ||
+    /[2-4](끼|기|번)/.test(normalized) ||
     ['두끼', '세끼', '네끼', '두번', '세번', '네번'].some((k) =>
       normalized.includes(k),
     );
