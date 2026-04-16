@@ -208,7 +208,7 @@ export default function FinanceReportPage() {
 
                 <Link
                   href={
-                    selectedPetId > 0
+                    selectedPetId !== null
                       ? `/product/${recommendedProduct.productId}?petId=${selectedPetId}`
                       : `/product/${recommendedProduct.productId}`
                   }
