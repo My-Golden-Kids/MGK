@@ -54,11 +54,6 @@ export const onboardingSteps: OnboardingStep[] = [
     showCenterAction: true,
   },
   {
-    id: 'pet-name-confirm',
-    message: '우리 아이의 이름이\n‘별멩이’가 맞나요?',
-    showChoiceButtons: true,
-  },
-  {
     id: 'pet-photo-request',
     message:
       '우와, 별멩이! 정말\n예쁜 이름이네요.\n우리 별멩이 얼굴도 보고 싶은데,\n사진을 한 장 보여\n주시겠어요?',

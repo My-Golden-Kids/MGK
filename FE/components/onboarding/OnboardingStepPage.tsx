@@ -10,6 +10,7 @@ import SpeechRecognition, {
 import BackButton from '@/components/common/BackButton';
 import { Button } from '@/components/common/Button';
 import Modal from '@/components/common/Modal';
+import TalkBubble from '@/components/home/talk/TalkBubble';
 import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
 import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
 import {
@@ -39,6 +40,9 @@ const DISSOLVE_DURATION_MS = 0;
 const TTS_AUTO_ADVANCE_DELAY_MS = 700;
 const ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY = 'onboarding-internal-entry';
 const TTS_UNLOCKED_SESSION_KEY = 'mgk-onboarding-tts-unlocked';
+const PET_PHOTO_REQUEST_STEP = 8;
+const PET_PHOTO_SKIP_INFO_STEP = 9;
+const PET_PHOTO_COMPLETE_STEP = 10;
 function HandHint() {
   return (
     <div className="pointer-events-none absolute top-[55%] left-[40%] z-40 h-[96px] w-[96px] translate-x-[48px] md:h-[112px] md:w-[112px] md:translate-x-[56px] lg:h-[128px] lg:w-[128px] lg:translate-x-[64px]">
@@ -102,6 +106,7 @@ export default function OnboardingStepPage({
   const navigationTimeoutRef = useRef<number | null>(null);
   const lastSpokenMessageRef = useRef('');
   const ttsAutoAdvanceHandledRef = useRef(false);
+  const hadActiveListeningRef = useRef(false);
   const [isClient, setIsClient] = useState(false);
   const [isTtsUnlocked, setIsTtsUnlocked] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -111,6 +116,9 @@ export default function OnboardingStepPage({
   const [isUploading, setIsUploading] = useState(false);
   const [isSavingPet, setIsSavingPet] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [shouldSubmitPetName, setShouldSubmitPetName] = useState(false);
+  const [pendingPetName, setPendingPetName] = useState('');
+  const [retryPetNameLocally, setRetryPetNameLocally] = useState(false);
   const {
     transcript,
     resetTranscript,
@@ -210,15 +218,53 @@ export default function OnboardingStepPage({
 
   useEffect(() => {
     setIsRecording(false);
+    setShouldSubmitPetName(false);
+    setPendingPetName('');
+    setRetryPetNameLocally(false);
+    hadActiveListeningRef.current = false;
     resetTranscript();
   }, [resetTranscript, step.id]);
 
   useEffect(() => {
-    if (step.id === 'pet-name-confirm' && !petName.trim()) {
-      goToStep(7, flowState);
+    if (step.id !== 'pet-name-guide' || !isRecording) {
+      hadActiveListeningRef.current = false;
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step.id, petName]);
+
+    if (listening) {
+      hadActiveListeningRef.current = true;
+      return;
+    }
+
+    if (!hadActiveListeningRef.current) {
+      return;
+    }
+
+    hadActiveListeningRef.current = false;
+    setIsRecording(false);
+    setShouldSubmitPetName(true);
+  }, [isRecording, listening, step.id]);
+
+  useEffect(() => {
+    if (
+      step.id !== 'pet-name-guide' ||
+      !shouldSubmitPetName ||
+      listening ||
+      isRecording
+    ) {
+      return;
+    }
+
+    const recognizedPetName = buildPetName(transcript);
+
+    if (!recognizedPetName) {
+      return;
+    }
+
+    setShouldSubmitPetName(false);
+    setPendingPetName(recognizedPetName);
+    setRetryPetNameLocally(false);
+  }, [isRecording, listening, shouldSubmitPetName, step.id, transcript]);
 
   useEffect(() => {
     ttsAutoAdvanceHandledRef.current = false;
@@ -252,10 +298,10 @@ export default function OnboardingStepPage({
   }, [flowState, isTtsUnlocked, step.autoAdvanceDelay, stepNumber]);
 
   const messageOverride =
-    retryPetName && step.id === 'pet-name-guide'
-      ? RETRY_PET_NAME_MESSAGE
-      : petName && step.id === 'pet-name-confirm'
-        ? `우리 아이의 이름이\n‘${petName}’가 맞나요?`
+    step.id === 'pet-name-guide' && pendingPetName
+      ? `우리 아이의 이름이\n‘${pendingPetName}’가 맞나요?`
+      : (retryPetName || retryPetNameLocally) && step.id === 'pet-name-guide'
+        ? RETRY_PET_NAME_MESSAGE
         : petName && step.id === 'pet-photo-request'
           ? `우와, ${petName}! 정말\n예쁜 이름이네요.\n우리 ${petName} 얼굴도 보고 싶은데,\n사진을 한 장 보여\n주시겠어요?`
           : petName && step.id === 'pet-photo-skip-info'
@@ -278,6 +324,8 @@ export default function OnboardingStepPage({
         ? undefined
         : step.messageFrames;
   const bubbleMessage = messageOverride ?? step.message;
+  const speechBubbleMessage =
+    transcript.trim() || (listening || isRecording ? '듣고 있어요.' : '');
   const centerImageUrl = CENTER_IMAGE_STEP_IDS.has(step.id)
     ? petImage || undefined
     : undefined;
@@ -285,11 +333,13 @@ export default function OnboardingStepPage({
     step.id === 'pet-name-guide'
       ? !isClient
         ? step.instruction
-        : !browserSupportsSpeechRecognition
-          ? '이 기기에서는\n음성 입력을 사용할 수 없어요.'
-          : listening || isRecording
-            ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
-            : '저를 누르고\n말씀해 주세요!'
+        : pendingPetName
+          ? undefined
+          : !browserSupportsSpeechRecognition
+            ? '이 기기에서는\n음성 입력을 사용할 수 없어요.'
+            : listening || isRecording
+              ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
+              : '저를 누르고\n말씀해 주세요!'
       : step.instruction;
 
   useEffect(() => {
@@ -297,6 +347,7 @@ export default function OnboardingStepPage({
       typeof window === 'undefined' ||
       !isTtsUnlocked ||
       !bubbleMessage ||
+      (step.id === 'pet-name-guide' && !pendingPetName) ||
       lastSpokenMessageRef.current === bubbleMessage
     ) {
       return;
@@ -411,7 +462,7 @@ export default function OnboardingStepPage({
       setIsUploadModalOpen(false);
       setPendingImageFile(null);
       setPendingImagePreviewUrl('');
-      goToStep(11, {
+      goToStep(PET_PHOTO_COMPLETE_STEP, {
         ...flowState,
         petImage: result.path,
         photoSkipped: false,
@@ -428,7 +479,7 @@ export default function OnboardingStepPage({
     setIsUploadModalOpen(false);
     setPendingImageFile(null);
     setPendingImagePreviewUrl('');
-    goToStep(10, {
+    goToStep(PET_PHOTO_SKIP_INFO_STEP, {
       ...flowState,
       photoSkipped: true,
     });
@@ -467,6 +518,9 @@ export default function OnboardingStepPage({
     }
 
     resetTranscript();
+    setPendingPetName('');
+    setRetryPetNameLocally(false);
+    setShouldSubmitPetName(false);
     setIsRecording(true);
     cancelTtsPlayback();
 
@@ -477,24 +531,14 @@ export default function OnboardingStepPage({
   };
 
   const stopPetNameRecording = async () => {
-    if (!isRecording) {
+    if (!isRecording && !listening) {
       return;
     }
 
+    hadActiveListeningRef.current = false;
     setIsRecording(false);
     await SpeechRecognition.stopListening();
-
-    const recognizedPetName = buildPetName(transcript);
-
-    if (!recognizedPetName) {
-      return;
-    }
-
-    goToStep(8, {
-      ...flowState,
-      petName: recognizedPetName,
-      retryPetName: false,
-    });
+    setShouldSubmitPetName(true);
   };
 
   const togglePetNameRecording = async () => {
@@ -519,6 +563,15 @@ export default function OnboardingStepPage({
     }
 
     if (step.id === 'pet-name-guide') {
+      if (pendingPetName) {
+        goToStep(PET_PHOTO_REQUEST_STEP, {
+          ...flowState,
+          petName: pendingPetName,
+          retryPetName: false,
+        });
+        return;
+      }
+
       void togglePetNameRecording();
       return;
     }
@@ -529,11 +582,11 @@ export default function OnboardingStepPage({
   };
 
   const handleNoClick = () => {
-    if (step.id === 'pet-name-confirm') {
-      goToStep(7, {
-        ...flowState,
-        retryPetName: true,
-      });
+    if (step.id === 'pet-name-guide' && pendingPetName) {
+      setPendingPetName('');
+      setRetryPetNameLocally(true);
+      setShouldSubmitPetName(false);
+      resetTranscript();
       return;
     }
 
@@ -613,7 +666,7 @@ export default function OnboardingStepPage({
                 <BackButton onClick={handleBackClick} useHistory={false} />
               </div>
             ) : null}
-            {step.showCenterAction ? (
+            {step.showCenterAction && !pendingPetName ? (
               <button
                 type="button"
                 aria-label="다음 온보딩으로 이동"
@@ -621,7 +674,8 @@ export default function OnboardingStepPage({
                 className="-translate-x-1/2 -translate-y-1/2 pointer-events-auto absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] cursor-pointer rounded-full md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px]"
               />
             ) : null}
-            {step.showChoiceButtons ? (
+            {step.showChoiceButtons ||
+            (step.id === 'pet-name-guide' && Boolean(pendingPetName)) ? (
               <div className="pointer-events-auto absolute right-0 bottom-[10%] left-0 z-20 md:bottom-[8%] lg:bottom-[5%]">
                 <TalkChoiceButtons
                   onNoClick={handleNoClick}
@@ -641,8 +695,22 @@ export default function OnboardingStepPage({
                 </Button>
               </div>
             ) : null}
-            {step.id === 'pet-name-guide' || step.id === 'pet-chat-guide' ? (
+            {step.id === 'pet-chat-guide' ||
+            (step.id === 'pet-name-guide' && !pendingPetName) ? (
               <HandHint />
+            ) : null}
+            {step.id === 'pet-name-guide' &&
+            !pendingPetName &&
+            speechBubbleMessage ? (
+              <div className="pointer-events-none absolute right-6 bottom-[5.5rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:max-w-[24rem] lg:max-w-[26rem]">
+                <TalkBubble
+                  message={speechBubbleMessage}
+                  className="w-full"
+                  bubbleClassName="w-full overflow-hidden rounded-[2rem] bg-[#75A39D] shadow-[0_10px_30px_rgba(0,0,0,0.08)] md:rounded-[2.25rem] lg:rounded-[2.5rem]"
+                  contentClassName="px-6 py-5 md:px-7 md:py-6 lg:px-8 lg:py-7"
+                  textClassName="whitespace-pre-line break-keep text-start font-semibold text-2xl text-white leading-[1.35] md:text-3xl lg:text-4xl"
+                />
+              </div>
             ) : null}
           </div>
         </OnboardingBackground>
