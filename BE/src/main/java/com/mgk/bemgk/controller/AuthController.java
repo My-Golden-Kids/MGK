@@ -17,6 +17,7 @@ import com.mgk.bemgk.dto.auth.OtpRequest;
 import com.mgk.bemgk.dto.auth.OtpResponse;
 import com.mgk.bemgk.dto.auth.RefreshRequest;
 import com.mgk.bemgk.dto.auth.RefreshResponse;
+import com.mgk.bemgk.dto.auth.ResetPasswordRequest;
 import com.mgk.bemgk.dto.auth.SignupRequest;
 import com.mgk.bemgk.dto.auth.SignupResponse;
 import com.mgk.bemgk.service.AuthService;
@@ -64,8 +65,8 @@ public class AuthController {
 	}
 
 	@PostMapping("/reset-password")
-	public void resetPassword(@RequestBody java.util.Map<String, String> body) {
-		authService.resetPassword(body.get("token"), body.get("newPassword"));
+	public void resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
+		authService.resetPassword(request.getToken(), request.getNewPassword());
 	}
 
 	@PostMapping("/change-password")

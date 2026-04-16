@@ -192,6 +192,7 @@ public class AuthService {
 		}
 
 		User user = verification.getUser();
+		refreshTokenRepository.deleteAllByUser(user);
 		userRepository.updatePassword(user.getId(), passwordEncoder.encode(newPassword));
 		verificationRepository.deleteByToken(token);
 	}
@@ -205,6 +206,7 @@ public class AuthService {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "현재 비밀번호가 일치하지 않습니다.");
 		}
 
+		refreshTokenRepository.deleteAllByUser(user);
 		userRepository.updatePassword(userId, passwordEncoder.encode(request.getNewPassword()));
 	}
 
