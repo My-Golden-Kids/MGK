@@ -67,7 +67,7 @@ class FinanceServiceTest {
 
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any()))
 			.thenReturn(List.of(foodExpense, hospitalExpense));
-		when(productService.getFeaturedPersonalizedProduct(userId))
+		when(productService.getFeaturedPersonalizedProduct(userId, null))
 			.thenReturn(ProductPersonalizedReportResponse.builder()
 				.productType(ProductType.SUBSCRIPTION)
 				.estimatedMonthlyBenefit(BigDecimal.valueOf(15_000))
@@ -95,7 +95,7 @@ class FinanceServiceTest {
 
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any()))
 			.thenReturn(List.of(etcExpense));
-		when(productService.getFeaturedPersonalizedProduct(userId))
+		when(productService.getFeaturedPersonalizedProduct(userId, null))
 			.thenReturn(ProductPersonalizedReportResponse.builder()
 				.productType(ProductType.PET_FOREST)
 				.personalizedReport("멩이의 마지막 순간을 펫포레스트와 함께 차분히 준비해보세요.")
@@ -177,7 +177,7 @@ class FinanceServiceTest {
 			.build();
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(1L), any(), any()))
 			.thenReturn(List.of(hospitalExpense));
-		when(productService.getFeaturedPersonalizedProduct(1L)).thenReturn(null);
+		when(productService.getFeaturedPersonalizedProduct(1L, null)).thenReturn(null);
 
 		Optional<HomeSpendingSummaryResponse> result =
 			financeService.getHomeSpendingSummary(1L, YearMonth.now().getYear(), YearMonth.now().getMonthValue());

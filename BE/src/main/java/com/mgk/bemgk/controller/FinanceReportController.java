@@ -5,6 +5,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -26,9 +27,12 @@ public class FinanceReportController {
 	private final UserRepository userRepository;
 
 	@GetMapping
-	public FinanceReportResponse getRetirementReport(Authentication authentication) {
+	public FinanceReportResponse getRetirementReport(
+		Authentication authentication,
+		@RequestParam(required = false) Long petId
+	) {
 		Long userId = getCurrentUserId(authentication);
-		return financeReportService.getRetirementReport(userId);
+		return financeReportService.getRetirementReport(userId, petId);
 	}
 
 	@GetMapping("/monthly-expenses")

@@ -51,7 +51,7 @@ class FinanceReportControllerTest {
 	@Test
 	@DisplayName("GET /api/finance/report resolves numeric principal and returns report")
 	void getRetirementReport_withNumericPrincipal_returnsReport() throws Exception {
-		when(financeReportService.getRetirementReport(3L)).thenReturn(FinanceReportResponse.builder()
+		when(financeReportService.getRetirementReport(3L, null)).thenReturn(FinanceReportResponse.builder()
 			.totalPetCost(BigDecimal.valueOf(29_910_000))
 			.retirementPercent(BigDecimal.valueOf(2991.0))
 			.averageExpense(BigDecimal.valueOf(125_000))
@@ -81,12 +81,24 @@ class FinanceReportControllerTest {
 		ReflectionTestUtils.setField(user, "id", 1L);
 
 		when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-		when(financeReportService.getRetirementReport(eq(1L))).thenReturn(FinanceReportResponse.builder()
+		when(financeReportService.getRetirementReport(eq(1L), eq(null))).thenReturn(FinanceReportResponse.builder()
 			.averageExpense(BigDecimal.ZERO)
 			.build());
 
 		mockMvc.perform(get("/api/finance/report").with(authPrincipal("tester@example.com")))
 			.andExpect(status().isOk());
+	}
+
+	@Test
+	@DisplayName("GET /api/finance/report forwards selected pet id")
+	void getRetirementReport_withPetId_forwardsPetId() throws Exception {
+		when(financeReportService.getRetirementReport(3L, 7L)).thenReturn(FinanceReportResponse.builder()
+			.averageExpense(BigDecimal.valueOf(125_000))
+			.build());
+
+		mockMvc.perform(get("/api/finance/report").param("petId", "7").with(authPrincipal(3L)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.averageExpense").value(125000));
 	}
 
 	@Test

@@ -6,6 +6,7 @@ import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { getFinanceRetirementReport } from '@/features/finance/api/financeReportApi';
 import type { FinanceRetirementReport } from '@/features/finance/types/financeReport';
 import { clientFetch } from '@/lib/client-fetch';
+import { getStoredMedicalPetId } from '@/lib/medical-record';
 
 type FinanceDashboardResponse = {
   bankName: string;
@@ -138,6 +139,7 @@ function getGeneralRecommendationText(report: FinanceRetirementReport) {
 
 export default function FinancePage() {
   const today = useMemo(() => new Date(), []);
+  const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
   const [dashboard, setDashboard] = useState<FinanceDashboardResponse | null>(
     null,
   );
@@ -146,6 +148,10 @@ export default function FinancePage() {
     useState<FinanceExpenseSummaryResponse | null>(null);
   const [previousSummary, setPreviousSummary] =
     useState<FinanceExpenseSummaryResponse | null>(null);
+
+  useEffect(() => {
+    setSelectedPetId(getStoredMedicalPetId());
+  }, []);
 
   useEffect(() => {
     const fetchFinancePageData = async () => {
@@ -378,7 +384,11 @@ export default function FinancePage() {
         )}
 
         <Link
-          href="/finance/report"
+          href={
+            selectedPetId != null && selectedPetId > 0
+              ? `/finance/report?petId=${selectedPetId}`
+              : '/finance/report'
+          }
           className="mt-3 flex h-fit items-center justify-center rounded-[20px] bg-[var(--color-main-green)] p-3 font-bold text-[18px] text-white md:mt-3.5 md:p-3.5 md:text-[22px] lg:mt-4 lg:p-4 lg:text-[26px]"
         >
           리포트 보러가기

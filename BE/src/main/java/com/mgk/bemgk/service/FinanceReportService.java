@@ -41,6 +41,10 @@ public class FinanceReportService {
 	private final ProductService productService;
 
 	public FinanceReportResponse getRetirementReport(Long userId) {
+		return getRetirementReport(userId, null);
+	}
+
+	public FinanceReportResponse getRetirementReport(Long userId, Long petId) {
 		List<Pet> pets = petRepository.findByUser_Id(userId);
 		List<Pet> alivePets = getAlivePetsAsOfToday(pets);
 
@@ -49,7 +53,7 @@ public class FinanceReportService {
 		BigDecimal totalAsset = defaultAmount(accountRepository.sumMoneyAmountByUserId(userId));
 		BigDecimal futurePetCost = calculateFuturePetCost(projectedMonthlyExpensePerPet, alivePets);
 		FinanceExpenseCategoryResponse dominantCategory = calculateDominantCategory(userId);
-		ProductPersonalizedReportResponse recommendedProduct = productService.getFeaturedPersonalizedProduct(userId);
+		ProductPersonalizedReportResponse recommendedProduct = productService.getFeaturedPersonalizedProduct(userId, petId);
 
 		BigDecimal retirementImpactPercent = BigDecimal.ZERO;
 		if (totalAsset.compareTo(BigDecimal.ZERO) > 0) {

@@ -1,8 +1,13 @@
 import { redirect } from 'next/navigation';
 import { getProducts } from '@/features/product/api/productApi';
 
-export default async function ProductPage() {
+type ProductPageProps = {
+  searchParams: Promise<{ petId?: string }>;
+};
+
+export default async function ProductPage({ searchParams }: ProductPageProps) {
   const products = await getProducts();
+  const { petId } = await searchParams;
 
   if (!products.length) {
     return (
@@ -12,5 +17,9 @@ export default async function ProductPage() {
     );
   }
 
-  redirect(`/product/${products[0].id}`);
+  redirect(
+    petId
+      ? `/product/${products[0].id}?petId=${petId}`
+      : `/product/${products[0].id}`,
+  );
 }

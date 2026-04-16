@@ -68,7 +68,11 @@ public class ProductService {
 	}
 
 	public List<ProductPersonalizedReportResponse> getPersonalizedProductReports(Long userId) {
-		UserProductProfile profile = buildUserProfile(userId);
+		return getPersonalizedProductReports(userId, null);
+	}
+
+	public List<ProductPersonalizedReportResponse> getPersonalizedProductReports(Long userId, Long selectedPetId) {
+		UserProductProfile profile = buildUserProfile(userId, selectedPetId);
 		Product featured = chooseFeaturedProduct(profile);
 
 		return getProducts().stream()
@@ -78,7 +82,11 @@ public class ProductService {
 	}
 
 	public ProductPersonalizedReportResponse getFeaturedPersonalizedProduct(Long userId) {
-		UserProductProfile profile = buildUserProfile(userId);
+		return getFeaturedPersonalizedProduct(userId, null);
+	}
+
+	public ProductPersonalizedReportResponse getFeaturedPersonalizedProduct(Long userId, Long selectedPetId) {
+		UserProductProfile profile = buildUserProfile(userId, selectedPetId);
 		Product featured = chooseFeaturedProduct(profile);
 		if (featured == null) {
 			return null;
@@ -450,7 +458,7 @@ public class ProductService {
 		};
 	}
 
-	private UserProductProfile buildUserProfile(Long userId) {
+	private UserProductProfile buildUserProfile(Long userId, Long selectedPetId) {
 		List<Pet> pets = petRepository.findByUser_Id(userId);
 		List<Pet> alivePets = pets.stream()
 			.filter(this::isAliveToday)
@@ -460,10 +468,13 @@ public class ProductService {
 		LocalDateTime startDateTime = today.minusYears(1).withDayOfMonth(1).atStartOfDay();
 		LocalDateTime endDateTime = today.withDayOfMonth(today.lengthOfMonth()).atTime(23, 59, 59);
 
-		Pet seniorPet = alivePets.stream()
-			.filter(this::isSeniorPet)
-			.findFirst()
-			.orElse(null);
+		Pet selectedPet = resolveSelectedPet(userId, selectedPetId, alivePets);
+		Pet seniorPet = selectedPet != null
+			? (isSeniorPet(selectedPet) ? selectedPet : null)
+			: alivePets.stream()
+				.filter(this::isSeniorPet)
+				.findFirst()
+				.orElse(null);
 
 		return UserProductProfile.builder()
 			.averageMonthlyExpense(calculateAverageMonthlyExpense(userId))
@@ -513,6 +524,20 @@ public class ProductService {
 		BigDecimal lastYearExpense = defaultAmount(
 			accountBookRepository.sumPetExpenseLastYear(userId, oneYearAgoStart));
 		return lastYearExpense.divide(TWELVE, 2, RoundingMode.HALF_UP);
+	}
+
+	private Pet resolveSelectedPet(Long userId, Long selectedPetId, List<Pet> alivePets) {
+		if (selectedPetId == null) {
+			return null;
+		}
+
+		Pet selectedPet = petRepository.findByIdAndUser_Id(selectedPetId, userId)
+			.orElseThrow(() -> new IllegalArgumentException("선택된 반려동물을 찾을 수 없습니다."));
+
+		return alivePets.stream()
+			.filter(pet -> Objects.equals(pet.getId(), selectedPet.getId()))
+			.findFirst()
+			.orElse(null);
 	}
 
 	private boolean isAliveToday(Pet pet) {

@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mgk.bemgk.dto.product.ProductPersonalizedReportResponse;
@@ -42,14 +43,18 @@ public class ProductController {
 	}
 
 	@GetMapping("/personalized")
-	public List<ProductPersonalizedReportResponse> getPersonalizedProducts() {
+	public List<ProductPersonalizedReportResponse> getPersonalizedProducts(
+		@RequestParam(required = false) Long petId
+	) {
 		Long userId = currentUserService.getCurrentUserIdOrDefault();
-		return productService.getPersonalizedProductReports(userId);
+		return productService.getPersonalizedProductReports(userId, petId);
 	}
 
 	@GetMapping("/personalized/featured")
-	public ProductPersonalizedReportResponse getFeaturedPersonalizedProduct() {
+	public ProductPersonalizedReportResponse getFeaturedPersonalizedProduct(
+		@RequestParam(required = false) Long petId
+	) {
 		Long userId = currentUserService.getCurrentUserIdOrDefault();
-		return productService.getFeaturedPersonalizedProduct(userId);
+		return productService.getFeaturedPersonalizedProduct(userId, petId);
 	}
 }

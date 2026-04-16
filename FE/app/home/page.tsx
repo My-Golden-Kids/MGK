@@ -211,10 +211,14 @@ export default function HomePage() {
 
       try {
         const currentMonth = new Date();
+        const petQuery =
+          selectedPetId != null && selectedPetId > 0
+            ? `&petId=${selectedPetId}`
+            : '';
         const financeResponse = await clientFetch(
           `/api/account-books/home-summary?year=${currentMonth.getFullYear()}&month=${
             currentMonth.getMonth() + 1
-          }`,
+          }${petQuery}`,
         );
 
         if (financeResponse.status === 204) {
@@ -252,12 +256,14 @@ export default function HomePage() {
       }
     };
 
-    void loadSpendingData();
+    if (selectedPetId != null) {
+      void loadSpendingData();
+    }
 
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [selectedPetId]);
 
   const selectedPet = useMemo(() => {
     if (!pets.length || selectedPetId == null) {
@@ -430,7 +436,13 @@ export default function HomePage() {
 
                 <button
                   type="button"
-                  onClick={() => router.push('/finance/report')}
+                  onClick={() =>
+                    router.push(
+                      selectedPetId != null && selectedPetId > 0
+                        ? `/finance/report?petId=${selectedPetId}`
+                        : '/finance/report',
+                    )
+                  }
                   className="flex h-fit w-full cursor-pointer items-center justify-center rounded-[12px] bg-[var(--color-mint-green)] py-1.5 font-semibold text-[18px] text-white transition-all hover:brightness-90 md:py-2 md:text-[22px] lg:py-2.5 lg:text-[26px]"
                 >
                   리포트 보러가기
