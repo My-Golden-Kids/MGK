@@ -445,6 +445,7 @@ class AuthServiceTest {
 
         authService.resetPassword("valid-token", "NewPass1!");
 
+        then(refreshTokenRepository).should().deleteAllByUser(user);
         then(userRepository).should().updatePassword(1L, "encodedNew");
         then(verificationRepository).should().deleteByToken("valid-token");
     }
@@ -493,6 +494,7 @@ class AuthServiceTest {
 
         authService.changePassword(1L, request);
 
+        then(refreshTokenRepository).should().deleteAllByUser(user);
         then(userRepository).should().updatePassword(1L, "encodedNew");
     }
 
