@@ -45,8 +45,9 @@ public class FinanceReportService {
 		List<Pet> alivePets = getAlivePetsAsOfToday(pets);
 
 		BigDecimal monthlyAverageExpense = calculateMonthlyAverageExpense(userId);
+		BigDecimal projectedMonthlyExpensePerPet = calculateProjectedMonthlyExpensePerPet(userId, pets);
 		BigDecimal totalAsset = defaultAmount(accountRepository.sumMoneyAmountByUserId(userId));
-		BigDecimal futurePetCost = calculateFuturePetCost(monthlyAverageExpense, alivePets);
+		BigDecimal futurePetCost = calculateFuturePetCost(projectedMonthlyExpensePerPet, alivePets);
 		FinanceExpenseCategoryResponse dominantCategory = calculateDominantCategory(userId);
 		ProductPersonalizedReportResponse recommendedProduct = productService.getFeaturedPersonalizedProduct(userId);
 
@@ -146,6 +147,53 @@ public class FinanceReportService {
 		return monthlyExpenseSum.divide(BigDecimal.valueOf(countedMonths), 2, RoundingMode.HALF_UP);
 	}
 
+	private BigDecimal calculateProjectedMonthlyExpensePerPet(Long userId, List<Pet> pets) {
+		if (pets == null || pets.isEmpty()) {
+			return BigDecimal.ZERO;
+		}
+
+		LocalDateTime firstPetSpendDateTime = accountBookRepository.findFirstPetSpendDateByUserId(userId);
+		if (firstPetSpendDateTime == null) {
+			return BigDecimal.ZERO;
+		}
+
+		YearMonth firstSpendMonth = YearMonth.from(firstPetSpendDateTime);
+		YearMonth currentMonth = YearMonth.now();
+		long observedMonths = ChronoUnit.MONTHS.between(firstSpendMonth, currentMonth) + 1;
+		if (observedMonths <= 0) {
+			return BigDecimal.ZERO;
+		}
+
+		YearMonth startMonth = observedMonths < 12 ? firstSpendMonth : currentMonth.minusMonths(11);
+		Map<YearMonth, BigDecimal> monthlyExpenseMap = getMonthlyExpenseMap(userId, startMonth, currentMonth);
+
+		BigDecimal perPetMonthlyExpenseSum = BigDecimal.ZERO;
+		long countedMonths = 0;
+
+		for (YearMonth month = startMonth; !month.isAfter(currentMonth); month = month.plusMonths(1)) {
+			int activePetCount = countActivePetsForMonth(pets, month);
+			if (activePetCount <= 0) {
+				continue;
+			}
+
+			BigDecimal monthlyExpense = defaultAmount(monthlyExpenseMap.get(month));
+			BigDecimal perPetMonthlyExpense = monthlyExpense.divide(
+				BigDecimal.valueOf(activePetCount),
+				2,
+				RoundingMode.HALF_UP
+			);
+
+			perPetMonthlyExpenseSum = perPetMonthlyExpenseSum.add(perPetMonthlyExpense);
+			countedMonths++;
+		}
+
+		if (countedMonths == 0) {
+			return BigDecimal.ZERO;
+		}
+
+		return perPetMonthlyExpenseSum.divide(BigDecimal.valueOf(countedMonths), 2, RoundingMode.HALF_UP);
+	}
+
 	/**
 	 * 1) 기준 수명 이전: 남은 수명까지 계산
 	 * 2) 기준 수명 이후: 1년씩 추가로 계산
@@ -156,18 +204,13 @@ public class FinanceReportService {
 	 * - 각 연차마다 살아 있는 반려동물의 의료비를 합산
 	 */
 	private BigDecimal calculateFuturePetCost(
-		BigDecimal monthlyAverageExpense,
+		BigDecimal monthlyExpensePerPet,
 		List<Pet> pets
 	) {
-		if (pets == null || pets.isEmpty() || monthlyAverageExpense.compareTo(BigDecimal.ZERO) <= 0) {
+		if (pets == null || pets.isEmpty() || monthlyExpensePerPet.compareTo(BigDecimal.ZERO) <= 0) {
 			return BigDecimal.ZERO;
 		}
 
-		BigDecimal monthlyExpensePerPet = monthlyAverageExpense.divide(
-			BigDecimal.valueOf(pets.size()),
-			2,
-			RoundingMode.HALF_UP
-		);
 		BigDecimal annualExpensePerPet = monthlyExpensePerPet.multiply(TWELVE);
 
 		List<Integer> projectedYears = pets.stream()

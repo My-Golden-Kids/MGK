@@ -17,8 +17,10 @@ import com.mgk.bemgk.repository.AccountBookRepository;
 import com.mgk.bemgk.repository.AccountRepository;
 import com.mgk.bemgk.repository.PetRepository;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -203,5 +205,49 @@ class FinanceReportServiceTest {
 
 		assertThat(report.getAverageExpense()).isEqualByComparingTo("800000");
 		assertThat(report.getTotalPetCost()).isEqualByComparingTo("40200000");
+	}
+
+	@Test
+	void projectedMonthlyExpensePerPet_weightsMonthsByActivePetCountChanges() {
+		Long userId = 5L;
+		List<Pet> pets = new ArrayList<>();
+		for (int i = 0; i < 4; i++) {
+			pets.add(Pet.builder()
+				.name("생존-" + i)
+				.species("DOG")
+				.age(5.0)
+				.size(PetSize.소형)
+				.death(false)
+				.build());
+		}
+		pets.add(Pet.builder()
+			.name("무지개")
+			.species("DOG")
+			.age(5.0)
+			.size(PetSize.소형)
+			.death(true)
+			.deathDate(YearMonth.now().minusMonths(2).atDay(15).atStartOfDay())
+			.build());
+
+		List<Object[]> monthlyExpenses = new ArrayList<>();
+		YearMonth startMonth = YearMonth.now().minusMonths(11);
+		for (int i = 0; i < 12; i++) {
+			YearMonth month = startMonth.plusMonths(i);
+			monthlyExpenses.add(new Object[] {month.getYear(), month.getMonthValue(), 500000});
+		}
+
+		when(accountBookRepository.findFirstPetSpendDateByUserId(userId))
+			.thenReturn(startMonth.atDay(1).atStartOfDay());
+		when(accountBookRepository.sumMonthlyPetExpenseByUserId(eq(userId), any(), any()))
+			.thenReturn(monthlyExpenses);
+
+		BigDecimal result = ReflectionTestUtils.invokeMethod(
+			financeReportService,
+			"calculateProjectedMonthlyExpensePerPet",
+			userId,
+			pets
+		);
+
+		assertThat(result).isEqualByComparingTo("104166.67");
 	}
 }
