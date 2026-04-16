@@ -119,6 +119,11 @@ export default function VaccinationPage() {
       .catch(console.error);
   };
 
+  const handleDateClick = (date: string) => {
+    setForm((prev) => ({ ...prev, date }));
+    setIsModalOpen(true);
+  };
+
   const handleMonthChange = (newYear: number, newMonth: number) => {
     setYear(newYear);
     setMonth(newMonth);
@@ -137,6 +142,7 @@ export default function VaccinationPage() {
             { type: 'checkup', color: 'bg-main-yellow', label: '검진' },
           ]}
           onAddSchedule={() => setIsModalOpen(true)}
+          onDateClick={handleDateClick}
           onMonthChange={handleMonthChange}
         />
         <div className="flex flex-col gap-2.5">
