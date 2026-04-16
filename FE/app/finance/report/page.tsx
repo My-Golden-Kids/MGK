@@ -261,7 +261,19 @@ export default function FinanceReportPage() {
             closeOnOverlay
             buttonVariant="none"
           >
-            <div className="py-4 md:py-6 lg:py-8">
+            <div className="relative py-4 md:py-6 lg:py-8">
+              <button
+                type="button"
+                onClick={() => setIsBadgeModalOpen(false)}
+                aria-label="닫기"
+                className="absolute top-0 right-0 flex h-10 w-10 items-center justify-center md:h-11 md:w-11 lg:h-12 lg:w-12"
+              >
+                <span className="relative block h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9">
+                  <span className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 h-[2px] w-full rotate-45 rounded-full border-2 border-black" />
+                  <span className="-translate-x-1/2 -translate-y-1/2 -rotate-45 absolute top-1/2 left-1/2 h-[2px] w-full rounded-full border-2 border-black" />
+                </span>
+              </button>
+
               <h2 className="text-center font-extrabold text-[32px] leading-none md:text-[36px] lg:text-[40px]">
                 산책 상위{' '}
                 <span className="text-[var(--color-hana-pink)]">10%</span>
