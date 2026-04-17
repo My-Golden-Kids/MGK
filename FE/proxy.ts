@@ -1,5 +1,4 @@
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 const PUBLIC_PATHS = new Set([
@@ -21,7 +20,7 @@ const PUBLIC_PATH_PREFIXES = ['/api/auth'];
 
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
-  console.log(pathname)
+  console.log(pathname);
   console.log(searchParams);
 
   if (pathname === '/login/changepasswd' && searchParams.get('token')) {
@@ -43,10 +42,13 @@ export async function proxy(request: NextRequest) {
     req: request,
     secret: process.env.AUTH_SECRET,
   });
+  
+  console.log(process.env.AUTH_SECRET);
 
   // if (!token) {
   console.log(token);
-  return NextResponse.redirect(new URL('/login', request.url));
+  return NextResponse.next();
+  // return NextResponse.redirect(new URL('/login', request.url));
   // }
 
   // return NextResponse.next();
