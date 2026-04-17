@@ -1,6 +1,9 @@
 import { getSession, signOut } from 'next-auth/react';
 import { changePasswordSchema } from '@/lib/validator';
 
+const BASE_URL =
+  process.env.NEXT_PUBLIC_SPRING_API_URL ?? process.env.SPRING_API_URL ?? '';
+
 // ─── 클라이언트 컴포넌트용 fetch ──────────────────────────────────────────────
 
 let pendingSession: Promise<Awaited<ReturnType<typeof getSession>>> | null =
@@ -25,7 +28,7 @@ export async function clientFetch(path: string, init?: RequestInit) {
 
   const isFormData = init?.body instanceof FormData;
 
-  return fetch(path, {
+  return fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
       // FormData일 때는 Content-Type 생략 → 브라우저가 multipart boundary 자동 설정
