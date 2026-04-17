@@ -5,8 +5,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
 import { getFinanceRetirementReport } from '@/features/finance/api/financeReportApi';
 import type { FinanceRetirementReport } from '@/features/finance/types/financeReport';
+import { fetchPets } from '@/features/settings/api/petSettingsApi';
 import { clientFetch } from '@/lib/client-fetch';
-import { getStoredMedicalPetId } from '@/lib/medical-record';
+import { getStoredSelectedPetId } from '@/lib/medical-record';
 
 type FinanceDashboardResponse = {
   bankName: string;
@@ -144,13 +145,14 @@ export default function FinancePage() {
     null,
   );
   const [report, setReport] = useState<FinanceRetirementReport | null>(null);
+  const [hasRegisteredPets, setHasRegisteredPets] = useState(false);
   const [currentSummary, setCurrentSummary] =
     useState<FinanceExpenseSummaryResponse | null>(null);
   const [previousSummary, setPreviousSummary] =
     useState<FinanceExpenseSummaryResponse | null>(null);
 
   useEffect(() => {
-    setSelectedPetId(getStoredMedicalPetId());
+    setSelectedPetId(getStoredSelectedPetId());
   }, []);
 
   useEffect(() => {
@@ -164,6 +166,7 @@ export default function FinancePage() {
           currentSummaryResponse,
           previousSummaryResponse,
           financeReportResponse,
+          petsResponse,
         ] = await Promise.all([
           clientFetch('/api/account-books/dashboard'),
           clientFetch(
@@ -177,6 +180,7 @@ export default function FinancePage() {
             }`,
           ),
           getFinanceRetirementReport(),
+          fetchPets(),
         ]);
 
         if (dashboardResponse.ok) {
@@ -204,9 +208,15 @@ export default function FinancePage() {
         }
 
         setReport(financeReportResponse);
+        setHasRegisteredPets(
+          Boolean(
+            petsResponse.ok && petsResponse.pets?.some((pet) => !pet.isDeath),
+          ),
+        );
       } catch {
         setDashboard(null);
         setReport(null);
+        setHasRegisteredPets(false);
         setCurrentSummary(null);
         setPreviousSummary(null);
       }
@@ -348,7 +358,7 @@ export default function FinancePage() {
           </div>
         </section>
 
-        {recommendedProduct && (
+        {hasRegisteredPets && recommendedProduct && (
           <section className="mt-3 text-center md:mt-3.5 lg:mt-4">
             {recommendedProduct.productType === 'PET_FOREST' ? (
               <p className="font-bold text-[14px] text-[var(--color-main-green)] md:text-[18px] lg:text-[22px]">

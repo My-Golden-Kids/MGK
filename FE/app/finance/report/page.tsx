@@ -12,7 +12,7 @@ import type {
   FinanceRetirementReport,
   MonthlyExpenseItem,
 } from '@/features/finance/types/financeReport';
-import { getStoredMedicalPetId } from '@/lib/medical-record';
+import { getStoredSelectedPetId } from '@/lib/medical-record';
 import { formatMoney, formatPercent } from '@/lib/utils/formatNumber';
 
 function createEmptyMonthlyData(): MonthlyExpenseItem[] {
@@ -36,7 +36,7 @@ export default function FinanceReportPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setSelectedPetId(getStoredMedicalPetId());
+    setSelectedPetId(getStoredSelectedPetId());
   }, []);
 
   useEffect(() => {
