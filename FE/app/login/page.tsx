@@ -61,6 +61,12 @@ export default function LoginPage() {
           <div className="flex w-full flex-col gap-4">
             <input
               type="email"
+              name="email"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              suppressHydrationWarning
               placeholder="이메일"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -68,6 +74,12 @@ export default function LoginPage() {
             />
             <input
               type="password"
+              name="password"
+              autoComplete="current-password"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              suppressHydrationWarning
               placeholder="비밀번호"
               value={password}
               onChange={(event) => setPassword(event.target.value)}

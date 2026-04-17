@@ -17,6 +17,12 @@ const PUBLIC_PATHS = new Set([
   '/api/tts',
 ]);
 const PUBLIC_PATH_PREFIXES = ['/api/auth'];
+const CAPACITOR_DEV_PUBLIC_PATHS = new Set(
+  (process.env.CAPACITOR_DEV_PUBLIC_PATHS ?? '')
+    .split(',')
+    .map((path) => path.trim())
+    .filter(Boolean),
+);
 
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
@@ -27,6 +33,8 @@ export async function proxy(request: NextRequest) {
 
   const isPublicPath =
     PUBLIC_PATHS.has(pathname) ||
+    (process.env.NODE_ENV !== 'production' &&
+      CAPACITOR_DEV_PUBLIC_PATHS.has(pathname)) ||
     PUBLIC_PATH_PREFIXES.some(
       (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
     );
