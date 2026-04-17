@@ -80,7 +80,7 @@ jobs:
           scp /tmp/vision-key.json ec2-user@${{ secrets.WAS_HOST }}:/home/ec2-user/workspace/MGK/BE/secrets/vision-key.json
           ssh ec2-user@${{ secrets.WAS_HOST }} "chmod 600 /home/ec2-user/workspace/MGK/BE/secrets/vision-key.json"
 
-      - name: Verify OCR key JSON on EC2 check
+      - name: Verify OCR key JSON on EC2
         run: |
           ssh ec2-user@${{ secrets.WAS_HOST }} "python3 -m json.tool /home/ec2-user/workspace/MGK/BE/secrets/vision-key.json > /dev/null"
 
