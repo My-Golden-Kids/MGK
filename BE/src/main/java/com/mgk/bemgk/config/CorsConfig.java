@@ -13,7 +13,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class CorsConfig {
 
-	@Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:3001,http://172.16.20.165:3000}")
+	@Value("${app.cors.allowed-origins:https://mygoldenkids.topician.com,http://localhost:3000,http://localhost:3001,http://172.16.20.165:3000}")
 	private String allowedOrigins;
 
 	@Bean
