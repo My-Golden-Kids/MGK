@@ -66,7 +66,7 @@ public class AuthService {
 				.bankName(DEFAULT_BANK_NAME)
 				.moneyAmount(new BigDecimal("1000000"))
 				.rewardAmount(BigDecimal.ZERO)
-				.totalAmount(new BigDecimal("10000000"))
+				.totalAmount(new BigDecimal("500000000"))
 				.build());
 
 		accountBookRepository.save(AccountBook.builder()
