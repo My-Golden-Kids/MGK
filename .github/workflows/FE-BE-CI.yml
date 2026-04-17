@@ -39,7 +39,7 @@ jobs:
           chmod +x ./gradlew
           ./gradlew clean bootJar --no-daemon
 
-      - name: Build FE check
+      - name: Build FE
         working-directory: FE
         env:
           DOT_ENV: ${{ secrets.DOT_ENV }}
