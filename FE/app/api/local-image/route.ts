@@ -26,7 +26,7 @@ function resolveLocalImagePath(requestPath: string) {
       return '';
     }
 
-    return join(process.cwd(), directory, fileName);
+    return join(/* turbopackIgnore: true */ process.cwd(), directory, fileName);
   }
 
   return '';
