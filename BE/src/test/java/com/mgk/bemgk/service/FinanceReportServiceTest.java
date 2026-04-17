@@ -250,4 +250,40 @@ class FinanceReportServiceTest {
 
 		assertThat(result).isEqualByComparingTo("104166.67");
 	}
+
+	@Test
+	void retirementReport_treatsMissingPetAgeAsZero() {
+		Long userId = 6L;
+		Pet seniorDog = Pet.builder()
+			.name("첫째")
+			.species("DOG")
+			.age(13.0)
+			.size(PetSize.소형)
+			.death(false)
+			.build();
+		Pet unknownAgeDog = Pet.builder()
+			.name("둘째")
+			.species("DOG")
+			.age(null)
+			.size(PetSize.소형)
+			.death(false)
+			.build();
+
+		when(petRepository.findByUser_Id(userId)).thenReturn(List.of(seniorDog, unknownAgeDog));
+		when(accountBookRepository.findFirstPetSpendDateByUserId(userId)).thenReturn(LocalDateTime.of(2026, 2, 1, 0, 0));
+		when(accountBookRepository.sumMonthlyPetExpenseByUserId(eq(userId), any(), any()))
+			.thenReturn(List.of(
+				new Object[] {2026, 2, 800000},
+				new Object[] {2026, 3, 800000},
+				new Object[] {2026, 4, 800000}
+			));
+		when(accountRepository.sumTotalAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
+		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
+		when(productService.getFeaturedPersonalizedProduct(userId, null)).thenReturn(null);
+
+		FinanceReportResponse report = financeReportService.getRetirementReport(userId);
+
+		assertThat(report.getAverageExpense()).isEqualByComparingTo("800000");
+		assertThat(report.getTotalPetCost()).isEqualByComparingTo("105780000");
+	}
 }
