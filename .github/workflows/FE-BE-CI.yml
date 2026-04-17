@@ -102,6 +102,9 @@ jobs:
           ssh ec2-user@${{ secrets.WAS_HOST }} "
             cd /home/ec2-user/workspace/MGK/FE &&
             pnpm install --frozen-lockfile &&
+            set -a &&
+            . ./.env &&
+            set +a &&
             if pm2 describe mgk-fe > /dev/null 2>&1; then
               pm2 restart mgk-fe --update-env;
             else
