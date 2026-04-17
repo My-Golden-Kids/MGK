@@ -48,11 +48,12 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm exec next build --webpack
 
-      - name: Verify FE build output
+      - name: Verify FE source before deploy
         working-directory: FE
         run: |
-          grep -R 'fetch("/api/auth/signup"' .next/static .next/server > /dev/null
-          grep -R 'type:"button"' .next/static .next/server > /dev/null
+          grep -q '/api/auth/signup' app/api/signup/route.ts
+          grep -q 'type="button"' app/login/page.tsx
+          test -f .next/BUILD_ID
 
       - name: Setup SSH
         run: |
@@ -112,9 +113,10 @@ jobs:
             pm2 save
           "
 
-      - name: Verify deployed FE bundle on EC2
+      - name: Verify deployed FE on EC2
         run: |
           ssh ec2-user@${{ secrets.WAS_HOST }} "
-            grep -R 'fetch(\"/api/auth/signup\"' /home/ec2-user/workspace/MGK/FE/.next/static /home/ec2-user/workspace/MGK/FE/.next/server > /dev/null &&
-            grep -R 'type:\"button\"' /home/ec2-user/workspace/MGK/FE/.next/static /home/ec2-user/workspace/MGK/FE/.next/server > /dev/null
+            grep -q '/api/auth/signup' /home/ec2-user/workspace/MGK/FE/app/api/signup/route.ts &&
+            grep -q 'type=\"button\"' /home/ec2-user/workspace/MGK/FE/app/login/page.tsx &&
+            test -f /home/ec2-user/workspace/MGK/FE/.next/BUILD_ID
           "
