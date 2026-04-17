@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
+import Modal from '@/components/common/Modal';
 import { getFinanceRetirementReport } from '@/features/finance/api/financeReportApi';
 import type { FinanceRetirementReport } from '@/features/finance/types/financeReport';
 import { fetchPets } from '@/features/settings/api/petSettingsApi';
@@ -150,6 +151,7 @@ export default function FinancePage() {
     useState<FinanceExpenseSummaryResponse | null>(null);
   const [previousSummary, setPreviousSummary] =
     useState<FinanceExpenseSummaryResponse | null>(null);
+  const [isHanaOneQModalOpen, setIsHanaOneQModalOpen] = useState(false);
 
   useEffect(() => {
     setSelectedPetId(getStoredSelectedPetId());
@@ -300,12 +302,14 @@ export default function FinancePage() {
           <div className="grid grid-cols-2 border-[var(--color-main-green)] border-t">
             <button
               type="button"
+              onClick={() => setIsHanaOneQModalOpen(true)}
               className="h-fit border-[var(--color-main-green)] border-r bg-[var(--color-mint-green)] py-2 font-bold text-[22px] text-white md:py-2.5 md:text-[26px] lg:py-3 lg:text-[30px]"
             >
               채우기
             </button>
             <button
               type="button"
+              onClick={() => setIsHanaOneQModalOpen(true)}
               className="h-fit bg-[var(--color-mint-green)] py-2 font-bold text-[22px] text-white md:py-2.5 md:text-[26px] lg:py-3 lg:text-[30px]"
             >
               보내기
@@ -332,6 +336,17 @@ export default function FinancePage() {
             </article>
           ))}
         </section>
+
+        <Modal
+          isOpen={isHanaOneQModalOpen}
+          onClose={() => setIsHanaOneQModalOpen(false)}
+          buttonVariant="single"
+          confirmText="확인"
+        >
+          <p className="py-6 text-center font-bold text-[#222222] text-[24px] md:text-[28px] lg:text-[32px]">
+            하나원큐로 이동중
+          </p>
+        </Modal>
 
         <section className="mt-2 rounded-[26px] border border-[var(--color-main-green)] bg-white px-10 py-3 md:mt-2.5 md:px-14 md:py-4 lg:mt-3 lg:px-18 lg:py-5">
           <div
