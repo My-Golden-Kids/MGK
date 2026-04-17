@@ -41,8 +41,10 @@ jobs:
 
       - name: Build FE
         working-directory: FE
+        env:
+          DOT_ENV: ${{ secrets.DOT_ENV }}
         run: |
-          printf '%s' "${{ secrets.DOT_ENV }}" > .env
+          printf '%s' "$DOT_ENV" > .env
           pnpm install --frozen-lockfile
           pnpm exec next build --webpack
 
