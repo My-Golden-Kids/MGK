@@ -16,7 +16,6 @@ const PUBLIC_PATHS = new Set([
   '/onboarding/6',
   '/api/tts',
   '/api/signup',
-  '/settings',
 ]);
 const PUBLIC_PATH_PREFIXES = ['/api/auth'];
 
@@ -42,11 +41,12 @@ export async function proxy(request: NextRequest) {
     secret: process.env.AUTH_SECRET,
   });
 
-  if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
+  // if (!token) {
+  console.log(token);
+  return NextResponse.redirect(new URL('/login', request.url));
+  // }
 
-  return NextResponse.next();
+  // return NextResponse.next();
 }
 
 export const config = {
