@@ -83,7 +83,7 @@ jobs:
             export APP_CORS_ALLOWED_ORIGINS='${{ secrets.APP_CORS_ALLOWED_ORIGINS }}' &&
             cd /home/ec2-user/workspace/MGK &&
             git restore BE/src/main/resources/application.yml || true &&
-            git pull origin release &&
+            git pull origin origin/release &&
             cd /home/ec2-user/workspace/MGK/BE &&
             if pm2 describe mgk-be > /dev/null 2>&1; then
               pm2 restart mgk-be --update-env;
