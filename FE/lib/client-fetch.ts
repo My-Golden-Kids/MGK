@@ -26,15 +26,11 @@ export async function clientFetch(path: string, init?: RequestInit) {
     return new Response(null, { status: 401 });
   }
 
-  const isFormData = init?.body instanceof FormData;
-
-  return fetch(`${BASE_URL}${path}`, {
+  return await fetch(`/api/proxy${path}`, {
     ...init,
     headers: {
-      // FormData일 때는 Content-Type 생략 → 브라우저가 multipart boundary 자동 설정
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      'Content-Type': 'application/json',
       ...init?.headers,
-      Authorization: `Bearer ${session?.accessToken ?? ''}`,
     },
   });
 }
