@@ -18,7 +18,6 @@ import com.mgk.bemgk.repository.ProductRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -184,7 +183,6 @@ class ProductServiceTest {
 
 		when(productRepository.findAll()).thenReturn(List.of(savings, subscription, petForest));
 		when(petRepository.findByUser_Id(userId)).thenReturn(List.of(seniorPet, youngPet));
-		when(petRepository.findByIdAndUser_Id(11L, userId)).thenReturn(Optional.of(youngPet));
 		when(accountBookRepository.findFirstPetSpendDateByUserId(userId)).thenReturn(LocalDateTime.now().minusMonths(13));
 		when(accountBookRepository.sumPetExpenseLastYear(eq(userId), any())).thenReturn(BigDecimal.valueOf(2400000));
 		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.valueOf(1000000));
@@ -208,6 +206,40 @@ class ProductServiceTest {
 			.getEligible()).isFalse();
 		assertThat(featured).isNotNull();
 		assertThat(featured.getProductType()).isNotEqualTo(ProductType.PET_FOREST);
+	}
+
+	@Test
+	void invalidSelectedPetId_fallsBackToWholeUserProfileInsteadOfThrowing() {
+		Long userId = 4L;
+		Product savings = product("하나 펫적금", ProductType.SAVINGS, false, null, null, BigDecimal.valueOf(168_000));
+		Pet seniorPet = Pet.builder()
+			.name("노견이")
+			.species("DOG")
+			.age(16.0)
+			.death(false)
+			.build();
+		ReflectionTestUtils.setField(seniorPet, "id", 21L);
+
+		when(productRepository.findAll()).thenReturn(List.of(savings));
+		when(petRepository.findByUser_Id(userId)).thenReturn(List.of(seniorPet));
+		when(accountBookRepository.findFirstPetSpendDateByUserId(userId))
+			.thenReturn(LocalDateTime.now().minusMonths(12));
+		when(accountBookRepository.sumPetExpenseLastYear(eq(userId), any()))
+			.thenReturn(BigDecimal.valueOf(1_200_000));
+		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
+		when(accountBookRepository.sumAmountByUserIdAndCategoriesAndSpendDateTimeBetween(
+			eq(userId), eq(List.of(com.mgk.bemgk.entity.AccountBookCategory.Hospital)), any(), any()))
+			.thenReturn(BigDecimal.valueOf(100_000));
+		when(accountBookRepository.sumAmountByUserIdAndCategoriesAndSpendDateTimeBetween(
+			eq(userId), eq(List.of(com.mgk.bemgk.entity.AccountBookCategory.Food)), any(), any()))
+			.thenReturn(BigDecimal.valueOf(300_000));
+		when(accountBookRepository.countByUserIdAndCategoryAndSpendDateTimeBetween(
+			eq(userId), eq(com.mgk.bemgk.entity.AccountBookCategory.Hospital), any(), any()))
+			.thenReturn(1L);
+
+		List<ProductPersonalizedReportResponse> reports = productService.getPersonalizedProductReports(userId, 999L);
+
+		assertThat(reports).hasSize(1);
 	}
 
 	private Product product(

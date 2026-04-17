@@ -531,11 +531,8 @@ public class ProductService {
 			return null;
 		}
 
-		Pet selectedPet = petRepository.findByIdAndUser_Id(selectedPetId, userId)
-			.orElseThrow(() -> new IllegalArgumentException("선택된 반려동물을 찾을 수 없습니다."));
-
 		return alivePets.stream()
-			.filter(pet -> Objects.equals(pet.getId(), selectedPet.getId()))
+			.filter(pet -> Objects.equals(pet.getId(), selectedPetId))
 			.findFirst()
 			.orElse(null);
 	}

@@ -90,6 +90,23 @@ export function getStoredMedicalPetId() {
   return FALLBACK_PET_ID;
 }
 
+export function getStoredSelectedPetId() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const storedValue =
+    window.localStorage.getItem(SELECTED_PET_ID_STORAGE_KEY) ??
+    window.sessionStorage.getItem(SELECTED_PET_ID_STORAGE_KEY);
+  const parsedValue = Number(storedValue);
+
+  if (Number.isFinite(parsedValue) && parsedValue > 0) {
+    return parsedValue;
+  }
+
+  return null;
+}
+
 export function storeSelectedPetId(petId: number | string) {
   if (typeof window === 'undefined') {
     return;

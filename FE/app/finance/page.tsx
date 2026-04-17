@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { BottomNavigation } from '@/components/common/BottomNavigation';
+import Modal from '@/components/common/Modal';
 import { getFinanceRetirementReport } from '@/features/finance/api/financeReportApi';
 import type { FinanceRetirementReport } from '@/features/finance/types/financeReport';
+import { fetchPets } from '@/features/settings/api/petSettingsApi';
 import { clientFetch } from '@/lib/client-fetch';
-import { getStoredMedicalPetId } from '@/lib/medical-record';
+import { getStoredSelectedPetId } from '@/lib/medical-record';
 
 type FinanceDashboardResponse = {
   bankName: string;
@@ -144,13 +146,15 @@ export default function FinancePage() {
     null,
   );
   const [report, setReport] = useState<FinanceRetirementReport | null>(null);
+  const [hasRegisteredPets, setHasRegisteredPets] = useState(false);
   const [currentSummary, setCurrentSummary] =
     useState<FinanceExpenseSummaryResponse | null>(null);
   const [previousSummary, setPreviousSummary] =
     useState<FinanceExpenseSummaryResponse | null>(null);
+  const [isHanaOneQModalOpen, setIsHanaOneQModalOpen] = useState(false);
 
   useEffect(() => {
-    setSelectedPetId(getStoredMedicalPetId());
+    setSelectedPetId(getStoredSelectedPetId());
   }, []);
 
   useEffect(() => {
@@ -164,6 +168,7 @@ export default function FinancePage() {
           currentSummaryResponse,
           previousSummaryResponse,
           financeReportResponse,
+          petsResponse,
         ] = await Promise.all([
           clientFetch('/api/account-books/dashboard'),
           clientFetch(
@@ -177,6 +182,7 @@ export default function FinancePage() {
             }`,
           ),
           getFinanceRetirementReport(),
+          fetchPets(),
         ]);
 
         if (dashboardResponse.ok) {
@@ -204,9 +210,15 @@ export default function FinancePage() {
         }
 
         setReport(financeReportResponse);
+        setHasRegisteredPets(
+          Boolean(
+            petsResponse.ok && petsResponse.pets?.some((pet) => !pet.isDeath),
+          ),
+        );
       } catch {
         setDashboard(null);
         setReport(null);
+        setHasRegisteredPets(false);
         setCurrentSummary(null);
         setPreviousSummary(null);
       }
@@ -290,12 +302,14 @@ export default function FinancePage() {
           <div className="grid grid-cols-2 border-[var(--color-main-green)] border-t">
             <button
               type="button"
+              onClick={() => setIsHanaOneQModalOpen(true)}
               className="h-fit border-[var(--color-main-green)] border-r bg-[var(--color-mint-green)] py-2 font-bold text-[22px] text-white md:py-2.5 md:text-[26px] lg:py-3 lg:text-[30px]"
             >
               채우기
             </button>
             <button
               type="button"
+              onClick={() => setIsHanaOneQModalOpen(true)}
               className="h-fit bg-[var(--color-mint-green)] py-2 font-bold text-[22px] text-white md:py-2.5 md:text-[26px] lg:py-3 lg:text-[30px]"
             >
               보내기
@@ -323,6 +337,17 @@ export default function FinancePage() {
           ))}
         </section>
 
+        <Modal
+          isOpen={isHanaOneQModalOpen}
+          onClose={() => setIsHanaOneQModalOpen(false)}
+          buttonVariant="single"
+          confirmText="확인"
+        >
+          <p className="py-6 text-center font-bold text-[#222222] text-[24px] md:text-[28px] lg:text-[32px]">
+            하나원큐로 이동중
+          </p>
+        </Modal>
+
         <section className="mt-2 rounded-[26px] border border-[var(--color-main-green)] bg-white px-10 py-3 md:mt-2.5 md:px-14 md:py-4 lg:mt-3 lg:px-18 lg:py-5">
           <div
             className="mx-auto h-36 w-36 rounded-full md:h-40 md:w-40 lg:h-44 lg:w-44"
@@ -348,7 +373,7 @@ export default function FinancePage() {
           </div>
         </section>
 
-        {recommendedProduct && (
+        {hasRegisteredPets && recommendedProduct && (
           <section className="mt-3 text-center md:mt-3.5 lg:mt-4">
             {recommendedProduct.productType === 'PET_FOREST' ? (
               <p className="font-bold text-[14px] text-[var(--color-main-green)] md:text-[18px] lg:text-[22px]">

@@ -14,6 +14,7 @@ const PUBLIC_PATHS = new Set([
   '/onboarding/4',
   '/onboarding/5',
   '/onboarding/6',
+  '/api/tts',
 ]);
 const PUBLIC_PATH_PREFIXES = ['/api/auth'];
 

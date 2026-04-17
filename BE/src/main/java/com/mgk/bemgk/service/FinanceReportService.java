@@ -50,7 +50,7 @@ public class FinanceReportService {
 
 		BigDecimal monthlyAverageExpense = calculateMonthlyAverageExpense(userId);
 		BigDecimal projectedMonthlyExpensePerPet = calculateProjectedMonthlyExpensePerPet(userId, pets);
-		BigDecimal totalAsset = defaultAmount(accountRepository.sumMoneyAmountByUserId(userId));
+		BigDecimal totalAsset = defaultAmount(accountRepository.sumTotalAmountByUserId(userId));
 		BigDecimal futurePetCost = calculateFuturePetCost(projectedMonthlyExpensePerPet, alivePets);
 		FinanceExpenseCategoryResponse dominantCategory = calculateDominantCategory(userId);
 		ProductPersonalizedReportResponse recommendedProduct = productService.getFeaturedPersonalizedProduct(userId, petId);
@@ -229,7 +229,7 @@ public class FinanceReportService {
 			BigDecimal petCost = annualExpensePerPet.multiply(BigDecimal.valueOf(projectedYear));
 
 			for (int year = 1; year <= projectedYear; year++) {
-				double currentAge = pet.getAge();
+				double currentAge = getPetAge(pet);
 				double ageAtThatYear = currentAge + year - 1;
 				petCost = petCost.add(getAnnualMedicalCost(pet, ageAtThatYear));
 			}
@@ -246,7 +246,7 @@ public class FinanceReportService {
 	 */
 	private int getProjectedYears(Pet pet) {
 		BigDecimal lifeExpectancy = getLifeExpectancyYears(pet);
-		BigDecimal currentAge = BigDecimal.valueOf(pet.getAge());
+		BigDecimal currentAge = BigDecimal.valueOf(getPetAge(pet));
 
 		BigDecimal remainingYears = lifeExpectancy.subtract(currentAge);
 
@@ -257,6 +257,14 @@ public class FinanceReportService {
 		}
 
 		return 1;
+	}
+
+	private double getPetAge(Pet pet) {
+		if (pet.getAge() == null) {
+			return 0.0;
+		}
+
+		return pet.getAge();
 	}
 
 	/**

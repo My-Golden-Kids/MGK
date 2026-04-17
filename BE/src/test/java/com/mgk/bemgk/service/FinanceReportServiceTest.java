@@ -65,7 +65,7 @@ class FinanceReportServiceTest {
 			.build();
 
 		when(petRepository.findByUser_Id(userId)).thenReturn(List.of());
-		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
+		when(accountRepository.sumTotalAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any()))
 			.thenReturn(List.of(foodExpense, hospitalExpense));
 		when(productService.getFeaturedPersonalizedProduct(userId, null))
@@ -110,7 +110,7 @@ class FinanceReportServiceTest {
 		when(petRepository.findByUser_Id(userId)).thenReturn(List.of(dog, cat));
 		lenient().when(accountBookRepository.findFirstPetSpendDateByUserId(userId)).thenReturn(LocalDateTime.now().minusMonths(12));
 		lenient().when(accountBookRepository.sumPetExpenseLastYear(eq(userId), any())).thenReturn(BigDecimal.valueOf(1200000));
-		lenient().when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.valueOf(1000000));
+		lenient().when(accountRepository.sumTotalAmountByUserId(userId)).thenReturn(BigDecimal.valueOf(1000000));
 		lenient().when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
 		lenient().when(productService.getFeaturedPersonalizedProduct(userId, null)).thenReturn(null);
 
@@ -162,7 +162,7 @@ class FinanceReportServiceTest {
 				new Object[] {2026, 3, 125000},
 				new Object[] {2026, 4, 640000}
 			));
-		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
+		when(accountRepository.sumTotalAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
 		when(productService.getFeaturedPersonalizedProduct(userId, null)).thenReturn(null);
 
@@ -197,7 +197,7 @@ class FinanceReportServiceTest {
 				new Object[] {2026, 3, 800000},
 				new Object[] {2026, 4, 800000}
 			));
-		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
+		when(accountRepository.sumTotalAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
 		when(productService.getFeaturedPersonalizedProduct(userId, null)).thenReturn(null);
 
@@ -249,5 +249,41 @@ class FinanceReportServiceTest {
 		);
 
 		assertThat(result).isEqualByComparingTo("104166.67");
+	}
+
+	@Test
+	void retirementReport_treatsMissingPetAgeAsZero() {
+		Long userId = 6L;
+		Pet seniorDog = Pet.builder()
+			.name("첫째")
+			.species("DOG")
+			.age(13.0)
+			.size(PetSize.소형)
+			.death(false)
+			.build();
+		Pet unknownAgeDog = Pet.builder()
+			.name("둘째")
+			.species("DOG")
+			.age(null)
+			.size(PetSize.소형)
+			.death(false)
+			.build();
+
+		when(petRepository.findByUser_Id(userId)).thenReturn(List.of(seniorDog, unknownAgeDog));
+		when(accountBookRepository.findFirstPetSpendDateByUserId(userId)).thenReturn(LocalDateTime.of(2026, 2, 1, 0, 0));
+		when(accountBookRepository.sumMonthlyPetExpenseByUserId(eq(userId), any(), any()))
+			.thenReturn(List.of(
+				new Object[] {2026, 2, 800000},
+				new Object[] {2026, 3, 800000},
+				new Object[] {2026, 4, 800000}
+			));
+		when(accountRepository.sumTotalAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
+		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
+		when(productService.getFeaturedPersonalizedProduct(userId, null)).thenReturn(null);
+
+		FinanceReportResponse report = financeReportService.getRetirementReport(userId);
+
+		assertThat(report.getAverageExpense()).isEqualByComparingTo("800000");
+		assertThat(report.getTotalPetCost()).isEqualByComparingTo("105780000");
 	}
 }

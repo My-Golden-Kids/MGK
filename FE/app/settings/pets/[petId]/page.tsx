@@ -14,6 +14,7 @@ import {
   updatePet,
   uploadPetImage,
 } from '@/features/settings/api/petSettingsApi';
+import { toRenderableImageSrc } from '@/lib/local-image';
 
 type PetType = '강아지' | '고양이';
 type PetSize = '소형' | '중형' | '대형';
@@ -206,7 +207,7 @@ export default function PetDetailPage() {
               {previewImage ? (
                 <>
                   <Image
-                    src={previewImage}
+                    src={toRenderableImageSrc(previewImage)}
                     alt="반려동물 프로필 미리보기"
                     fill
                     unoptimized
