@@ -1,4 +1,4 @@
-const LOCAL_IMAGE_PREFIXES = ['/hospital/', '/expense/'];
+const LOCAL_IMAGE_PREFIXES = ['/hospital/', '/expense/', '/images/pet/'];
 
 export function toRenderableImageSrc(source: string) {
   if (!source) {

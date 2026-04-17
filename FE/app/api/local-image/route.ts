@@ -8,6 +8,7 @@ export const runtime = 'nodejs';
 const LOCAL_IMAGE_DIRS = {
   '/expense/': 'public/expense',
   '/hospital/': 'public/hospital',
+  '/images/pet/': 'public/images/pet',
 } as const;
 
 function resolveLocalImagePath(requestPath: string) {

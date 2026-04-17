@@ -1,3 +1,5 @@
+import { toRenderableImageSrc } from '@/lib/local-image';
+
 type PetProfileImageProps = {
   imageUrl?: string;
   className?: string;
@@ -11,7 +13,9 @@ export default function PetProfileImage({
   onClick,
   'aria-label': ariaLabel = 'Pet Profile',
 }: PetProfileImageProps) {
-  const src = imageUrl || '/images/onboarding/byeolsong.png';
+  const src = toRenderableImageSrc(
+    imageUrl || '/images/onboarding/byeolsong.png',
+  );
   const content = (
     <img
       src={src}
