@@ -33,7 +33,7 @@ jobs:
           mkdir -p src/main/resources
           printf '%s' "${{ secrets.SECURITY_YML }}" > src/main/resources/security.yml
 
-      - name: Build BE jar
+      - name: Build BE jar check
         working-directory: BE
         run: |
           chmod +x ./gradlew
