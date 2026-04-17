@@ -18,7 +18,10 @@ async function handler(req: Request, { params }: any) {
   path = path.replace(/^api\//, '');
 
   const url = new URL(req.url);
-  const targetUrl = `${SPRING_API}/api/${path}${url.search}`;
+  console.log('[proxy] accessToken:', session.accessToken?.slice(0, 20));
+  const targetUrl = path.startsWith('apis/')
+    ? `${SPRING_API}/${path}${url.search}`
+    : `${SPRING_API}/api/${path}${url.search}`;
 
   const body =
     req.method === 'GET' || req.method === 'HEAD'
