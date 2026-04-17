@@ -15,6 +15,7 @@ import WalkSummaryPanel, {
   type WalkHistoryRecord,
 } from '@/components/health/walk/WalkSummaryPanel';
 import PetProfileImage from '@/components/home/pet/PetProfileImage';
+import { fetchPets } from '@/features/settings/api/petSettingsApi';
 import { clientFetch } from '@/lib/client-fetch';
 import { getStoredMedicalPetId } from '@/lib/medical-record';
 
@@ -23,6 +24,7 @@ const LIVE_WALK_SYNC_INTERVAL_MS = 500;
 const LIVE_WALK_ACTIVE_STALE_MS = 3000;
 const TEST_STEP_COUNT = 4200;
 const TEST_WALK_TIME_SECONDS = 1800;
+const HANA_MEMBERSHIP_URL = 'https://inapp.hanamembership.com/mai/mAIM9100.do';
 const isHealthTestFallbackEnabled =
   process.env.NEXT_PUBLIC_MGK_HEALTH_TEST_FALLBACK === 'true';
 
@@ -262,6 +264,37 @@ export default function WalkPage() {
     setWalkDate(formatWalkDateTime(new Date()));
   }, []);
 
+  const loadAccountRewardAmount = useCallback(async () => {
+    const petsResult = await fetchPets();
+
+    if (!petsResult.ok || !petsResult.pets?.length) {
+      setAccountRewardAmount(0);
+      return;
+    }
+
+    const walkRecordResponses = await Promise.all(
+      petsResult.pets.map((pet) =>
+        clientFetch(`/api/pets/${pet.id}/walk-records`, { cache: 'no-store' }),
+      ),
+    );
+
+    const walkRecordsByPet = await Promise.all(
+      walkRecordResponses.map(async (response) => {
+        if (!response.ok) {
+          return [] as WalkRecordResponse[];
+        }
+
+        return (await response.json()) as WalkRecordResponse[];
+      }),
+    );
+
+    const totalRewardAmount = walkRecordsByPet
+      .flat()
+      .reduce((sum, record) => sum + (Number(record.rewardAmount) || 0), 0);
+
+    setAccountRewardAmount(totalRewardAmount);
+  }, []);
+
   const loadWalkRecords = useCallback(async () => {
     const response = await clientFetch(
       `/api/pets/${getStoredMedicalPetId()}/walk-records`,
@@ -280,6 +313,10 @@ export default function WalkPage() {
   useEffect(() => {
     void loadWalkRecords();
   }, [loadWalkRecords]);
+
+  useEffect(() => {
+    void loadAccountRewardAmount();
+  }, [loadAccountRewardAmount]);
 
   const saveLiveWalkUpdate = useCallback(
     async (update: MGKHealthWalkUpdate, force = false, completed = false) => {
@@ -353,8 +390,6 @@ export default function WalkPage() {
 
         const liveWalk = (await response.json()) as LiveWalkResponse;
 
-        setAccountRewardAmount(Number(liveWalk.totalRewardAmount ?? 0));
-
         if (!isMounted || latestLiveWalkRef.current) {
           return;
         }
@@ -363,6 +398,7 @@ export default function WalkPage() {
           setShowLiveWalk(false);
           setWalkStatus('idle');
           void loadWalkRecords();
+          void loadAccountRewardAmount();
           return;
         }
 
@@ -394,7 +430,7 @@ export default function WalkPage() {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [loadWalkRecords]);
+  }, [loadAccountRewardAmount, loadWalkRecords]);
 
   useEffect(() => {
     let listenerHandle: { remove: () => Promise<void> } | null = null;
@@ -470,17 +506,14 @@ export default function WalkPage() {
 
     if (finalUpdate) {
       applyLiveWalkUpdate(finalUpdate, false);
-      const saved = await saveLiveWalkUpdate(finalUpdate, true, true);
-
-      if (saved) {
-        setAccountRewardAmount(Number(saved.totalRewardAmount ?? 0));
-      }
+      await saveLiveWalkUpdate(finalUpdate, true, true);
     }
 
     latestLiveWalkRef.current = null;
     setShowLiveWalk(false);
     setWalkStatus('idle');
     await loadWalkRecords();
+    await loadAccountRewardAmount();
   };
 
   const handlePrimaryControlClick = async () => {
@@ -542,7 +575,10 @@ export default function WalkPage() {
             <BackButton />
           </div>
           <div className="absolute top-6 right-6 z-20">
-            <MoneyBadge amount={accountRewardAmount} />
+            <MoneyBadge
+              amount={accountRewardAmount}
+              href={HANA_MEMBERSHIP_URL}
+            />
           </div>
           <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
             <div className="relative flex h-[220px] w-[390px] items-center justify-center gap-6 md:h-[280px] md:w-[540px] md:gap-10 lg:h-[320px] lg:w-[620px] lg:gap-12">
