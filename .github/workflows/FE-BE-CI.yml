@@ -59,8 +59,11 @@ jobs:
         run: |
           scp BE/build/libs/*.jar ec2-user@${{ secrets.WAS_HOST }}:/home/ec2-user/workspace/MGK/BE/app.jar
           scp FE/.env ec2-user@${{ secrets.WAS_HOST }}:/home/ec2-user/workspace/MGK/FE/.env
-          ssh ec2-user@${{ secrets.WAS_HOST }} "rm -rf /home/ec2-user/workspace/MGK/FE/.next"
-          scp -r FE/.next ec2-user@${{ secrets.WAS_HOST }}:/home/ec2-user/workspace/MGK/FE/.next
+          tar -C FE -czf - .next | ssh ec2-user@${{ secrets.WAS_HOST }} "
+            cd /home/ec2-user/workspace/MGK/FE &&
+            rm -rf .next &&
+            tar -xzf -
+          "
 
           ssh ec2-user@${{ secrets.WAS_HOST }} "mkdir -p /home/ec2-user/workspace/MGK/BE/secrets"
           printf '%s' "${{ secrets.OCR_KEY_JSON_B64 }}" | base64 -d > /tmp/vision-key.json
