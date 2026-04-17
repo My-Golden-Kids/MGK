@@ -21,6 +21,8 @@ const PUBLIC_PATH_PREFIXES = ['/api/auth'];
 
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+  console.log(pathname)
+  console.log(searchParams);
 
   if (pathname === '/login/changepasswd' && searchParams.get('token')) {
     return NextResponse.next();
@@ -33,6 +35,7 @@ export async function proxy(request: NextRequest) {
     );
 
   if (isPublicPath) {
+    console.log(isPublicPath);
     return NextResponse.next();
   }
 
