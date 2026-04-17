@@ -15,10 +15,12 @@ const PUBLIC_PATHS = new Set([
   '/onboarding/5',
   '/onboarding/6',
   '/api/tts',
+  '/health/walk',
 ]);
 const PUBLIC_PATH_PREFIXES = ['/api/auth'];
 
 export async function proxy(request: NextRequest) {
+  return NextResponse.next();
   const { pathname, searchParams } = request.nextUrl;
 
   if (pathname === '/login/changepasswd' && searchParams.get('token')) {

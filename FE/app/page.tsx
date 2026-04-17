@@ -64,7 +64,8 @@ export default function Home() {
 
     setIsExiting(true);
     navigationTimeoutRef.current = window.setTimeout(() => {
-      router.push('/onboarding');
+      // router.push('/onboarding');
+      router.push('health/walk');
     }, ROOT_EXIT_DELAY_MS);
   };
 
