@@ -50,7 +50,7 @@ public class FinanceReportService {
 
 		BigDecimal monthlyAverageExpense = calculateMonthlyAverageExpense(userId);
 		BigDecimal projectedMonthlyExpensePerPet = calculateProjectedMonthlyExpensePerPet(userId, pets);
-		BigDecimal totalAsset = defaultAmount(accountRepository.sumMoneyAmountByUserId(userId));
+		BigDecimal totalAsset = defaultAmount(accountRepository.sumTotalAmountByUserId(userId));
 		BigDecimal futurePetCost = calculateFuturePetCost(projectedMonthlyExpensePerPet, alivePets);
 		FinanceExpenseCategoryResponse dominantCategory = calculateDominantCategory(userId);
 		ProductPersonalizedReportResponse recommendedProduct = productService.getFeaturedPersonalizedProduct(userId, petId);

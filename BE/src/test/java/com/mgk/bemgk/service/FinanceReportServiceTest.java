@@ -65,7 +65,7 @@ class FinanceReportServiceTest {
 			.build();
 
 		when(petRepository.findByUser_Id(userId)).thenReturn(List.of());
-		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
+		when(accountRepository.sumTotalAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any()))
 			.thenReturn(List.of(foodExpense, hospitalExpense));
 		when(productService.getFeaturedPersonalizedProduct(userId, null))
@@ -110,7 +110,7 @@ class FinanceReportServiceTest {
 		when(petRepository.findByUser_Id(userId)).thenReturn(List.of(dog, cat));
 		lenient().when(accountBookRepository.findFirstPetSpendDateByUserId(userId)).thenReturn(LocalDateTime.now().minusMonths(12));
 		lenient().when(accountBookRepository.sumPetExpenseLastYear(eq(userId), any())).thenReturn(BigDecimal.valueOf(1200000));
-		lenient().when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.valueOf(1000000));
+		lenient().when(accountRepository.sumTotalAmountByUserId(userId)).thenReturn(BigDecimal.valueOf(1000000));
 		lenient().when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
 		lenient().when(productService.getFeaturedPersonalizedProduct(userId, null)).thenReturn(null);
 
@@ -162,7 +162,7 @@ class FinanceReportServiceTest {
 				new Object[] {2026, 3, 125000},
 				new Object[] {2026, 4, 640000}
 			));
-		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
+		when(accountRepository.sumTotalAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
 		when(productService.getFeaturedPersonalizedProduct(userId, null)).thenReturn(null);
 
@@ -197,7 +197,7 @@ class FinanceReportServiceTest {
 				new Object[] {2026, 3, 800000},
 				new Object[] {2026, 4, 800000}
 			));
-		when(accountRepository.sumMoneyAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
+		when(accountRepository.sumTotalAmountByUserId(userId)).thenReturn(BigDecimal.ZERO);
 		when(accountBookRepository.findMonthlyExpensesByUserId(eq(userId), any(), any())).thenReturn(List.of());
 		when(productService.getFeaturedPersonalizedProduct(userId, null)).thenReturn(null);
 

@@ -26,4 +26,11 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 		where a.user.id = :userId
 		""")
 	BigDecimal sumRewardAmountByUserId(@Param("userId") Long userId);
+
+	@Query("""
+		select coalesce(sum(a.totalAmount), 0)
+		from Account a
+		where a.user.id = :userId
+		""")
+	BigDecimal sumTotalAmountByUserId(@Param("userId") Long userId);
 }
