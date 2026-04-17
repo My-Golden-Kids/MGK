@@ -203,6 +203,10 @@ export default function HomePage() {
   }, [isAlarmEnabled, isPetsLoading, pets.length]);
 
   useEffect(() => {
+    if (isPetsLoading) {
+      return;
+    }
+
     let isCancelled = false;
 
     const loadSpendingData = async () => {
@@ -256,14 +260,12 @@ export default function HomePage() {
       }
     };
 
-    if (selectedPetId != null) {
-      void loadSpendingData();
-    }
+    void loadSpendingData();
 
     return () => {
       isCancelled = true;
     };
-  }, [selectedPetId]);
+  }, [isPetsLoading, selectedPetId]);
 
   const selectedPet = useMemo(() => {
     if (!pets.length || selectedPetId == null) {
