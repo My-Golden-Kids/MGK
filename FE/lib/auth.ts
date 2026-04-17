@@ -26,6 +26,7 @@ async function readErrorBody(res: Response) {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   providers: [
     // 이메일/비밀번호 로그인
     Credentials({

@@ -57,14 +57,11 @@ export async function signup({
   password,
   accountNum,
 }: SignupParams): Promise<SignupResult> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SPRING_API_URL}/api/auth/signup`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, accountNum }),
-    },
-  );
+  const res = await fetch('/api/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, accountNum }),
+  });
 
   if (!res.ok) {
     return {
