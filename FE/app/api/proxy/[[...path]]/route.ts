@@ -18,7 +18,8 @@ async function handler(req: Request, { params }: any) {
   path = path.replace(/^api\//, '');
 
   const url = new URL(req.url);
-  const targetUrl = `${SPRING_API}/api/${path}${url.search}`;
+  const targetPath = path.startsWith('apis/') ? path : `api/${path}`;
+  const targetUrl = `${SPRING_API}/${targetPath}${url.search}`;
 
   const body =
     req.method === 'GET' || req.method === 'HEAD'
