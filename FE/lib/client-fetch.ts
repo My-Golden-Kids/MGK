@@ -2,7 +2,7 @@ import { getSession, signOut } from 'next-auth/react';
 import { changePasswordSchema } from '@/lib/validator';
 
 const BASE_URL =
-  process.env.SPRING_API_URL ?? process.env.NEXT_PUBLIC_SPRING_API_URL ?? '';
+  process.env.NEXT_PUBLIC_SPRING_API_URL ?? process.env.SPRING_API_URL ?? '';
 
 // ─── 클라이언트 컴포넌트용 fetch ──────────────────────────────────────────────
 
