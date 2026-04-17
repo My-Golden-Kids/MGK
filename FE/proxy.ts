@@ -1,5 +1,6 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { NextResponse } from 'next/server';
+import type { NextAuthRequest } from 'next-auth';
+import { auth } from './lib/auth';
 
 const PUBLIC_PATHS = new Set([
   '/',
@@ -16,12 +17,11 @@ const PUBLIC_PATHS = new Set([
   '/api/tts',
   '/api/signup',
 ]);
+
 const PUBLIC_PATH_PREFIXES = ['/api/auth'];
 
-export async function proxy(request: NextRequest) {
+export default auth((request: NextAuthRequest) => {
   const { pathname, searchParams } = request.nextUrl;
-  console.log(pathname);
-  console.log(searchParams);
 
   if (pathname === '/login/changepasswd' && searchParams.get('token')) {
     return NextResponse.next();
@@ -34,25 +34,15 @@ export async function proxy(request: NextRequest) {
     );
 
   if (isPublicPath) {
-    console.log(isPublicPath);
     return NextResponse.next();
   }
 
-  const token = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET,
-  });
-  
-  console.log(process.env.AUTH_SECRET);
+  if (!request.auth) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
 
-  // if (!token) {
-  console.log(token);
   return NextResponse.next();
-  // return NextResponse.redirect(new URL('/login', request.url));
-  // }
-
-  // return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
