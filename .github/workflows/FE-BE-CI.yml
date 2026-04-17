@@ -2,7 +2,7 @@ name: MGK CI/CD
 
 on:
   push:
-    branches: ["orgin/release"]
+    branches: ["origin/release"]
 
 jobs:
   build-and-deploy:
