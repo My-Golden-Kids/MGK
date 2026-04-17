@@ -37,4 +37,4 @@ cloud:
 
 app:
   cors:
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://172.16.20.165:3000}
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://mygoldenkids.topician.com,http://localhost:3000,http://localhost:3001,http://172.16.20.165:3000}
