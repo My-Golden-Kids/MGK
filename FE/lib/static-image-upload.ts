@@ -68,13 +68,33 @@ async function uploadLocalStaticImage(file: File, dir: StaticUploadDir) {
   }
 }
 
+function canFallbackToLocalUpload() {
+  return process.env.NODE_ENV !== 'production';
+}
+
+async function fallbackToLocalUpload(
+  file: File,
+  dir: StaticUploadDir,
+  errorMessage: string,
+) {
+  if (!canFallbackToLocalUpload()) {
+    return { ok: false as const, errorMessage };
+  }
+
+  const localPath = await uploadLocalStaticImage(file, dir);
+
+  if (localPath) {
+    return { ok: true as const, path: localPath };
+  }
+
+  return { ok: false as const, errorMessage };
+}
+
 export async function uploadStaticImage(
   file: File,
   dir: StaticUploadDir,
 ): Promise<{ ok: true; path: string } | { ok: false; errorMessage: string }> {
   try {
-    const localPathPromise = uploadLocalStaticImage(file, dir);
-
     const params = new URLSearchParams({
       fileName: file.name,
       contentType: file.type || 'image/png',
@@ -87,17 +107,22 @@ export async function uploadStaticImage(
     );
 
     if (!presignRes.ok) {
-      return { ok: false, errorMessage: '이미지 업로드에 실패했어요.' };
+      return await fallbackToLocalUpload(
+        file,
+        dir,
+        '이미지 업로드에 실패했어요.',
+      );
     }
 
     const rawResponseText = await presignRes.text();
     const { uploadUrl, publicUrl } = parseStaticUploadResponse(rawResponseText);
 
     if (!uploadUrl || !publicUrl) {
-      return {
-        ok: false,
-        errorMessage: '업로드 URL을 받지 못했어요.',
-      };
+      return await fallbackToLocalUpload(
+        file,
+        dir,
+        '업로드 URL을 받지 못했어요.',
+      );
     }
 
     const uploadRes = await fetch(uploadUrl, {
@@ -109,15 +134,19 @@ export async function uploadStaticImage(
     });
 
     if (!uploadRes.ok) {
-      return { ok: false, errorMessage: '이미지 업로드에 실패했어요.' };
+      return await fallbackToLocalUpload(
+        file,
+        dir,
+        '이미지 업로드에 실패했어요.',
+      );
     }
 
-    const localPath = await localPathPromise;
-    return { ok: true, path: localPath || publicUrl };
+    return { ok: true, path: publicUrl };
   } catch {
-    return {
-      ok: false,
-      errorMessage: '이미지 업로드 중 오류가 발생했어요.',
-    };
+    return await fallbackToLocalUpload(
+      file,
+      dir,
+      '이미지 업로드 중 오류가 발생했어요.',
+    );
   }
 }
