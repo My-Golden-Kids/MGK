@@ -29,44 +29,38 @@ async function handler(req: Request, { params }: Context) {
   const incomingUrl = new URL(req.url);
   targetUrl.search = incomingUrl.search;
 
-  console.log('[proxy]', targetUrl.toString());
-
   const hasBody = !['GET', 'HEAD'].includes(req.method);
   const body = hasBody ? await req.arrayBuffer() : undefined;
-  console.log('method', req.method);
-  console.log(
-    hasBody
-      ? {
-          'Content-Type': req.headers.get('content-type') || 'application/json',
-        }
-      : {},
-  );
-  console.log(body);
 
-  const res = await fetch(targetUrl, {
-    method: req.method,
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`,
-      ...(hasBody
-        ? {
-            'Content-Type':
-              req.headers.get('content-type') || 'application/json',
-          }
-        : {}),
-    },
-    body,
-  });
+  try {
+    const res = await fetch(targetUrl, {
+      method: req.method,
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+        ...(hasBody
+          ? {
+              'Content-Type':
+                req.headers.get('content-type') || 'application/json',
+            }
+          : {}),
+      },
+      body,
+    });
 
-  if ([204, 205, 304].includes(res.status)) {
-    return new Response(null, { status: res.status });
+    if ([101, 204, 205, 304].includes(res.status)) {
+      return new Response(null, { status: res.status });
+    }
+
+    return new Response(await res.text(), {
+      status: res.status,
+      headers: {
+        'Content-Type': res.headers.get('content-type') ?? 'application/json',
+      },
+    });
+  } catch (e) {
+    console.error('[proxy] fetch failed:', targetUrl.toString(), e);
+    return Response.json({ message: 'Bad Gateway' }, { status: 502 });
   }
-
-  return new Response(await res.text(), {
-    status: res.status,
-    headers: {
-      'Content-Type': res.headers.get('content-type') ?? 'application/json',
-    },
-  });
 }
 
 export const GET = handler;

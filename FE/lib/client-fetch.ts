@@ -20,7 +20,7 @@ export async function clientFetch(path: string, init: RequestInit = {}) {
 
   if (session?.error === 'RefreshTokenError') {
     await signOut({ callbackUrl: '/login' });
-    throw new Error('Session expired');
+    return new Response(null, { status: 401 });
   }
 
   const isFormData = init.body instanceof FormData;
