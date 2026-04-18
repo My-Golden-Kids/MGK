@@ -1,60 +1,72 @@
 import { auth } from '@/lib/auth';
 
-// biome-ignore lint/style/noNonNullAssertion: neededENV
 const SPRING_API = process.env.SPRING_API_URL!;
 
-async function handler(req: Request, { params }: any) {
+type Context = {
+  params: Promise<{
+    path?: string[];
+  }>;
+};
+
+async function handler(req: Request, { params }: Context) {
   const [session, resolvedParams] = await Promise.all([auth(), params]);
 
   if (!session?.accessToken) {
-    return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return Response.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  let path = resolvedParams?.path?.join('/') ?? '';
-  path = path.replace(/^\/+/, '');
-  path = path.replace(/^api\//, '');
+  const pathArray = resolvedParams?.path ?? [];
+  const path = pathArray.join('/').replace(/^\/+/, '');
 
-  const url = new URL(req.url);
-  console.log('[proxy] accessToken:', session.accessToken?.slice(0, 20));
-  const targetUrl = path.startsWith('apis/')
-    ? `${SPRING_API}/${path}${url.search}`
-    : `${SPRING_API}/api/${path}${url.search}`;
+  const cleanPath = path.replace(/^api\//, '');
 
-  const body =
-    req.method === 'GET' || req.method === 'HEAD'
-      ? undefined
-      : await req.text();
+  const base = SPRING_API.replace(/\/$/, '');
 
-  try {
-    const res = await fetch(targetUrl, {
-      method: req.method,
-      headers: {
-        'Content-Type': req.headers.get('content-type') || 'application/json',
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      body,
-    });
+  const targetUrl = cleanPath.startsWith('apis/')
+    ? new URL(`/${cleanPath}`, base)
+    : new URL(`/api/${cleanPath}`, base);
 
-    const nullBody = new Set([101, 204, 205, 304]);
-    if (nullBody.has(res.status)) {
-      return new Response(null, { status: res.status });
-    }
+  const incomingUrl = new URL(req.url);
+  targetUrl.search = incomingUrl.search;
 
-    const contentType = res.headers.get('content-type') ?? 'application/json';
-    return new Response(await res.text(), {
-      status: res.status,
-      headers: { 'Content-Type': contentType },
-    });
-  } catch (e) {
-    console.error('[proxy] fetch failed:', targetUrl, e);
-    return new Response(JSON.stringify({ message: 'Bad Gateway' }), {
-      status: 502,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  console.log('[proxy]', targetUrl.toString());
+
+  const hasBody = !['GET', 'HEAD'].includes(req.method);
+  const body = hasBody ? await req.arrayBuffer() : undefined;
+  console.log('method', req.method);
+  console.log(
+    hasBody
+      ? {
+          'Content-Type': req.headers.get('content-type') || 'application/json',
+        }
+      : {},
+  );
+  console.log(body);
+
+  const res = await fetch(targetUrl, {
+    method: req.method,
+    headers: {
+      Authorization: `Bearer ${session.accessToken}`,
+      ...(hasBody
+        ? {
+            'Content-Type':
+              req.headers.get('content-type') || 'application/json',
+          }
+        : {}),
+    },
+    body,
+  });
+
+  if ([204, 205, 304].includes(res.status)) {
+    return new Response(null, { status: res.status });
   }
+
+  return new Response(await res.text(), {
+    status: res.status,
+    headers: {
+      'Content-Type': res.headers.get('content-type') ?? 'application/json',
+    },
+  });
 }
 
 export const GET = handler;

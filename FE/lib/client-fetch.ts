@@ -1,9 +1,6 @@
 import { getSession, signOut } from 'next-auth/react';
 import { changePasswordSchema } from '@/lib/validator';
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_SPRING_API_URL ?? process.env.SPRING_API_URL ?? '';
-
 // ─── 클라이언트 컴포넌트용 fetch ──────────────────────────────────────────────
 
 let pendingSession: Promise<Awaited<ReturnType<typeof getSession>>> | null =
@@ -18,21 +15,33 @@ function getSessionOnce() {
   return pendingSession;
 }
 
-export async function clientFetch(path: string, init?: RequestInit) {
+export async function clientFetch(path: string, init: RequestInit = {}) {
   const session = await getSessionOnce();
 
   if (session?.error === 'RefreshTokenError') {
     await signOut({ callbackUrl: '/login' });
-    return new Response(null, { status: 401 });
+    throw new Error('Session expired');
   }
 
-  return await fetch(`/api/proxy${path}`, {
+  const isFormData = init.body instanceof FormData;
+
+  const headers: HeadersInit = {
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+    ...(init.headers || {}),
+  };
+
+  const res = await fetch(`/api/proxy${path}`, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
+      Authorization: session?.accessToken
+        ? `Bearer ${session.accessToken}`
+        : '',
+      ...headers,
     },
+    body: init.body,
   });
+
+  return res;
 }
 
 // ─── 회원가입 ────────────────────────────────────────────────────────────────
