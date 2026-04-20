@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: org.springframework.ai:spring-ai-template-st:2.0.0-M2" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="org.springframework.ai" artifactId="spring-ai-template-st" version="2.0.0-M2" baseVersion="2.0.0-M2" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-template-st/2.0.0-M2/6d130ac63b96854dc4dc1356cdc02e56677db636/spring-ai-template-st-2.0.0-M2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-template-st/2.0.0-M2/1722fc73e10e2041ade47641c9f28022d5738c04/spring-ai-template-st-2.0.0-M2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

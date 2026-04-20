@@ -1,0 +1,742 @@
+'use client';
+
+import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from 'react-speech-recognition';
+
+import BackButton from '@/components/common/BackButton';
+import { Button } from '@/components/common/Button';
+import Modal from '@/components/common/Modal';
+import TalkBubble from '@/components/home/talk/TalkBubble';
+import TalkChoiceButtons from '@/components/home/talk/TalkChoiceButtons';
+import OnboardingBackground from '@/components/onboarding/OnboardingBackground';
+import {
+  BACK_BUTTON_STEP_IDS,
+  CENTER_IMAGE_STEP_IDS,
+  getOnboardingStep,
+  LAST_ONBOARDING_STEP,
+  RETRY_PET_NAME_MESSAGE,
+  SKIP_PHOTO_CHAT_GUIDE_MESSAGE,
+} from '@/components/onboarding/onboardingSteps';
+import { uploadPetImage } from '@/features/settings/api/petSettingsApi';
+import { clientFetch } from '@/lib/client-fetch';
+import { cancelTtsPlayback, playTts } from '@/lib/tts';
+
+type OnboardingStepPageProps = {
+  stepNumber: number;
+};
+
+type FlowState = {
+  petName?: string;
+  petImage?: string;
+  photoSkipped: boolean;
+  retryPetName: boolean;
+};
+
+const DISSOLVE_DURATION_MS = 0;
+const TTS_AUTO_ADVANCE_DELAY_MS = 700;
+const ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY = 'onboarding-internal-entry';
+const TTS_UNLOCKED_SESSION_KEY = 'mgk-onboarding-tts-unlocked';
+const PET_PHOTO_REQUEST_STEP = 8;
+const PET_PHOTO_SKIP_INFO_STEP = 9;
+const PET_PHOTO_COMPLETE_STEP = 10;
+function HandHint() {
+  return (
+    <div className="pointer-events-none absolute top-[55%] left-[40%] z-40 h-[96px] w-[96px] translate-x-[48px] md:h-[112px] md:w-[112px] md:translate-x-[56px] lg:h-[128px] lg:w-[128px] lg:translate-x-[64px]">
+      <Image
+        src="/images/onboarding/hand-finger.png"
+        alt=""
+        width={128}
+        height={128}
+        className="absolute inset-0 h-full w-full object-contain"
+        style={{
+          animation: 'hand-hint 1s steps(1, end) infinite',
+        }}
+      />
+      <Image
+        src="/images/onboarding/hand-click.png"
+        alt=""
+        width={128}
+        height={128}
+        className="absolute inset-0 h-full w-full object-contain"
+        style={{
+          animation: 'hand-hint 1s steps(1, end) infinite',
+          animationDelay: '0.5s',
+        }}
+      />
+    </div>
+  );
+}
+
+function buildOnboardingHref(stepNumber: number, state: FlowState) {
+  const params = new URLSearchParams();
+
+  if (state.retryPetName) {
+    params.set('retryPetName', '1');
+  }
+
+  if (state.photoSkipped) {
+    params.set('photoSkipped', '1');
+  }
+
+  if (state.petImage) {
+    params.set('petImage', state.petImage);
+  }
+
+  if (state.petName) {
+    params.set('petName', state.petName);
+  }
+
+  const query = params.toString();
+
+  return query
+    ? `/onboarding/${stepNumber}?${query}`
+    : `/onboarding/${stepNumber}`;
+}
+
+export default function OnboardingStepPage({
+  stepNumber,
+}: OnboardingStepPageProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const navigationTimeoutRef = useRef<number | null>(null);
+  const lastSpokenMessageRef = useRef('');
+  const ttsAutoAdvanceHandledRef = useRef(false);
+  const hadActiveListeningRef = useRef(false);
+  const [isClient, setIsClient] = useState(false);
+  const [isTtsUnlocked, setIsTtsUnlocked] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [pendingImagePreviewUrl, setPendingImagePreviewUrl] = useState('');
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSavingPet, setIsSavingPet] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [shouldSubmitPetName, setShouldSubmitPetName] = useState(false);
+  const [pendingPetName, setPendingPetName] = useState('');
+  const [retryPetNameLocally, setRetryPetNameLocally] = useState(false);
+  const {
+    transcript,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+    listening,
+  } = useSpeechRecognition();
+
+  const step = getOnboardingStep(stepNumber);
+  const retryPetName = searchParams.get('retryPetName') === '1';
+  const photoSkipped = searchParams.get('photoSkipped') === '1';
+  const petImage = searchParams.get('petImage') ?? '';
+  const petName = searchParams.get('petName') ?? '';
+  const flowState: FlowState = {
+    petName: petName || undefined,
+    retryPetName,
+    photoSkipped,
+    petImage: petImage || undefined,
+  };
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const markInternalEntry = (targetStep: number) => {
+    sessionStorage.setItem(
+      ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY,
+      JSON.stringify({ targetStep }),
+    );
+  };
+
+  const clearInternalEntry = () => {
+    sessionStorage.removeItem(ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY);
+  };
+
+  const isInternalOnboardingEntry = () => {
+    const storedValue = sessionStorage.getItem(
+      ONBOARDING_INTERNAL_ENTRY_STORAGE_KEY,
+    );
+
+    if (!storedValue) {
+      return false;
+    }
+
+    try {
+      const parsedValue = JSON.parse(storedValue) as {
+        targetStep?: number;
+      };
+
+      return parsedValue.targetStep === stepNumber;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (window.sessionStorage.getItem(TTS_UNLOCKED_SESSION_KEY) === '1') {
+      setIsTtsUnlocked(true);
+      return;
+    }
+
+    const unlockTts = () => {
+      window.sessionStorage.setItem(TTS_UNLOCKED_SESSION_KEY, '1');
+      setIsTtsUnlocked(true);
+      window.removeEventListener('pointerdown', unlockTts);
+    };
+
+    window.addEventListener('pointerdown', unlockTts);
+
+    return () => {
+      window.removeEventListener('pointerdown', unlockTts);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pendingImagePreviewUrl) {
+        window.URL.revokeObjectURL(pendingImagePreviewUrl);
+      }
+    };
+  }, [pendingImagePreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (navigationTimeoutRef.current !== null) {
+        window.clearTimeout(navigationTimeoutRef.current);
+      }
+
+      void SpeechRecognition.stopListening();
+      cancelTtsPlayback();
+    };
+  }, []);
+
+  useEffect(() => {
+    setIsRecording(false);
+    setShouldSubmitPetName(false);
+    setPendingPetName('');
+    setRetryPetNameLocally(false);
+    hadActiveListeningRef.current = false;
+    resetTranscript();
+  }, [resetTranscript, step.id]);
+
+  useEffect(() => {
+    if (step.id !== 'pet-name-guide' || !isRecording) {
+      hadActiveListeningRef.current = false;
+      return;
+    }
+
+    if (listening) {
+      hadActiveListeningRef.current = true;
+      return;
+    }
+
+    if (!hadActiveListeningRef.current) {
+      return;
+    }
+
+    hadActiveListeningRef.current = false;
+    setIsRecording(false);
+    setShouldSubmitPetName(true);
+  }, [isRecording, listening, step.id]);
+
+  useEffect(() => {
+    if (
+      step.id !== 'pet-name-guide' ||
+      !shouldSubmitPetName ||
+      listening ||
+      isRecording
+    ) {
+      return;
+    }
+
+    const recognizedPetName = buildPetName(transcript);
+
+    if (!recognizedPetName) {
+      return;
+    }
+
+    setShouldSubmitPetName(false);
+    setPendingPetName(recognizedPetName);
+    setRetryPetNameLocally(false);
+  }, [isRecording, listening, shouldSubmitPetName, step.id, transcript]);
+
+  useEffect(() => {
+    ttsAutoAdvanceHandledRef.current = false;
+
+    if (
+      step.autoAdvanceDelay === undefined ||
+      stepNumber >= LAST_ONBOARDING_STEP
+    ) {
+      return undefined;
+    }
+
+    if (
+      typeof window !== 'undefined' &&
+      isTtsUnlocked &&
+      window.speechSynthesis
+    ) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      if (ttsAutoAdvanceHandledRef.current) {
+        return;
+      }
+
+      navigateWithDissolve(buildOnboardingHref(stepNumber + 1, flowState));
+    }, step.autoAdvanceDelay);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [flowState, isTtsUnlocked, step.autoAdvanceDelay, stepNumber]);
+
+  const messageOverride =
+    step.id === 'pet-name-guide' && pendingPetName
+      ? `우리 아이의 이름이\n‘${pendingPetName}’가 맞나요?`
+      : (retryPetName || retryPetNameLocally) && step.id === 'pet-name-guide'
+        ? RETRY_PET_NAME_MESSAGE
+        : petName && step.id === 'pet-photo-request'
+          ? `우와, ${petName}! 정말\n예쁜 이름이네요.\n우리 ${petName} 얼굴도 보고 싶은데,\n사진을 한 장 보여\n주시겠어요?`
+          : petName && step.id === 'pet-photo-skip-info'
+            ? `걱정 마세요! ${petName}\n사진은 나중에 또 선택\n하실 수 있어요`
+            : petName && step.id === 'pet-photo-complete'
+              ? `준비가 다 됐어요!\n이제 ${petName}와의 추억을\n함께 만들어가 볼까요?`
+              : petName && step.id === 'pet-chat-guide'
+                ? `${petName} 사진을 누르면\n언제든 저와 대화하실\n수 있어요!`
+                : photoSkipped && step.id === 'pet-chat-guide'
+                  ? SKIP_PHOTO_CHAT_GUIDE_MESSAGE
+                  : undefined;
+  const bubbleMessageFrames =
+    petName && step.id === 'pet-photo-request'
+      ? [
+          `우와, ${petName}! 정말\n예쁜 이름이네요.\n우리 ${petName} 얼굴도 보고 싶은데,`,
+          `예쁜 이름이네요.\n우리 ${petName} 얼굴도 보고 싶은데,\n사진을 한 장 보여`,
+          `우리 ${petName} 얼굴도 보고 싶은데,\n사진을 한 장 보여\n주시겠어요?`,
+        ]
+      : messageOverride
+        ? undefined
+        : step.messageFrames;
+  const bubbleMessage = messageOverride ?? step.message;
+  const speechBubbleMessage =
+    transcript.trim() || (listening || isRecording ? '듣고 있어요.' : '');
+  const centerImageUrl = CENTER_IMAGE_STEP_IDS.has(step.id)
+    ? petImage || undefined
+    : undefined;
+  const instructionMessage =
+    step.id === 'pet-name-guide'
+      ? !isClient
+        ? step.instruction
+        : pendingPetName
+          ? undefined
+          : !browserSupportsSpeechRecognition
+            ? '이 기기에서는\n음성 입력을 사용할 수 없어요.'
+            : listening || isRecording
+              ? '듣고 있어요.\n한 번 더 누르면 멈춰요.'
+              : '저를 누르고\n말씀해 주세요!'
+      : step.instruction;
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      !isTtsUnlocked ||
+      !bubbleMessage ||
+      (step.id === 'pet-name-guide' && !pendingPetName) ||
+      lastSpokenMessageRef.current === bubbleMessage
+    ) {
+      return;
+    }
+
+    if (browserSupportsSpeechRecognition) {
+      void SpeechRecognition.stopListening();
+    }
+
+    const abortController = new AbortController();
+    lastSpokenMessageRef.current = bubbleMessage;
+
+    const handlePlaybackFinished = () => {
+      if (
+        step.autoAdvanceDelay !== undefined &&
+        stepNumber < LAST_ONBOARDING_STEP &&
+        !ttsAutoAdvanceHandledRef.current
+      ) {
+        ttsAutoAdvanceHandledRef.current = true;
+        navigationTimeoutRef.current = window.setTimeout(() => {
+          navigateWithDissolve(buildOnboardingHref(stepNumber + 1, flowState));
+        }, TTS_AUTO_ADVANCE_DELAY_MS);
+      }
+    };
+
+    const speak = playTts(bubbleMessage.replaceAll('\n', ' '), {
+      signal: abortController.signal,
+      onEnd: handlePlaybackFinished,
+    });
+
+    void speak.catch(() => {
+      if (lastSpokenMessageRef.current === bubbleMessage) {
+        lastSpokenMessageRef.current = '';
+      }
+
+      handlePlaybackFinished();
+    });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [
+    browserSupportsSpeechRecognition,
+    bubbleMessage,
+    flowState,
+    isTtsUnlocked,
+    step.autoAdvanceDelay,
+    stepNumber,
+  ]);
+
+  const navigateWithDissolve = (
+    href: string,
+    mode: 'replace' | 'push' = 'replace',
+  ) => {
+    if (isLeaving) {
+      return;
+    }
+
+    setIsLeaving(true);
+    navigationTimeoutRef.current = window.setTimeout(() => {
+      if (mode === 'push') {
+        router.push(href);
+        return;
+      }
+
+      router.replace(href);
+    }, DISSOLVE_DURATION_MS);
+  };
+
+  const goToStep = (targetStep: number, state: FlowState) => {
+    markInternalEntry(targetStep);
+    navigateWithDissolve(buildOnboardingHref(targetStep, state));
+  };
+
+  const handlePhotoUploadRequest = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (pendingImagePreviewUrl) {
+      window.URL.revokeObjectURL(pendingImagePreviewUrl);
+    }
+
+    setPendingImageFile(file);
+    setPendingImagePreviewUrl(window.URL.createObjectURL(file));
+    setIsUploadModalOpen(true);
+    event.target.value = '';
+  };
+
+  const handleUploadConfirm = async () => {
+    if (!pendingImageFile || isUploading) {
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const result = await uploadPetImage(pendingImageFile);
+
+      if (!result.ok || !result.path) {
+        throw new Error(result.errorMessage ?? 'missing upload path');
+      }
+
+      setIsUploadModalOpen(false);
+      setPendingImageFile(null);
+      setPendingImagePreviewUrl('');
+      goToStep(PET_PHOTO_COMPLETE_STEP, {
+        ...flowState,
+        petImage: result.path,
+        photoSkipped: false,
+        retryPetName: false,
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handlePhotoSkip = () => {
+    setIsUploadModalOpen(false);
+    setPendingImageFile(null);
+    setPendingImagePreviewUrl('');
+    goToStep(PET_PHOTO_SKIP_INFO_STEP, {
+      ...flowState,
+      photoSkipped: true,
+    });
+  };
+
+  const handleBackClick = () => {
+    if (!isInternalOnboardingEntry()) {
+      clearInternalEntry();
+      router.back();
+      return;
+    }
+
+    goToStep(Math.max(1, stepNumber - 1), flowState);
+  };
+
+  const buildPetName = (value: string) => {
+    const normalizedTranscript = value.replace(/\s+/g, ' ').trim();
+
+    if (!normalizedTranscript) {
+      return '';
+    }
+
+    const segments = normalizedTranscript
+      .split(/[.\n]/)
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+
+    return (
+      segments.length > 0 ? segments[segments.length - 1] : normalizedTranscript
+    ).replaceAll(' ', '');
+  };
+
+  const startPetNameRecording = async () => {
+    if (!browserSupportsSpeechRecognition || isRecording) {
+      return;
+    }
+
+    resetTranscript();
+    setPendingPetName('');
+    setRetryPetNameLocally(false);
+    setShouldSubmitPetName(false);
+    setIsRecording(true);
+    cancelTtsPlayback();
+
+    await SpeechRecognition.startListening({
+      continuous: false,
+      language: 'ko-KR',
+    });
+  };
+
+  const stopPetNameRecording = async () => {
+    if (!isRecording && !listening) {
+      return;
+    }
+
+    hadActiveListeningRef.current = false;
+    setIsRecording(false);
+    await SpeechRecognition.stopListening();
+    setShouldSubmitPetName(true);
+  };
+
+  const togglePetNameRecording = async () => {
+    if (isRecording || listening) {
+      await stopPetNameRecording();
+      return;
+    }
+
+    await startPetNameRecording();
+  };
+
+  const handleYesClick = () => {
+    if (step.id === 'health-guide') {
+      clearInternalEntry();
+      navigateWithDissolve('/login', 'push');
+      return;
+    }
+
+    if (step.id === 'pet-photo-request') {
+      handlePhotoUploadRequest();
+      return;
+    }
+
+    if (step.id === 'pet-name-guide') {
+      if (pendingPetName) {
+        goToStep(PET_PHOTO_REQUEST_STEP, {
+          ...flowState,
+          petName: pendingPetName,
+          retryPetName: false,
+        });
+        return;
+      }
+
+      void togglePetNameRecording();
+      return;
+    }
+
+    if (step.showChoiceButtons || step.showCenterAction) {
+      goToStep(stepNumber + 1, flowState);
+    }
+  };
+
+  const handleNoClick = () => {
+    if (step.id === 'pet-name-guide' && pendingPetName) {
+      setPendingPetName('');
+      setRetryPetNameLocally(true);
+      setShouldSubmitPetName(false);
+      resetTranscript();
+      return;
+    }
+
+    if (step.id === 'pet-photo-request') {
+      handlePhotoSkip();
+    }
+  };
+
+  const handleStartClick = async () => {
+    if (isSavingPet) {
+      return;
+    }
+
+    if (!petName.trim()) {
+      navigateWithDissolve('/home', 'push');
+      return;
+    }
+
+    setIsSavingPet(true);
+
+    try {
+      const response = await clientFetch('/api/pets', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: petName.trim(),
+          imageUrl: petImage || null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('pet creation failed');
+      }
+
+      navigateWithDissolve('/home', 'push');
+    } catch (error) {
+      console.error(error);
+      setIsSavingPet(false);
+    }
+  };
+
+  return (
+    <>
+      <style jsx>{`
+        @keyframes hand-hint {
+          0%,
+          49.9% {
+            opacity: 1;
+          }
+          50%,
+          100% {
+            opacity: 0;
+          }
+        }
+      `}</style>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handlePhotoFileChange}
+      />
+      <div
+        className={`relative min-h-dvh overflow-hidden bg-[#A7E9E1] transition-opacity ease-out ${
+          isLeaving ? 'opacity-0' : 'animate-screen-dissolve-in opacity-100'
+        }`}
+        style={{ transitionDuration: `${DISSOLVE_DURATION_MS}ms` }}
+      >
+        <OnboardingBackground
+          bubbleMessage={bubbleMessage}
+          bubbleMessageFrames={bubbleMessageFrames}
+          centerImageUrl={centerImageUrl}
+          instructionMessage={instructionMessage}
+        >
+          <div className="pointer-events-none relative z-10 min-h-dvh px-6 py-10 md:px-8 md:py-12 lg:px-10 lg:py-14">
+            {BACK_BUTTON_STEP_IDS.has(step.id) ? (
+              <div className="pointer-events-auto absolute top-0 left-0 px-8 py-6">
+                <BackButton onClick={handleBackClick} useHistory={false} />
+              </div>
+            ) : null}
+            {step.showCenterAction && !pendingPetName ? (
+              <button
+                type="button"
+                aria-label="다음 온보딩으로 이동"
+                onClick={handleYesClick}
+                className="-translate-x-1/2 -translate-y-1/2 pointer-events-auto absolute top-1/2 left-1/2 z-20 h-[240px] w-[240px] cursor-pointer rounded-full md:h-[280px] md:w-[280px] lg:h-[320px] lg:w-[320px]"
+              />
+            ) : null}
+            {step.showChoiceButtons ||
+            (step.id === 'pet-name-guide' && Boolean(pendingPetName)) ? (
+              <div className="pointer-events-auto absolute right-0 bottom-[10%] left-0 z-20 md:bottom-[8%] lg:bottom-[5%]">
+                <TalkChoiceButtons
+                  onNoClick={handleNoClick}
+                  onYesClick={handleYesClick}
+                />
+              </div>
+            ) : step.showStartButton ? (
+              <div className="pointer-events-auto absolute right-0 bottom-[9%] left-0 z-20 px-6 md:bottom-[8%] md:px-8 lg:bottom-[7%] lg:px-10">
+                <Button
+                  className="mx-auto w-full"
+                  disabled={isSavingPet}
+                  onClick={() => {
+                    void handleStartClick();
+                  }}
+                >
+                  {isSavingPet ? '저장 중...' : '시작하기'}
+                </Button>
+              </div>
+            ) : null}
+            {step.id === 'pet-chat-guide' ||
+            (step.id === 'pet-name-guide' && !pendingPetName) ? (
+              <HandHint />
+            ) : null}
+            {step.id === 'pet-name-guide' &&
+            !pendingPetName &&
+            speechBubbleMessage ? (
+              <div className="pointer-events-none absolute right-6 bottom-[5.5rem] left-6 z-20 mx-auto w-[calc(100%-3rem)] max-w-[22rem] md:max-w-[24rem] lg:max-w-[26rem]">
+                <TalkBubble
+                  message={speechBubbleMessage}
+                  className="w-full"
+                  bubbleClassName="w-full overflow-hidden rounded-[2rem] bg-[#75A39D] shadow-[0_10px_30px_rgba(0,0,0,0.08)] md:rounded-[2.25rem] lg:rounded-[2.5rem]"
+                  contentClassName="px-6 py-5 md:px-7 md:py-6 lg:px-8 lg:py-7"
+                  textClassName="whitespace-pre-line break-keep text-start font-semibold text-2xl text-white leading-[1.35] md:text-3xl lg:text-4xl"
+                />
+              </div>
+            ) : null}
+          </div>
+        </OnboardingBackground>
+      </div>
+      <Modal
+        isOpen={isUploadModalOpen}
+        onClose={handlePhotoSkip}
+        onCancel={handlePhotoSkip}
+        onConfirm={handleUploadConfirm}
+        buttonVariant="double"
+        cancelText="취소"
+        confirmText={isUploading ? '업로드 중...' : '확인'}
+      >
+        {pendingImagePreviewUrl ? (
+          <div className="overflow-hidden rounded-[12px] border">
+            <Image
+              src={pendingImagePreviewUrl}
+              alt="업로드한 사진 미리보기"
+              width={320}
+              height={320}
+              unoptimized
+              className="h-auto max-h-[320px] w-full object-contain"
+            />
+          </div>
+        ) : null}
+      </Modal>
+    </>
+  );
+}

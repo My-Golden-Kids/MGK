@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: org.springframework.ai:spring-ai-autoconfigure-model-tool:2.0.0-M2" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="org.springframework.ai" artifactId="spring-ai-autoconfigure-model-tool" version="2.0.0-M2" baseVersion="2.0.0-M2" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-autoconfigure-model-tool/2.0.0-M2/f6d163f8f83c577dfbaf3200629f4f644eeafaa3/spring-ai-autoconfigure-model-tool-2.0.0-M2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.ai/spring-ai-autoconfigure-model-tool/2.0.0-M2/6dae977b9fb949bad27d3d2e8c31b26323cb5ebd/spring-ai-autoconfigure-model-tool-2.0.0-M2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

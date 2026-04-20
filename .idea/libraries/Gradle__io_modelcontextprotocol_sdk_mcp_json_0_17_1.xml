@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: io.modelcontextprotocol.sdk:mcp-json:0.17.1" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="io.modelcontextprotocol.sdk" artifactId="mcp-json" version="0.17.1" baseVersion="0.17.1" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.modelcontextprotocol.sdk/mcp-json/0.17.1/b32265d6f1eb372f2bdff2144a80a3994a6e4875/mcp-json-0.17.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.modelcontextprotocol.sdk/mcp-json/0.17.1/ba201aa2ea9419fdbbb477871e429d7d19d4f513/mcp-json-0.17.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

@@ -1,65 +1,126 @@
+'use client';
+
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+
+const ROOT_EXIT_DELAY_MS = 200;
+const HAND_HINT_FRAME_MS = 500;
+
+function HandHint() {
+  const [activeFrame, setActiveFrame] = useState<0 | 1>(0);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setActiveFrame((currentFrame) => (currentFrame === 0 ? 1 : 0));
+    }, HAND_HINT_FRAME_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  return (
+    <div className="pointer-events-none absolute top-[55%] left-[40%] z-40 h-[96px] w-[96px] translate-x-[48px] md:h-[112px] md:w-[112px] md:translate-x-[56px] lg:h-[128px] lg:w-[128px] lg:translate-x-[64px]">
+      <Image
+        src="/images/onboarding/hand-finger.png"
+        alt=""
+        width={128}
+        height={128}
+        className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-100 ${
+          activeFrame === 0 ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+      <Image
+        src="/images/onboarding/hand-click.png"
+        alt=""
+        width={128}
+        height={128}
+        className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-100 ${
+          activeFrame === 1 ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+    </div>
+  );
+}
 
 export default function Home() {
+  const router = useRouter();
+  const [isExiting, setIsExiting] = useState(false);
+  const navigationTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (navigationTimeoutRef.current !== null) {
+        window.clearTimeout(navigationTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleProtagonistClick = () => {
+    if (isExiting) {
+      return;
+    }
+
+    setIsExiting(true);
+    navigationTimeoutRef.current = window.setTimeout(() => {
+      router.push('/onboarding');
+    }, ROOT_EXIT_DELAY_MS);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+    <main
+      className={`relative h-dvh overflow-hidden bg-[#018D70] transition-opacity duration-200 ease-out ${
+        isExiting ? 'opacity-0' : 'opacity-100'
+      }`}
+    >
+      <div className="pointer-events-none absolute inset-0">
         <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
+          src="/images/onboarding/circle.png"
+          alt=""
+          fill
           priority
+          sizes="(max-width: 420px) 100vw, (max-width: 768px) 500px, 640px"
+          className="object-cover object-center opacity-90"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{' '}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{' '}
-            or the{' '}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{' '}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+      <div className="relative z-10 h-full px-3 py-[1vh]">
+        <Image
+          src="/images/onboarding/logo.png"
+          alt="MGK logo"
+          width={1323}
+          height={813}
+          priority
+          sizes="(max-width: 420px) 360px, (max-width: 768px) 420px, 480px"
+          className="-translate-x-1/2 absolute top-[4%] left-1/2 h-auto w-[87%] max-w-[480px] md:w-[84%] lg:w-[75%]"
+        />
+        <button
+          type="button"
+          aria-label="온보딩 시작하기"
+          onClick={handleProtagonistClick}
+          className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 z-20 w-[82%] max-w-[430px] cursor-pointer md:w-[80%] lg:w-[76%]"
+        >
+          <Image
+            src="/images/onboarding/protagonist.png"
+            alt="Main character"
+            width={1855}
+            height={1210}
+            priority
+            sizes="(max-width: 420px) 320px, (max-width: 768px) 380px, 430px"
+            className="h-auto w-full"
+          />
+        </button>
+        <HandHint />
+        <Image
+          src="/images/onboarding/characters.png"
+          alt="Supporting characters"
+          width={1940}
+          height={1460}
+          priority
+          sizes="(max-width: 420px) 350px, (max-width: 768px) 420px, 440px"
+          className="-translate-x-1/2 absolute bottom-[1%] left-1/2 h-auto w-[90%] max-w-[500px] md:w-[88%] lg:w-[74%]"
+        />
+      </div>
+    </main>
   );
 }

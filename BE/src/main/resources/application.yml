@@ -8,15 +8,16 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
   jpa:
+    defer-datasource-initialization: false
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
   sql:
     init:
-      mode: always
+      mode: never
 
 server:
   port: 8080
@@ -24,3 +25,12 @@ server:
 logging:
   level:
     org.hibernate.SQL: debug
+
+google:
+  vision:
+    credentials-path: secrets/vision-key.json
+
+cloud:
+  aws:
+    s3:
+      endpoint: ${AWS_S3_ENDPOINT:}

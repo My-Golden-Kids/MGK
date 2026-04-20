@@ -1,0 +1,426 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { BottomNavigation } from '@/components/common/BottomNavigation';
+import Modal from '@/components/common/Modal';
+import { getFinanceRetirementReport } from '@/features/finance/api/financeReportApi';
+import type { FinanceRetirementReport } from '@/features/finance/types/financeReport';
+import { fetchPets } from '@/features/settings/api/petSettingsApi';
+import { clientFetch } from '@/lib/client-fetch';
+import { getStoredSelectedPetId } from '@/lib/medical-record';
+
+type FinanceDashboardResponse = {
+  bankName: string;
+  accountNumber: string;
+  balance: number;
+};
+
+type FinanceExpenseItem = {
+  id: number;
+  title: string;
+  category: 'Food' | 'Hospital' | 'Etc';
+  amount: number;
+  memo: string | null;
+  spendDate: string;
+};
+
+type FinanceExpenseSummaryResponse = {
+  year: number;
+  month: number;
+  monthlyExpense: number;
+  todayExpense: number;
+  items: FinanceExpenseItem[];
+};
+
+type ExpenseChartItem = {
+  label: string;
+  amount: number;
+  color: string;
+};
+
+const CATEGORY_CONFIG: Record<
+  FinanceExpenseItem['category'],
+  ExpenseChartItem
+> = {
+  Food: { label: '식비', amount: 0, color: '#E5BD33' },
+  Hospital: { label: '의료비', amount: 0, color: '#65C9C5' },
+  Etc: { label: '기타', amount: 0, color: '#DDDDDD' },
+};
+
+function formatCurrency(value: number) {
+  return value.toLocaleString();
+}
+
+function buildExpenseChartItems(
+  summary: FinanceExpenseSummaryResponse | null,
+): ExpenseChartItem[] {
+  const totals = {
+    Food: 0,
+    Hospital: 0,
+    Etc: 0,
+  } satisfies Record<FinanceExpenseItem['category'], number>;
+
+  for (const item of summary?.items ?? []) {
+    totals[item.category] += item.amount;
+  }
+
+  return Object.entries(CATEGORY_CONFIG).map(([category, config]) => ({
+    ...config,
+    amount: totals[category as FinanceExpenseItem['category']],
+  }));
+}
+
+function buildChartBackground(items: ExpenseChartItem[]) {
+  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+
+  if (totalAmount <= 0) {
+    return 'conic-gradient(#DDDDDD 0deg 360deg)';
+  }
+
+  let currentDegree = 0;
+  const segments = items.map((item) => {
+    const angle = (item.amount / totalAmount) * 360;
+    const startDegree = currentDegree;
+    const endDegree = currentDegree + angle;
+    currentDegree = endDegree;
+
+    return `${item.color} ${startDegree}deg ${endDegree}deg`;
+  });
+
+  return `conic-gradient(${segments.join(',')})`;
+}
+
+function getMonthDate(baseDate: Date, offset: number) {
+  return new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
+}
+
+// 펫포레스트
+function getPetForestBannerText(personalizedReport: string) {
+  const matchedName = personalizedReport.match(/^(.+?)의 마지막 순간/);
+  const petName = matchedName?.[1]?.trim();
+
+  if (petName && petName !== '반려동물') {
+    return `우리 ${petName}와의 마지막 순간을 펫포레스트와 함께 준비해보세요.`;
+  }
+
+  return '우리 아이와의 마지막 순간을 펫포레스트와 함께 준비해보세요.';
+}
+
+// 보험 카드 적금 구독
+function getGeneralRecommendationText(report: FinanceRetirementReport) {
+  const recommendedProduct = report.recommendedProduct;
+
+  if (!recommendedProduct) {
+    return '';
+  }
+
+  if (recommendedProduct.productType === 'SAVINGS') {
+    return `${parseFloat(
+      ((recommendedProduct.estimatedAnnualBenefit ?? 0) / 10000).toFixed(1),
+    )}`;
+  } else if (
+    recommendedProduct.productType === 'CARD' ||
+    recommendedProduct.productType === 'SUBSCRIPTION'
+  ) {
+    return `${formatCurrency(
+      recommendedProduct.estimatedMonthlyBenefit ?? 0,
+    )}원`;
+  }
+
+  const averageExpense = report.averageExpense ?? 0;
+  const estimatedMonthlyBenefit =
+    recommendedProduct.estimatedMonthlyBenefit ?? 0;
+  const reductionPercent =
+    averageExpense > 0
+      ? Math.round((estimatedMonthlyBenefit / averageExpense) * 100) // 월 평균 지출 대비 얼마나 절약되는지
+      : 0;
+
+  return `${reductionPercent}%`;
+}
+
+export default function FinancePage() {
+  const today = useMemo(() => new Date(), []);
+  const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
+  const [dashboard, setDashboard] = useState<FinanceDashboardResponse | null>(
+    null,
+  );
+  const [report, setReport] = useState<FinanceRetirementReport | null>(null);
+  const [hasRegisteredPets, setHasRegisteredPets] = useState(false);
+  const [currentSummary, setCurrentSummary] =
+    useState<FinanceExpenseSummaryResponse | null>(null);
+  const [previousSummary, setPreviousSummary] =
+    useState<FinanceExpenseSummaryResponse | null>(null);
+  const [isHanaOneQModalOpen, setIsHanaOneQModalOpen] = useState(false);
+
+  useEffect(() => {
+    setSelectedPetId(getStoredSelectedPetId());
+  }, []);
+
+  useEffect(() => {
+    const fetchFinancePageData = async () => {
+      const currentMonth = getMonthDate(today, 0);
+      const previousMonth = getMonthDate(today, -1);
+
+      try {
+        const [
+          dashboardResponse,
+          currentSummaryResponse,
+          previousSummaryResponse,
+          financeReportResponse,
+          petsResponse,
+        ] = await Promise.all([
+          clientFetch('/api/account-books/dashboard'),
+          clientFetch(
+            `/api/account-books?year=${currentMonth.getFullYear()}&month=${
+              currentMonth.getMonth() + 1
+            }`,
+          ),
+          clientFetch(
+            `/api/account-books?year=${previousMonth.getFullYear()}&month=${
+              previousMonth.getMonth() + 1
+            }`,
+          ),
+          getFinanceRetirementReport(),
+          fetchPets(),
+        ]);
+
+        if (dashboardResponse.ok) {
+          const dashboardData =
+            (await dashboardResponse.json()) as FinanceDashboardResponse;
+          setDashboard(dashboardData);
+        } else {
+          setDashboard(null);
+        }
+
+        if (currentSummaryResponse.ok) {
+          const currentSummaryData =
+            (await currentSummaryResponse.json()) as FinanceExpenseSummaryResponse;
+          setCurrentSummary(currentSummaryData);
+        } else {
+          setCurrentSummary(null);
+        }
+
+        if (previousSummaryResponse.ok) {
+          const previousSummaryData =
+            (await previousSummaryResponse.json()) as FinanceExpenseSummaryResponse;
+          setPreviousSummary(previousSummaryData);
+        } else {
+          setPreviousSummary(null);
+        }
+
+        setReport(financeReportResponse);
+        setHasRegisteredPets(
+          Boolean(
+            petsResponse.ok && petsResponse.pets?.some((pet) => !pet.isDeath),
+          ),
+        );
+      } catch {
+        setDashboard(null);
+        setReport(null);
+        setHasRegisteredPets(false);
+        setCurrentSummary(null);
+        setPreviousSummary(null);
+      }
+    };
+
+    void fetchFinancePageData();
+  }, [today]);
+
+  const expenseItems = useMemo(
+    () => buildExpenseChartItems(currentSummary),
+    [currentSummary],
+  );
+  const chartBackground = useMemo(
+    () => buildChartBackground(expenseItems),
+    [expenseItems],
+  );
+  const previousMonthlyExpense = previousSummary?.monthlyExpense ?? 0;
+  const currentMonthlyExpense = currentSummary?.monthlyExpense ?? 0;
+  const monthlyDiffValue = currentMonthlyExpense - previousMonthlyExpense;
+  const monthlyDiffRate =
+    previousMonthlyExpense > 0
+      ? ((monthlyDiffValue / previousMonthlyExpense) * 100).toFixed(0)
+      : '0';
+  const recommendedProduct = report?.recommendedProduct;
+  const recommendationValue = report
+    ? getGeneralRecommendationText(report)
+    : '';
+  const summaryCards = [
+    {
+      label: '오늘 지출',
+      value: `${formatCurrency(currentSummary?.todayExpense ?? 0)}원`,
+    },
+    {
+      label: `${today.getMonth() + 1}월 총 지출`,
+      value: `${formatCurrency(currentMonthlyExpense)}원`,
+    },
+    {
+      label: '전월 대비',
+      value: `${monthlyDiffValue >= 0 ? '+' : ''}${monthlyDiffRate}%`,
+      accent: monthlyDiffValue > 0,
+    },
+  ];
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <main className="scrollbar-hide min-h-0 flex-1 overflow-y-auto p-5 md:px-7 lg:px-9">
+        <section className="overflow-hidden rounded-[26px] border border-[var(--color-main-green)] bg-[#E5F9F8]">
+          <div className="p-4 md:p-4.5 lg:p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-bold text-[28px] text-[var(--color-main-green)] md:text-[32px] lg:text-[36px]">
+                  {dashboard?.bankName
+                    ? `${dashboard.bankName} 통장`
+                    : '내 통장'}
+                </p>
+                <p className="text-[20px] leading-none md:text-[24px] lg:text-[28px]">
+                  {dashboard?.accountNumber ?? '-'}
+                </p>
+              </div>
+              <Link
+                href="/finance/expense"
+                className="mt-2 inline-flex items-center font-bold text-[18px] text-[var(--color-main-green)] md:mt-2.5 md:text-[24px] lg:mt-3 lg:text-[28px]"
+              >
+                내역 보기
+              </Link>
+            </div>
+
+            <div className="mt-8 flex items-end justify-between md:mt-9 lg:mt-10">
+              <span className="font-bold text-[18px] text-[var(--color-main-green)] md:text-[22px] lg:text-[26px]">
+                잔액
+              </span>
+              <span className="text-[28px] leading-none md:text-[32px] lg:text-[36px]">
+                <span className="font-bold">
+                  {formatCurrency(dashboard?.balance ?? 0)}
+                </span>
+                <span className="ml-1.5 md:ml-2 lg:ml-2.5">원</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 border-[var(--color-main-green)] border-t">
+            <button
+              type="button"
+              onClick={() => setIsHanaOneQModalOpen(true)}
+              className="h-fit border-[var(--color-main-green)] border-r bg-[var(--color-mint-green)] py-2 font-bold text-[22px] text-white md:py-2.5 md:text-[26px] lg:py-3 lg:text-[30px]"
+            >
+              채우기
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsHanaOneQModalOpen(true)}
+              className="h-fit bg-[var(--color-mint-green)] py-2 font-bold text-[22px] text-white md:py-2.5 md:text-[26px] lg:py-3 lg:text-[30px]"
+            >
+              보내기
+            </button>
+          </div>
+        </section>
+
+        <section className="mt-2 grid grid-cols-3 gap-2 md:mt-2.5 md:gap-2.5 lg:mt-3 lg:gap-3">
+          {summaryCards.map((card) => (
+            <article
+              key={card.label}
+              className="rounded-[18px] border border-[var(--color-main-green)] bg-white py-3 text-center md:py-3.5 lg:py-4"
+            >
+              <p className="font-bold text-[18px] text-[var(--color-main-green)] md:text-[22px] lg:text-[26px]">
+                {card.label}
+              </p>
+              <p
+                className={`text-[20px] md:text-[24px] lg:text-[28px] ${
+                  card.accent ? 'text-[#DB1F26]' : 'text-black'
+                }`}
+              >
+                {card.value}
+              </p>
+            </article>
+          ))}
+        </section>
+
+        <Modal
+          isOpen={isHanaOneQModalOpen}
+          onClose={() => setIsHanaOneQModalOpen(false)}
+          buttonVariant="single"
+          confirmText="확인"
+        >
+          <p className="py-6 text-center font-bold text-[#222222] text-[24px] md:text-[28px] lg:text-[32px]">
+            하나원큐로 이동중
+          </p>
+        </Modal>
+
+        <section className="mt-2 rounded-[26px] border border-[var(--color-main-green)] bg-white px-10 py-3 md:mt-2.5 md:px-14 md:py-4 lg:mt-3 lg:px-18 lg:py-5">
+          <div
+            className="mx-auto h-36 w-36 rounded-full md:h-40 md:w-40 lg:h-44 lg:w-44"
+            style={{ background: chartBackground }}
+          />
+          <div className="mt-5 md:mt-6 lg:mt-7">
+            {expenseItems.map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center justify-between py-1.5 text-[20px] md:text-[24px] lg:text-[28px]"
+              >
+                <div className="flex items-center gap-3 font-bold">
+                  <span
+                    className="h-5 w-5 rounded-full md:h-6 md:w-6 lg:h-7 lg:w-7"
+                    style={{ backgroundColor: item.color }}
+                    aria-hidden="true"
+                  />
+                  <span>{item.label}</span>
+                </div>
+                <span>{formatCurrency(item.amount)} 원</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {hasRegisteredPets && recommendedProduct && (
+          <section className="mt-3 text-center md:mt-3.5 lg:mt-4">
+            {recommendedProduct.productType === 'PET_FOREST' ? (
+              <p className="font-bold text-[14px] text-[var(--color-main-green)] md:text-[18px] lg:text-[22px]">
+                {getPetForestBannerText(recommendedProduct.personalizedReport)}
+              </p>
+            ) : (
+              <p className="font-bold text-[17px] text-[var(--color-main-green)] md:text-[21px] lg:text-[25px]">
+                <span className="text-[#DB1F26]">
+                  {recommendedProduct.productName}
+                </span>
+                {recommendedProduct.productType === 'SAVINGS' ? (
+                  <>
+                    을 가입하고 매년{' '}
+                    <span className="text-[#DB1F26]">
+                      {recommendationValue}만원
+                    </span>
+                    을 받아보세요
+                  </>
+                ) : (
+                  <>
+                    을 가입하고 지출을{' '}
+                    <span className="text-[#DB1F26]">
+                      {recommendationValue}
+                    </span>{' '}
+                    {recommendedProduct.productType === 'INSURANCE'
+                      ? '줄여요'
+                      : '낮춰요'}
+                  </>
+                )}
+              </p>
+            )}
+          </section>
+        )}
+
+        <Link
+          href={
+            selectedPetId != null && selectedPetId > 0
+              ? `/finance/report?petId=${selectedPetId}`
+              : '/finance/report'
+          }
+          className="mt-3 flex h-fit items-center justify-center rounded-[20px] bg-[var(--color-main-green)] p-3 font-bold text-[18px] text-white md:mt-3.5 md:p-3.5 md:text-[22px] lg:mt-4 lg:p-4 lg:text-[26px]"
+        >
+          리포트 보러가기
+        </Link>
+      </main>
+
+      <BottomNavigation />
+    </div>
+  );
+}

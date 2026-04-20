@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+"-//Puppy Crawl//DTD Suppressions 1.1//EN"
+"http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
+
+<suppressions>
+    <!-- 테스트 코드 제외 -->
+    <suppress files=".*src/test/.*" checks=".*"/>
+
+    <!-- 그래들 설정 파일 제외 -->
+    <suppress files=".*\.gradle$" checks=".*"/>
+
+    <!-- QueryDSL generated 제외 -->
+    <suppress files=".*generated.*" checks=".*"/>
+</suppressions>

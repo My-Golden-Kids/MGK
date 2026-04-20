@@ -2,7 +2,17 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.3'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'checkstyle'
+    id 'jacoco'
 }
+
+checkstyle {
+    configFile = file("config/checkstyle/naver-checkstyle-rules.xml")
+    configProperties = [suppressionFile: "config/checkstyle/naver-checkstyle-suppressions.xml"]
+    sourceSets = [sourceSets.main] //QueryDSL Error 방지
+}
+
+checkstyleMain.source = fileTree('src/main/java')
 
 group = 'com.mgk'
 version = '0.0.1-SNAPSHOT'
@@ -22,6 +32,13 @@ java {
 
 repositories {
     mavenCentral()
+    maven {url = uri('https://repo.spring.io/milestone') }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:2.0.0-M2"
+    }
 }
 
 dependencies {
@@ -30,6 +47,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
+    implementation 'com.google.cloud:google-cloud-vision:3.61.0'
+    implementation 'software.amazon.awssdk:s3:2.25.39'
 
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
@@ -44,8 +64,100 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testRuntimeOnly 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    implementation platform('com.google.cloud:libraries-bom:26.34.0')
+    implementation 'com.google.cloud:google-cloud-vision'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+jacoco {
+    toolVersion = '0.8.13'
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = true
+    }
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('test')
+
+    violationRules {
+        rule {
+            element = 'PACKAGE'
+            includes = [
+                    'com.mgk.bemgk.auth',
+                    'com.mgk.bemgk.common',
+                    'com.mgk.bemgk.config',
+                    'com.mgk.bemgk.dto.alarm',
+                    'com.mgk.bemgk.dto.auth',
+                    'com.mgk.bemgk.dto.feeding',
+                    'com.mgk.bemgk.dto.finance',
+                    'com.mgk.bemgk.dto.medical',
+                    'com.mgk.bemgk.dto.pet',
+                    'com.mgk.bemgk.dto.product',
+                    'com.mgk.bemgk.dto.talk',
+                    'com.mgk.bemgk.dto.vaccination',
+                    'com.mgk.bemgk.entity',
+                    'com.mgk.bemgk.exception'
+            ]
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+
+        rule {
+            element = 'PACKAGE'
+            includes = ['com.mgk.bemgk.controller']
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+
+        rule {
+            element = 'PACKAGE'
+            includes = ['com.mgk.bemgk.repository']
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.90
+            }
+        }
+
+        rule {
+            element = 'PACKAGE'
+            includes = ['com.mgk.bemgk.service']
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
+}
+
+//체크스타일에서 테스트코드는 검사하지 않도록 설정
+tasks.named('checkstyleTest').configure {
+    enabled = false
 }

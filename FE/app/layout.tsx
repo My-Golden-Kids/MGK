@@ -1,15 +1,13 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
+import Providers from './providers';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+const pretendard = localFont({
+  src: './fonts/pretendard/PretendardVariable.woff2',
+  display: 'swap',
+  weight: '100 900',
+  variable: '--font-pretendard',
 });
 
 export const metadata: Metadata = {
@@ -23,11 +21,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="ko" className={`${pretendard.variable} ${pretendard.className}`}>
+      <body className="bg-[#F2F2F2]">
+        {/* 로그인 정보 제공 */}
+        <Providers>
+          {/* 앱 프레임: 화면을 넘지 않게 고정 */}
+          <div className="mx-auto flex h-dvh w-full max-w-[420px] flex-col overflow-y-auto bg-white [scrollbar-width:none] md:max-w-[500px] lg:max-w-[640px] [&::-webkit-scrollbar]:hidden">
+            {children}
+          </div>
+        </Providers>
+      </body>
     </html>
   );
 }

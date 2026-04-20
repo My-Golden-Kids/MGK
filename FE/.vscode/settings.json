@@ -10,6 +10,6 @@
     "source.organizeImports.biome": "explicit",
     "source.fixAll.biome": "explicit"
   },
-  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.colorTheme": "Ocean Green: Dark",
   "notebook.defaultFormatter": "biomejs.biome"
 }

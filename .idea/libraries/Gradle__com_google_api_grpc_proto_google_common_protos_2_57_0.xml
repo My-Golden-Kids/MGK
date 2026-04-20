@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: com.google.api.grpc:proto-google-common-protos:2.57.0" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="com.google.api.grpc" artifactId="proto-google-common-protos" version="2.57.0" baseVersion="2.57.0" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.google.api.grpc/proto-google-common-protos/2.57.0/bf629e49cf9ab0c9e1a4ab069895517bcbdf2ffc/proto-google-common-protos-2.57.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.google.api.grpc/proto-google-common-protos/2.57.0/19be46013a9bb36fef6c39699a211d23c1771b76/proto-google-common-protos-2.57.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
