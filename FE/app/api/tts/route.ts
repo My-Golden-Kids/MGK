@@ -1,10 +1,13 @@
+import crypto from 'node:crypto';
 import type { NextRequest } from 'next/server';
+import { redis } from '@/lib/redis';
 
 export const runtime = 'nodejs';
 
 const GEMINI_TTS_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent';
 const DEFAULT_VOICE_NAME = process.env.GEMINI_TTS_VOICE_NAME ?? 'Kore';
+const DEFAULT_TTS_CACHE_TTL_SECONDS = 60 * 60 * 24;
 
 function createWavBuffer(
   pcmBuffer: Buffer,
@@ -41,6 +44,19 @@ function buildPrompt(text: string) {
   ].join('\n');
 }
 
+function normalizeText(text: string) {
+  return text.trim().replace(/\s+/g, ' ');
+}
+
+function createTtsCacheKey(text: string, voiceName: string) {
+  const hash = crypto
+    .createHash('sha256')
+    .update(`gemini-tts:${voiceName}:${text}`)
+    .digest('hex');
+
+  return `tts:v1:${hash}`;
+}
+
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
 
@@ -65,6 +81,28 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: 'Text is required.' }, { status: 400 });
   }
 
+  const normalizedText = normalizeText(text);
+  const cacheKey = createTtsCacheKey(normalizedText, DEFAULT_VOICE_NAME);
+  const cacheTtlSeconds = Number(
+    process.env.REDIS_TTS_TTL_SECONDS ?? DEFAULT_TTS_CACHE_TTL_SECONDS,
+  );
+
+  try {
+    const cachedAudio = await redis.get(cacheKey);
+
+    if (cachedAudio) {
+      return new Response(Buffer.from(cachedAudio, 'base64'), {
+        headers: {
+          'Content-Type': 'audio/wav',
+          'Cache-Control': `private, max-age=${cacheTtlSeconds}`,
+          'X-TTS-Cache': 'HIT',
+        },
+      });
+    }
+  } catch (error) {
+    console.error('[tts] redis read failed', error);
+  }
+
   const geminiResponse = await fetch(GEMINI_TTS_URL, {
     method: 'POST',
     headers: {
@@ -76,7 +114,7 @@ export async function POST(request: NextRequest) {
         {
           parts: [
             {
-              text: buildPrompt(text),
+              text: buildPrompt(normalizedText),
             },
           ],
         },
@@ -132,10 +170,17 @@ export async function POST(request: NextRequest) {
   const pcmBuffer = Buffer.from(base64Audio, 'base64');
   const wavBuffer = createWavBuffer(pcmBuffer);
 
+  try {
+    await redis.set(cacheKey, wavBuffer.toString('base64'), 'EX', cacheTtlSeconds);
+  } catch (error) {
+    console.error('[tts] redis write failed', error);
+  }
+
   return new Response(wavBuffer, {
     headers: {
       'Content-Type': 'audio/wav',
-      'Cache-Control': 'no-store',
+      'Cache-Control': `private, max-age=${cacheTtlSeconds}`,
+      'X-TTS-Cache': 'MISS',
     },
   });
 }

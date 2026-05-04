@@ -1,11 +1,16 @@
 package com.mgk.bemgk.service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.List;
+import java.util.HexFormat;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -30,6 +35,7 @@ public class TalkService {
 
 	private static final int MAX_RETRY_ATTEMPTS = 3;
 	private static final long INITIAL_BACKOFF_MILLIS = 1000L;
+	private static final Duration TALK_CACHE_TTL = Duration.ofMinutes(5);
 	private static final String FALLBACK_MESSAGE = "지금은 답변을 불러올 수 없어요. 잠시 후 다시 말씀해주세요.";
 	private static final String NO_PET_MESSAGE = "먼저 반려동물을 선택해 주세요.";
 	private static final String SYSTEM_PROMPT = """
@@ -45,15 +51,24 @@ public class TalkService {
 	private final PetWalkRecordRepository petWalkRecordRepository;
 	private final AverageMedicalCostService averageMedicalCostService;
 	private final FutureMedicalCostService futureMedicalCostService;
+	private final StringRedisTemplate stringRedisTemplate;
 
 	public TalkResponse ask(String transcript, Long petId) {
-		String normalizedTranscript = transcript.replaceAll(" ", "");
-
-		if (averageMedicalCostService.isAverageCostQuery(transcript)) {
-			return answerAverageMedicalCostQuery(petId, transcript);
+		String safeTranscript = transcript == null ? "" : transcript.trim();
+		if (safeTranscript.isBlank()) {
+			return new TalkResponse(FALLBACK_MESSAGE);
 		}
 
-		if (futureMedicalCostService.isFutureMedicalCostQuery(transcript)) {
+		Long userId = currentUserService.getCurrentUserId();
+		boolean cacheableShortQuestion = isCacheableShortQuestion(safeTranscript);
+		String cacheKey = cacheableShortQuestion ? buildTalkCacheKey(userId, petId, safeTranscript) : null;
+		String normalizedTranscript = safeTranscript.replaceAll(" ", "");
+
+		if (averageMedicalCostService.isAverageCostQuery(safeTranscript)) {
+			return answerAverageMedicalCostQuery(petId, safeTranscript);
+		}
+
+		if (futureMedicalCostService.isFutureMedicalCostQuery(safeTranscript)) {
 			return answerFutureMedicalCostQuery(petId);
 		}
 
@@ -69,6 +84,13 @@ public class TalkService {
 			return answerMedicalQuery(petId, null);
 		}
 
+		if (cacheableShortQuestion) {
+			String cachedResponse = readTalkCache(cacheKey);
+			if (cachedResponse != null) {
+				return new TalkResponse(cachedResponse);
+			}
+		}
+
 		long backoffMillis = INITIAL_BACKOFF_MILLIS;
 
 		for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
@@ -76,9 +98,13 @@ public class TalkService {
 				String message = ChatClient.create(chatModel)
 					.prompt()
 					.system(SYSTEM_PROMPT)
-					.user(transcript)
+					.user(safeTranscript)
 					.call()
 					.content();
+
+				if (cacheableShortQuestion) {
+					writeTalkCache(cacheKey, message);
+				}
 
 				return new TalkResponse(message);
 			} catch (RuntimeException exception) {
@@ -94,6 +120,49 @@ public class TalkService {
 		}
 
 		return new TalkResponse(FALLBACK_MESSAGE);
+	}
+
+	private boolean isCacheableShortQuestion(String transcript) {
+		if (transcript.length() > 30) {
+			return false;
+		}
+
+		return !transcript.matches(".*\\d.*");
+	}
+
+	private String buildTalkCacheKey(Long userId, Long petId, String transcript) {
+		return "talk:v1:%d:%s:%s".formatted(
+			userId,
+			petId == null ? "none" : petId.toString(),
+			sha256(transcript)
+		);
+	}
+
+	private String sha256(String value) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+			return HexFormat.of().formatHex(hash);
+		} catch (Exception exception) {
+			throw new IllegalStateException("Talk cache key hash 생성에 실패했습니다.", exception);
+		}
+	}
+
+	private String readTalkCache(String cacheKey) {
+		try {
+			return stringRedisTemplate.opsForValue().get(cacheKey);
+		} catch (RuntimeException exception) {
+			log.warn("Redis talk cache read failed", exception);
+			return null;
+		}
+	}
+
+	private void writeTalkCache(String cacheKey, String message) {
+		try {
+			stringRedisTemplate.opsForValue().set(cacheKey, message, TALK_CACHE_TTL);
+		} catch (RuntimeException exception) {
+			log.warn("Redis talk cache write failed", exception);
+		}
 	}
 
 	private TalkResponse answerAverageMedicalCostQuery(Long petId, String transcript) {
