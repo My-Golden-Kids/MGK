@@ -36,6 +36,9 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				// CORS preflight — 브라우저 요청 전 OPTIONS 차단 시 전체 터짐
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+				// monitoring
+				.requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+				.requestMatchers(HttpMethod.GET, "/actuator/prometheus").permitAll()
 				// 인증 없이 접근 가능한 auth 엔드포인트
 				.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/signup").permitAll()
