@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.HexFormat;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -52,6 +53,7 @@ public class TalkService {
 	private final AverageMedicalCostService averageMedicalCostService;
 	private final FutureMedicalCostService futureMedicalCostService;
 	private final StringRedisTemplate stringRedisTemplate;
+	private final MeterRegistry meterRegistry;
 
 	public TalkResponse ask(String transcript, Long petId) {
 		String safeTranscript = transcript == null ? "" : transcript.trim();
@@ -87,8 +89,11 @@ public class TalkService {
 		if (cacheableShortQuestion) {
 			String cachedResponse = readTalkCache(cacheKey);
 			if (cachedResponse != null) {
+				meterRegistry.counter("mgk_talk_cache_hit_total").increment();
 				return new TalkResponse(cachedResponse);
 			}
+
+			meterRegistry.counter("mgk_talk_cache_miss_total").increment();
 		}
 
 		long backoffMillis = INITIAL_BACKOFF_MILLIS;
