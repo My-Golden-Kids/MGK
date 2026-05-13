@@ -88,6 +88,8 @@ jobs:
         run: |
           ssh ec2-user@${{ secrets.WAS_HOST }} "
             export APP_CORS_ALLOWED_ORIGINS='${{ secrets.APP_CORS_ALLOWED_ORIGINS }}' &&
+            export REDIS_HOST='127.0.0.1' &&
+            export REDIS_PORT='6379' &&
             cd /home/ec2-user/workspace/MGK &&
             git restore BE/src/main/resources/application.yml || true &&
             git pull origin origin/release &&
