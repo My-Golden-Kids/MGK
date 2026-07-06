@@ -353,7 +353,9 @@
 </details>
 
 ## 🧱 시스템 구성도
-<img width="800" height="500" alt="최조조종 금쪽같은 내새끼 아키텍처 drawio 1" src="https://github.com/user-attachments/assets/59333022-a968-4dd2-a487-278d1af85653" />
+<img width="906" height="728" alt="MGK_ARCHITECTURE" src="https://github.com/user-attachments/assets/ba1b4cdd-1801-4f02-83a8-bde3bc1cd02b" />
+
+
 
 <br>
 
@@ -372,13 +374,15 @@
 - **JWT 시크릿**: JWT 인증/인가 처리
 - **Google Vision 인증키 경로**: Google Vision OCR 연동
 - **AWS S3 endpoint/bucket 설정**: S3 업로드 URL 발급 및 파일 처리
+- **NginX**: 인증서 처리 및 API 요청 분기
+- **Redis**: TTS 응답(프론트엔드) / LLM(백엔드) 응답 캐시, 토큰 절약 및 응답 속도 증대
+- **RDS(MySQL)**: DB 데이터 저장
 - **Gemini/Google AI 관련 설정**: Spring AI + Gemini 기반 대화 응답 처리, 재정 리포트 및 추천 로직 수행
 
 [외부 연동 서비스]
-- MySQL
+- AWS S3
 - Google Vision OCR
 - Gemini
-- AWS S3
 - Resend
 - Capacitor iOS Health 연동
 
